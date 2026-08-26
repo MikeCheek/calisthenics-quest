@@ -1,0 +1,100 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut as firebaseSignOut,
+  User,
+} from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
+import { fetchUserDoc, createUserDoc } from "@/lib/store";
+import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_SKILLS, UserDoc } from "@/lib/types";
+
+interface AuthContextValue {
+  user: User | null;
+  userDoc: UserDoc | null;
+  loading: boolean;
+  refreshUserDoc: () => Promise<void>;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadUserDoc = async (u: User) => {
+    let doc = await fetchUserDoc(u.uid);
+    if (!doc) {
+      doc = {
+        uid: u.uid,
+        displayName: u.displayName ?? "Athlete",
+        email: u.email ?? "",
+        photoURL: u.photoURL ?? undefined,
+        body: DEFAULT_BODY,
+        skills: DEFAULT_SKILLS,
+        equipment: DEFAULT_EQUIPMENT,
+        goalTracks: [],
+        xpHistory: [],
+        onboarded: false,
+        xp: 0,
+        level: 1,
+        streak: 0,
+        totalSessionsCompleted: 0,
+        missions: [],
+        createdAt: new Date().toISOString(),
+      };
+      await createUserDoc(doc);
+    }
+    setUserDoc(doc);
+  };
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        await loadUserDoc(u);
+      } else {
+        setUserDoc(null);
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const refreshUserDoc = async () => {
+    if (user) await loadUserDoc(user);
+  };
+
+  const signIn = async () => {
+    await signInWithPopup(auth, googleProvider);
+  };
+
+  const signOut = async () => {
+    await firebaseSignOut(auth);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{ user, userDoc, loading, refreshUserDoc, signIn, signOut }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}
