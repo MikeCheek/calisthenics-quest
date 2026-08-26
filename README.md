@@ -109,7 +109,8 @@ real (non-dev) environment, you can install it as an app from the browser's
 
 - **Onboarding** (`/onboarding`) is a 4-step mobile wizard:
   1. **About you** — age/height/weight via scroll-snap pickers (a wheel for
-     age and weight, a tick-marked ruler for height), sex, training days/week,
+     age and weight, a tick-marked ruler for height), sex, which specific
+     days of the week you train (a Sun–Sat toggle row, not just a count),
      and typical session length.
   2. **Where you train** — pull-up bar, parallel bars/dip station, rings,
      wall space, vertical pole/tree, monkey bars, and whether you have any
@@ -141,11 +142,12 @@ real (non-dev) environment, you can install it as an app from the browser's
 - **Plan** (`/plan`) — generates a schedule instead of just today's
   session: pick Today / This week / This month and it lays out each day's
   focus (or rest day) using the same deterministic, equipment- and
-  goal-aware logic as the daily generator, respecting your stated training
-  days per week from onboarding. Tap any day to preview its exercises;
-  today's day links straight into `/training` to actually log it. An
-  optional "Add AI coach notes" toggle calls a small OpenRouter model to
-  write a short intro and one line of encouragement per day — see below.
+  goal-aware logic as the daily generator, using the exact weekdays you
+  picked in onboarding (e.g. "Mon/Wed/Fri") rather than just a count. Tap
+  any day to preview its exercises; today's day links straight into
+  `/training` to actually log it. An optional "Add AI coach notes" toggle
+  calls a small OpenRouter model to write a short intro and one line of
+  encouragement per day — see below.
 - **Pair Up** (`/pair`) — one person creates a 6-character code from their
   profile and the equipment at their spot, the other enters it from their own
   account. Once linked, the app generates a shared-focus session where each
@@ -259,9 +261,11 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
 - Weighted-exercise fallbacks (used when `equipment.weights` is off) live
   alongside their weighted counterparts in `src/lib/trainingData.ts` — search
   for `equipment.weights ?` to find and extend them.
-- The plan generator's rest-day spacing (`isTrainingDay` in
-  `src/lib/planGenerator.ts`) spreads your stated training-days-per-week
-  evenly across each 7-day block; tweak that function to change the pattern.
+- The plan generator's day selection (`isTrainingDay` in
+  `src/lib/planGenerator.ts`) uses your exact chosen weekdays
+  (`body.trainingDaysOfWeek`, a `WeekdayPicker` in onboarding) when set, and
+  falls back to spreading a plain day-count evenly across the week for
+  older accounts that predate that field.
 - XP curve and rank titles are in `src/lib/xp.ts`.
 - Weekly missions are (re)generated in `src/lib/missions.ts`; add new mission
   kinds by extending the `Mission["kind"]` union and `bumpMissions`.

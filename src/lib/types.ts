@@ -40,6 +40,7 @@ export interface BodyProfile {
   sex?: "male" | "female" | "unspecified";
   experienceYears?: number;
   trainingDaysPerWeek?: number;
+  trainingDaysOfWeek?: number[]; // 0=Sun..6=Sat (JS Date.getDay() convention)
   sessionLengthMinutes?: number;
 }
 
@@ -204,6 +205,7 @@ export const DEFAULT_BODY: BodyProfile = {
   sex: "unspecified",
   experienceYears: 1,
   trainingDaysPerWeek: 3,
+  trainingDaysOfWeek: [1, 3, 5], // Mon / Wed / Fri
   sessionLengthMinutes: 45,
 };
 

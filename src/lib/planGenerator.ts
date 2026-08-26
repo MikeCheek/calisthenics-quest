@@ -20,15 +20,23 @@ const RANGE_DAYS: Record<PlanRange, number> = { day: 1, week: 7, month: 30 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Spreads `daysPerWeek` training days as evenly as possible across a 7-day
-// block (e.g. 3/week -> roughly every other day) and marks the rest as
-// rest days. The pattern repeats for every 7-day chunk of the plan.
-function isTrainingDay(indexInWeek: number, daysPerWeek: number): boolean {
+// Fallback for accounts without explicit trainingDaysOfWeek: spreads
+// `daysPerWeek` training days as evenly as possible across a 7-day block
+// (e.g. 3/week -> roughly every other day).
+function isTrainingDaySpread(indexInWeek: number, daysPerWeek: number): boolean {
   if (daysPerWeek >= 7) return true;
   if (daysPerWeek <= 0) return false;
   const slot = Math.round((indexInWeek * daysPerWeek) / 7);
   const nextSlot = Math.round(((indexInWeek + 1) * daysPerWeek) / 7);
   return nextSlot > slot;
+}
+
+function isTrainingDay(date: Date, body: BodyProfile): boolean {
+  if (body.trainingDaysOfWeek && body.trainingDaysOfWeek.length > 0) {
+    return body.trainingDaysOfWeek.includes(date.getDay());
+  }
+  const daysPerWeek = Math.min(7, Math.max(1, body.trainingDaysPerWeek ?? 3));
+  return isTrainingDaySpread(date.getDay(), daysPerWeek);
 }
 
 export function generatePlan(
@@ -40,8 +48,6 @@ export function generatePlan(
   startDate: Date = new Date()
 ): PlanDay[] {
   const totalDays = RANGE_DAYS[range];
-  const daysPerWeek =
-    range === "day" ? 7 : Math.min(7, Math.max(1, body.trainingDaysPerWeek ?? 3));
 
   const days: PlanDay[] = [];
   let trainingCounter = 0;
@@ -52,7 +58,7 @@ export function generatePlan(
     const dateISO = date.toISOString().slice(0, 10);
     const weekday = WEEKDAYS[date.getDay()];
 
-    const training = range === "day" ? true : isTrainingDay(i % 7, daysPerWeek);
+    const training = isTrainingDay(date, body);
 
     if (!training) {
       days.push({ dateISO, weekday, isRestDay: true, session: null });

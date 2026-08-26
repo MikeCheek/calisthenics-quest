@@ -18,6 +18,7 @@ import {
 } from "@/lib/types";
 import ScrollPicker from "@/components/ScrollPicker";
 import SegmentedControl from "@/components/SegmentedControl";
+import WeekdayPicker from "@/components/WeekdayPicker";
 import CalisthenicsFigure from "@/components/CalisthenicsFigure";
 import { ChevronLeft } from "lucide-react";
 
@@ -155,11 +156,10 @@ export default function OnboardingStepper({
             ]}
             onChange={(v) => setBody({ ...body, sex: v as BodyProfile["sex"] })}
           />
-          <SegmentedControl
-            label="Training days per week"
-            value={String(body.trainingDaysPerWeek ?? 3)}
-            options={[2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: String(n) }))}
-            onChange={(v) => setBody({ ...body, trainingDaysPerWeek: Number(v) })}
+          <WeekdayPicker
+            label="Which days do you train?"
+            selected={body.trainingDaysOfWeek ?? []}
+            onChange={(days) => setBody({ ...body, trainingDaysOfWeek: days, trainingDaysPerWeek: days.length })}
           />
           <SegmentedControl
             label="Typical session length"
