@@ -1,17 +1,7 @@
 "use client";
 
 import { SkillProfile } from "@/lib/types";
-
-const STAGE_ORDER: Record<string, string[]> = {
-  frontLever: ["none", "tuck", "advancedTuck", "oneLeg", "straddle", "full"],
-  backLever: ["none", "tuck", "advancedTuck", "straddle", "full"],
-  planche: ["none", "tuck", "advancedTuck", "straddle", "full"],
-  muscleUp: ["none", "band", "single", "multiple"],
-  handstand: ["none", "wall", "freestanding"],
-  humanFlag: ["none", "tuck", "straddle", "full"],
-  pistolSquat: ["none", "assisted", "full"],
-  lSit: ["none", "tuck", "advanced", "full"],
-};
+import { STAGE_ORDER } from "@/lib/stageOrder";
 
 const AXES: { key: keyof SkillProfile; label: string }[] = [
   { key: "frontLever", label: "Front Lever" },

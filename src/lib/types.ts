@@ -85,8 +85,10 @@ export interface Exercise {
   cue?: string; // short coaching cue
 }
 
+export type TrainingSetKind = SkillTrack | "warmup" | "finisher";
+
 export interface TrainingSet {
-  track: SkillTrack;
+  track: TrainingSetKind;
   title: string;
   exercises: Exercise[];
 }

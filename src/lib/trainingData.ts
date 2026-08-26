@@ -3,6 +3,8 @@ import {
   FrontLeverStage,
   BackLeverStage,
   PlancheStage,
+  MuscleUpStage,
+  HandstandStage,
   HumanFlagStage,
   PistolSquatStage,
   LSitStage,
@@ -114,8 +116,8 @@ export const PLANCHE_TABLE: Record<PlancheStage, Exercise[]> = {
 };
 
 // ---- Muscle-up (bar or rings) ----
-export function muscleUpTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
-  const table: Record<string, Exercise[]> = {
+export function muscleUpStageTable(equipment: TrainingEquipment): Record<MuscleUpStage, Exercise[]> {
+  const table: Record<MuscleUpStage, Exercise[]> = {
     none: [
       { name: "High pull-ups (chest to bar)", detail: "4 x 5-6 reps", restSeconds: 120 },
       { name: "Straight bar dips", detail: "4 x 6-8 reps", restSeconds: 90 },
@@ -130,6 +132,7 @@ export function muscleUpTrack(skills: SkillProfile, equipment: TrainingEquipment
       { name: "Strict muscle-ups", detail: "4 x 2-3 reps", restSeconds: 150 },
       { name: "Slow-eccentric muscle-ups", detail: "3 x 3 reps, 5s negative", restSeconds: 150 },
       { name: "False grip pull-ups", detail: "3 x 5 reps", restSeconds: 120 },
+      ...(equipment.rings ? [{ name: "Ring muscle-ups", detail: "3 x 2-3 reps, control the turnover", restSeconds: 150 }] : []),
     ],
     multiple: [
       equipment.weights
@@ -137,38 +140,39 @@ export function muscleUpTrack(skills: SkillProfile, equipment: TrainingEquipment
         : { name: "Muscle-up cluster sets", detail: "4 x max unbroken reps, rest-pause 15s between", restSeconds: 180 },
       { name: "Muscle-up EMOM", detail: "8 min, 1-2 reps per minute", restSeconds: 0 },
       { name: "High muscle-ups (sternum to bar)", detail: "3 x 3-4 reps", restSeconds: 150 },
+      ...(equipment.rings ? [{ name: "Ring muscle-ups", detail: "3 x 2-3 reps, control the turnover", restSeconds: 150 }] : []),
     ],
   };
-  const list = [...table[skills.muscleUp]];
-  if (equipment.rings && (skills.muscleUp === "single" || skills.muscleUp === "multiple")) {
-    list.push({ name: "Ring muscle-ups", detail: "3 x 2-3 reps, control the turnover", restSeconds: 150 });
-  }
-  return list;
+  return table;
+}
+
+export function muscleUpTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
+  return muscleUpStageTable(equipment)[skills.muscleUp];
 }
 
 // ---- Handstand (wall-assisted vs freestanding-only) ----
-export function handstandTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
-  if (skills.handstand === "freestanding") {
-    return [
-      { name: "Freestanding handstand holds", detail: "6-8 x max attempt, accumulate 60-90s", restSeconds: 120 },
-      { name: "Handstand push-ups (parallettes)", detail: "4 x 4-6 reps", restSeconds: 150 },
-      { name: "Handstand press or straddle-to-HS", detail: "3 x 3-5 reps", restSeconds: 150 },
-    ];
-  }
+export function handstandStageTable(equipment: TrainingEquipment): Record<HandstandStage, Exercise[]> {
+  const freestanding: Exercise[] = [
+    { name: "Freestanding handstand holds", detail: "6-8 x max attempt, accumulate 60-90s", restSeconds: 120 },
+    { name: "Handstand push-ups (parallettes)", detail: "4 x 4-6 reps", restSeconds: 150 },
+    { name: "Handstand press or straddle-to-HS", detail: "3 x 3-5 reps", restSeconds: 150 },
+  ];
   if (!equipment.wallSpace) {
-    return skills.handstand === "wall"
-      ? [
-          { name: "Freestanding kick-up attempts", detail: "8-10 attempts", restSeconds: 90 },
-          { name: "Pike push-ups (elevated feet)", detail: "3 x 8-10", restSeconds: 90 },
-          { name: "Crow / frog stand holds", detail: "4 x max hold", restSeconds: 90 },
-        ]
-      : [
-          { name: "Crow / frog stand holds", detail: "4 x max hold", restSeconds: 90 },
-          { name: "Pike push-ups", detail: "3 x 8-10", restSeconds: 90 },
-          { name: "Kick-up attempts (spotted or open grass)", detail: "8-10 attempts", restSeconds: 90 },
-        ];
+    return {
+      none: [
+        { name: "Crow / frog stand holds", detail: "4 x max hold", restSeconds: 90 },
+        { name: "Pike push-ups", detail: "3 x 8-10", restSeconds: 90 },
+        { name: "Kick-up attempts (spotted or open grass)", detail: "8-10 attempts", restSeconds: 90 },
+      ],
+      wall: [
+        { name: "Freestanding kick-up attempts", detail: "8-10 attempts", restSeconds: 90 },
+        { name: "Pike push-ups (elevated feet)", detail: "3 x 8-10", restSeconds: 90 },
+        { name: "Crow / frog stand holds", detail: "4 x max hold", restSeconds: 90 },
+      ],
+      freestanding,
+    };
   }
-  const table: Record<"none" | "wall", Exercise[]> = {
+  return {
     none: [
       { name: "Wall walks", detail: "3 x 3 reps", restSeconds: 90 },
       { name: "Wall handstand holds (chest to wall)", detail: "4 x 20-30s", restSeconds: 90 },
@@ -179,8 +183,12 @@ export function handstandTrack(skills: SkillProfile, equipment: TrainingEquipmen
       { name: "Handstand push-up negatives", detail: "4 x 3-5 reps", restSeconds: 120 },
       { name: "Freestanding kick-up attempts", detail: "5-6 attempts", restSeconds: 90 },
     ],
+    freestanding,
   };
-  return table[skills.handstand as "none" | "wall"];
+}
+
+export function handstandTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
+  return handstandStageTable(equipment)[skills.handstand];
 }
 
 // ---- Human Flag (vertical pole/tree required) ----
@@ -208,8 +216,8 @@ export const HUMAN_FLAG_TABLE: Record<HumanFlagStage, Exercise[]> = {
 };
 
 // ---- Legs — pistol squat progression (no equipment needed, weight optional) ----
-export function legsTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
-  const table: Record<PistolSquatStage, Exercise[]> = {
+export function legsStageTable(equipment: TrainingEquipment): Record<PistolSquatStage, Exercise[]> {
+  return {
     none: [
       { name: "Bodyweight squats", detail: "4 x 15-20 reps", restSeconds: 60 },
       { name: "Split squats", detail: "3 x 10 reps per side", restSeconds: 75 },
@@ -231,7 +239,10 @@ export function legsTrack(skills: SkillProfile, equipment: TrainingEquipment): E
         : { name: "Deficit pistol squats (raised surface)", detail: "3 x 4-5 reps per side", restSeconds: 120 },
     ],
   };
-  return table[skills.pistolSquat];
+}
+
+export function legsTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
+  return legsStageTable(equipment)[skills.pistolSquat];
 }
 
 // ---- Core — L-sit progression (floor or bars) ----

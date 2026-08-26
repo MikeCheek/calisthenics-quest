@@ -8,9 +8,10 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import FriendsPanel from "@/components/FriendsPanel";
+import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { createPairing, joinPairing, sendPing, PairingDoc } from "@/lib/store";
 import { generatePairedSession } from "@/lib/trainingGenerator";
-import { completeSession } from "@/lib/sessionComplete";
+import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { Friend } from "@/lib/types";
 import { Copy, Users } from "lucide-react";
 
@@ -25,6 +26,7 @@ export default function PairPage() {
   const [pairing, setPairing] = useState<PairingDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [invitedName, setInvitedName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,8 +112,9 @@ export default function PairPage() {
 
   const handleComplete = async () => {
     if (!mySession) return;
-    await completeSession(userDoc, mySession, { isPaired: true });
+    const { celebration: c } = await completeSession(userDoc, mySession, { isPaired: true });
     setCompleted(true);
+    setCelebration(c);
     await refreshUserDoc();
   };
 
@@ -127,6 +130,7 @@ export default function PairPage() {
   return (
     <>
       <Nav />
+      <CelebrationOverlay celebration={celebration} />
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
           <Users size={26} className="text-orange-400" /> Pair training

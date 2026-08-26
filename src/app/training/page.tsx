@@ -7,9 +7,14 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import PomodoroTimer from "@/components/PomodoroTimer";
+import DifficultyWheel from "@/components/DifficultyWheel";
+import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
-import { completeSession } from "@/lib/sessionComplete";
+import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { SkillTrack } from "@/lib/types";
+import { WheelTrack } from "@/lib/wheelPool";
+
+const WHEEL_TRACKS: SkillTrack[] = ["frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "legs", "core"];
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
@@ -17,7 +22,9 @@ export default function TrainingPage() {
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
   const [xpGained, setXpGained] = useState<number | null>(null);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -39,15 +46,17 @@ export default function TrainingPage() {
   }
 
   const handleComplete = async () => {
-    const patch = await completeSession(userDoc, session);
+    const { patch, celebration: c } = await completeSession(userDoc, session);
     setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
     setCompleted(true);
+    setCelebration(c);
     await refreshUserDoc();
   };
 
   return (
     <>
       <Nav />
+      <CelebrationOverlay celebration={celebration} />
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="heading text-2xl text-zinc-100">Today&apos;s session</h1>
@@ -102,6 +111,20 @@ export default function TrainingPage() {
         )}
 
         <SessionView session={session} onComplete={handleComplete} completed={completed} />
+
+        <button
+          onClick={() => setShowWheel((s) => !s)}
+          className="w-full text-xs px-3 py-2 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
+        >
+          {showWheel ? "Hide bonus wheel" : "🎲 Spin for a bonus exercise"}
+        </button>
+        {showWheel && (
+          <DifficultyWheel
+            skills={userDoc.skills}
+            equipment={userDoc.equipment}
+            defaultTrack={(WHEEL_TRACKS.includes(focus!) ? focus : "frontLever") as WheelTrack}
+          />
+        )}
       </main>
     </>
   );

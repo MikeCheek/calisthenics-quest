@@ -3,31 +3,69 @@ import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile } from "./store";
 import { levelFromXp } from "./xp";
 
-function isYesterday(dateISO: string): boolean {
-  const d = new Date(dateISO);
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  return d.toDateString() === y.toDateString();
+export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
+
+export interface Celebration {
+  leveledUp: boolean;
+  newLevel: number;
+  streakEvent: StreakEvent;
+  newStreak: number;
+}
+
+export interface CompleteSessionResult {
+  patch: Partial<UserDoc>;
+  celebration: Celebration;
 }
 
 function isToday(dateISO: string): boolean {
   return new Date(dateISO).toDateString() === new Date().toDateString();
 }
 
+function dateOnly(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((dateOnly(b).getTime() - dateOnly(a).getTime()) / 86400000);
+}
+
+// The streak is "frozen" (paused, not broken) through any gap where every
+// day in between was a day the athlete never intended to train, per their
+// chosen weekly schedule. It "unfreezes" — continues rather than resetting
+// — the next time they train on a scheduled day.
+function gapIsAllRestDays(lastDate: Date, today: Date, trainingDaysOfWeek: number[] | undefined): boolean {
+  if (!trainingDaysOfWeek || trainingDaysOfWeek.length === 0) return false;
+  const gap = daysBetween(lastDate, today);
+  for (let i = 1; i < gap; i++) {
+    const d = new Date(lastDate);
+    d.setDate(d.getDate() + i);
+    if (trainingDaysOfWeek.includes(d.getDay())) return false;
+  }
+  return true;
+}
+
+function resolveStreak(userDoc: UserDoc, alreadyLoggedToday: boolean): { streak: number; event: StreakEvent } {
+  if (alreadyLoggedToday) return { streak: userDoc.streak, event: "none" };
+  if (!userDoc.lastSessionDateISO) return { streak: 1, event: "started" };
+
+  const lastDate = new Date(userDoc.lastSessionDateISO);
+  const today = new Date();
+  const gap = daysBetween(lastDate, today);
+
+  if (gap <= 1) return { streak: userDoc.streak + 1, event: "increased" };
+  if (gapIsAllRestDays(lastDate, today, userDoc.body?.trainingDaysOfWeek)) {
+    return { streak: userDoc.streak + 1, event: "unfrozen" };
+  }
+  return { streak: 1, event: "restarted" };
+}
+
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
   opts: { isPaired?: boolean } = {}
-): Promise<Partial<UserDoc>> {
-  const alreadyLoggedToday = userDoc.lastSessionDateISO
-    ? isToday(userDoc.lastSessionDateISO)
-    : false;
-
-  const newStreak = alreadyLoggedToday
-    ? userDoc.streak
-    : userDoc.lastSessionDateISO && isYesterday(userDoc.lastSessionDateISO)
-    ? userDoc.streak + 1
-    : 1;
+): Promise<CompleteSessionResult> {
+  const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
+  const { streak: newStreak, event: streakEvent } = resolveStreak(userDoc, alreadyLoggedToday);
 
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
 
@@ -67,5 +105,16 @@ export async function completeSession(
     });
   }
 
-  return patch;
+  const oldLevel = levelFromXp(userDoc.xp);
+  const newLevel = levelFromXp(totalXp);
+
+  return {
+    patch,
+    celebration: {
+      leveledUp: newLevel > oldLevel,
+      newLevel,
+      streakEvent,
+      newStreak,
+    },
+  };
 }

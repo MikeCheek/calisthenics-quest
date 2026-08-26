@@ -1,11 +1,15 @@
 # BarQuest
 
-A gamified, mobile-first calisthenics training app: tailored sessions generated
-from your body stats, skill stage, and the equipment you actually have at your
-park — XP and levels, weekly missions, skill/XP charts, a pomodoro-style focus
-timer, day/week/month plan generation with optional AI coach notes, a friends
-list with mutual add and nudges, daily training reminders with rotating fun
-punch-lines, and paired training via a share code. Installable as a PWA.
+A gamified, mobile-first calisthenics training app: complete sessions
+(warm-up → main focus → accessory → finisher) tailored to your body stats,
+skill stage, and the equipment you actually have at your park — with a
+per-exercise timer, a spin-the-wheel bonus-exercise picker, live
+easier/harder adjustments, XP and levels with celebration animations,
+streaks that freeze through rest days instead of breaking, weekly missions,
+skill/XP charts, a pomodoro-style focus timer, day/week/month plan
+generation with optional AI coach notes, a friends list with mutual add and
+nudges, daily training reminders with rotating fun punch-lines, and paired
+training via a share code. Installable as a PWA.
 
 ## Stack
 
@@ -123,17 +127,26 @@ real (non-dev) environment, you can install it as an app from the browser's
      Squat, and L-Sit, plus max pull-ups/dips and archer pull-up.
   4. **Your goals** — pick up to 4 skills you most want to progress; those
      focuses show up more often in your training rotation.
-- **Training** (`/training`) generates a session for a rotating daily focus
-  across 10 tracks — Front Lever, Back Lever, Planche, Muscle-Up, Handstand,
-  Human Flag, Pull Strength, Push Strength, Legs, Core — pulled from
-  progression tables keyed to your exact stage. Only focuses your equipment
-  can actually support show up (front lever/back lever/muscle-up/pull
-  strength need a bar; human flag needs a pole; push strength swaps dips for
-  push-ups without bars; handstand swaps wall drills for freestanding/crow
-  work without a wall). Legs and Core always work with nothing but ground
-  space. Goal tracks are marked with a ★ and appear roughly twice as often.
+- **Training** (`/training`) generates a *complete* session for a rotating
+  daily focus across 10 tracks — Front Lever, Back Lever, Planche, Muscle-Up,
+  Handstand, Human Flag, Pull Strength, Push Strength, Legs, Core — pulled
+  from progression tables keyed to your exact stage. Every session has four
+  parts: a **Warm-Up** (generic mobility/activation, rotates daily), the
+  **Main Focus** (the day's skill work — the tables are already ordered from
+  foundational/propedeutic drills up through the harder work for that
+  stage), an **Accessory** block (a complementary strength track), and
+  **Final Hits** (a short conditioning finisher). Only focuses your
+  equipment can actually support show up (front lever/back lever/muscle-up/
+  pull strength need a bar; human flag needs a pole; push strength swaps
+  dips for push-ups without bars; handstand swaps wall drills for
+  freestanding/crow work without a wall). Legs and Core always work with
+  nothing but ground space. Goal tracks are marked with a ★ and appear
+  roughly twice as often. Each exercise has a **Start** button that opens an
+  inline timer already configured for that exercise's sets, reps, and rest
+  (see below), and **−/+** buttons to make it easier or harder on the fly.
   Completing a session awards XP, updates your streak, logs an XP history
-  point, and progresses weekly missions.
+  point, progresses weekly missions, and shows a celebration animation for
+  level-ups and streak milestones.
 - **Dashboard** (`/dashboard`) is a focused home screen: XP bar, streak,
   today's suggested focus, quick actions, and this week's missions.
 - **Profile** (`/profile`) — your detailed stats: an SVG skill radar chart
@@ -161,6 +174,65 @@ real (non-dev) environment, you can install it as an app from the browser's
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first with
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`.
+
+## Exercise timer, the difficulty wheel, and live adjustments
+
+**Per-exercise timer.** Every exercise in a session has a **Start** button.
+Tapping it opens an inline timer parsed straight from that exercise's own
+sets/reps text (`src/lib/exerciseTiming.ts`) — no separate configuration
+step. For timed holds (front lever holds, planche leans, anything with an
+explicit or implied duration) it runs a countdown per set and auto-advances
+through rest into the next set, playing a short tone at each transition; you
+just get back into position and it keeps going. For rep-based exercises
+(where "reps" are inherently self-paced) it instead shows a "Done with this
+set" button — tapping it starts the rest countdown and hands control back to
+you for the next set. Either way, all the sets/rests for that one exercise
+are already wired up correctly from its own data — nothing to configure.
+
+**Difficulty wheel.** Below each session, "🎲 Spin for a bonus exercise"
+opens a spinning wheel (`src/components/DifficultyWheel.tsx`): pick a skill
+and a difficulty — Easier / Your level / Harder, relative to your current
+stage in that skill — and spin. It lands on a random exercise from that
+exact stage's table (one stage down/up from where you are, via
+`src/lib/stageOrder.ts` + `src/lib/wheelPool.ts`), already correctly matched
+sets/reps, with the same Start-timer button as any other exercise. Only the
+8 explicitly-staged skills are offered (front lever, back lever, planche,
+muscle-up, handstand, human flag, pistol squat, L-sit) — pull/push strength
+are rep-count-based rather than staged, so "easier/harder" doesn't map
+cleanly onto them.
+
+**Live difficulty adjustment.** Each exercise also has small **−** / **+**
+buttons next to its sets/reps text. These bump the set count up or down for
+*that one session* only (`src/lib/exerciseTiming.ts`'s `adjustDetail`) — a
+quick "today this felt too easy/too hard" lever, separate from your actual
+skill-stage progression (which you change deliberately in onboarding once
+you've actually improved). A small "adjusted" tag and reset button appear
+once you've changed it.
+
+## Celebration animations
+
+Level-ups and streak milestones show a full-screen animated
+celebration (`src/components/CelebrationOverlay.tsx`) right after you
+complete a session — tap anywhere to dismiss, or it auto-dismisses after a
+couple of seconds. If both happen at once (e.g. a session pushes you to a
+new level *and* extends your streak), they queue and show one after another
+rather than overlapping.
+
+- **Level up** — confetti burst + your new level number.
+- **Streak increased** — a pulsing flame with the new count.
+- **Streak unfrozen** — a distinct animation from a plain increase: this
+  fires when you had a gap since your last session, but *every* day in that
+  gap was a day you'd marked as a rest day (from the weekday picker in
+  onboarding). The streak logic (`src/lib/sessionComplete.ts`,
+  `resolveStreak`) treats scheduled rest days as "frozen" rather than
+  "missed" — so training again on your next scheduled day continues the
+  streak instead of resetting it, and this animation calls that out
+  explicitly rather than looking identical to a normal day-over-day
+  increase.
+- **Streak restarted** — a duller, shake-animated card when the gap
+  included at least one day you *had* scheduled to train but skipped —
+  that's a genuine break, and the streak resets to 1.
+- **Streak started** — the first time you ever complete a session.
 
 ## Training reminders & friend nudges
 
@@ -227,6 +299,28 @@ ignoring your equipment). Keeping that part rule-based and using the model
 only for motivational framing gets the "feels personalized" benefit without
 that risk.
 
+**Robustness.** Free-tier models (especially reasoning-style ones like
+DeepSeek R1 variants) are the least predictable about output format —
+they'll wrap JSON in markdown fences, add a `<think>...</think>` reasoning
+block ahead of the answer, use smart quotes, add a trailing comma, or ramble
+before/after the JSON despite being told not to. The route now defends
+against all of that before giving up: it requests strict JSON mode where the
+model supports it, strips `<think>` blocks and code fences, normalizes smart
+quotes, drops trailing commas, and as a last resort extracts the first
+`{...}` block out of surrounding prose. It also handles the newer
+multi-part `content` array format some providers return instead of a plain
+string.
+
+**Debugging.** Every call logs to the server console (visible in your
+terminal for `next dev`/`next start`, or your host's function logs in
+production) — tagged `[plan-coach]`, always, whether it succeeds or fails.
+That includes the model actually used (OpenRouter's routed model can differ
+from the one you requested), whether the response got cut off by the token
+limit (`finishReason: "length"` — the most common real cause of unparseable
+output, since a truncated response is cut off mid-JSON), and the raw content
+returned. If notes still come back unusable, check those logs first — they
+tell you exactly what the model sent back.
+
 **Setup.** Add to `.env.local` (server-side only — never exposed to the browser):
 
 ```
@@ -255,9 +349,9 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
 - The scroll-snap picker (age/height/weight) is `src/components/ScrollPicker.tsx`;
   the segmented chip selector used for skill stages is
   `src/components/SegmentedControl.tsx`. Both are generic and reusable.
-- The skill radar chart's axis-to-level mapping is in
-  `src/components/SkillRadarChart.tsx` (`STAGE_ORDER`) — add a skill there and
-  to `AXES` to plot it.
+- The skill radar chart's axis-to-level mapping uses `STAGE_ORDER` from
+  `src/lib/stageOrder.ts` (shared with the difficulty wheel) — add a skill
+  there and to `AXES` in `src/components/SkillRadarChart.tsx` to plot it.
 - Weighted-exercise fallbacks (used when `equipment.weights` is off) live
   alongside their weighted counterparts in `src/lib/trainingData.ts` — search
   for `equipment.weights ?` to find and extend them.
@@ -276,3 +370,22 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   `src/components/FriendsPanel.tsx` and `src/components/PingsListener.tsx`.
 - To regenerate the app icons, see the inline Python/PIL script used to build
   `public/icons/*.png` (simple bar-and-figure glyph on a rounded dark square).
+- Warm-up/finisher pools and their date-seeded daily picks are in
+  `src/lib/warmupFinisher.ts`. Session structure (warm-up → main → accessory
+  → finisher) is assembled in `buildSets` in `src/lib/trainingGenerator.ts`.
+- The per-exercise timer's parsing (set count, timed-vs-rep-based, target
+  seconds) and the −/+ adjustment logic are both in
+  `src/lib/exerciseTiming.ts` — it's regex-based against the existing
+  `detail` string formats, so keep new exercise entries in a similar shape
+  ("N x M reps", "N x max hold", "N x Xs", "N min, ...") if you want them to
+  drive the timer correctly.
+- The difficulty wheel's exercise pools come straight from the same stage
+  tables as everything else — `src/lib/wheelPool.ts` just indexes them at an
+  offset stage via `stageAtOffset`. Extending a skill's table automatically
+  extends its wheel pool too.
+- Streak-freeze logic (rest days don't break a streak) and celebration
+  event resolution are both in `resolveStreak` in
+  `src/lib/sessionComplete.ts`. Celebration animations are pure CSS
+  keyframes defined in `src/app/globals.css` (`pop-in`, `flame-pulse`,
+  `thaw`, `gentle-shake`, `confetti-fall`) and rendered by
+  `src/components/CelebrationOverlay.tsx`.

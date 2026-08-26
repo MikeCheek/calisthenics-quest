@@ -20,6 +20,7 @@ import {
   pullStrengthTrack,
   pushStrengthTrack,
 } from "./trainingData";
+import { pickWarmup, pickFinisher } from "./warmupFinisher";
 
 const FOCUS_ORDER: SkillTrack[] = [
   "frontLever",
@@ -144,19 +145,30 @@ function accessoryTrackFor(focus: SkillTrack, equipment: TrainingEquipment): Ski
   return preferred.find((t) => available.includes(t)) ?? available[0] ?? focus;
 }
 
-export function generateSession(
+// Builds a complete session: warm-up -> main skill focus (which itself runs
+// from foundational/propedeutic drills up through the harder work for that
+// stage, since the exercise tables are already ordered that way) ->
+// accessory strength work -> a short finisher.
+function buildSets(
   skills: SkillProfile,
   equipment: TrainingEquipment,
   focus: SkillTrack,
-  date: Date = new Date()
-): TrainingSession {
+  dateISO: string,
+  primaryLabel: string
+): TrainingSet[] {
+  const warmup: TrainingSet = {
+    track: "warmup",
+    title: "Warm-Up",
+    exercises: pickWarmup(dateISO),
+  };
+
   const primary: TrainingSet = {
     track: focus,
-    title: `${FOCUS_LABEL[focus]} — Skill Work`,
+    title: `Main Focus — ${primaryLabel}`,
     exercises: exercisesForTrack(focus, skills, equipment),
   };
 
-  const sets: TrainingSet[] = [primary];
+  const sets: TrainingSet[] = [warmup, primary];
 
   const accessory = accessoryTrackFor(focus, equipment);
   if (accessory !== focus) {
@@ -167,12 +179,30 @@ export function generateSession(
     });
   }
 
+  sets.push({
+    track: "finisher",
+    title: "Final Hits",
+    exercises: [pickFinisher(dateISO, equipment)],
+  });
+
+  return sets;
+}
+
+export function generateSession(
+  skills: SkillProfile,
+  equipment: TrainingEquipment,
+  focus: SkillTrack,
+  date: Date = new Date()
+): TrainingSession {
+  const dateISO = date.toISOString().slice(0, 10);
+  const sets = buildSets(skills, equipment, focus, dateISO, FOCUS_LABEL[focus]);
+
   const totalExercises = sets.reduce((n, s) => n + s.exercises.length, 0);
   const estXp = 20 + totalExercises * 8 + stageXpBonus(skills);
 
   return {
-    id: `${date.toISOString().slice(0, 10)}-${focus}`,
-    dateISO: date.toISOString().slice(0, 10),
+    id: `${dateISO}-${focus}`,
+    dateISO,
     focusLabel: FOCUS_LABEL[focus],
     sets,
     estXp,
@@ -186,27 +216,15 @@ export function generatePairedSession(
   date: Date = new Date()
 ): PairedSession {
   const focus = pickFocus(date, sharedEquipment);
-  const accessory = accessoryTrackFor(focus, sharedEquipment);
+  const dateISO = date.toISOString().slice(0, 10);
 
   const buildSide = (skills: SkillProfile, label: string): TrainingSession => {
-    const primary: TrainingSet = {
-      track: focus,
-      title: `${FOCUS_LABEL[focus]} — ${label}`,
-      exercises: exercisesForTrack(focus, skills, sharedEquipment),
-    };
-    const sets = [primary];
-    if (accessory !== focus) {
-      sets.push({
-        track: accessory,
-        title: `Accessory — ${FOCUS_LABEL[accessory]}`,
-        exercises: exercisesForTrack(accessory, skills, sharedEquipment).slice(0, 2),
-      });
-    }
+    const sets = buildSets(skills, sharedEquipment, focus, dateISO, `${FOCUS_LABEL[focus]} — ${label}`);
     const totalExercises = sets.reduce((n, s) => n + s.exercises.length, 0);
     const estXp = 20 + totalExercises * 8 + stageXpBonus(skills);
     return {
-      id: `${date.toISOString().slice(0, 10)}-${focus}-${label}`,
-      dateISO: date.toISOString().slice(0, 10),
+      id: `${dateISO}-${focus}-${label}`,
+      dateISO,
       focusLabel: FOCUS_LABEL[focus],
       sets,
       estXp,
@@ -218,7 +236,7 @@ export function generatePairedSession(
     focusLabel: FOCUS_LABEL[focus],
     hostSession: buildSide(hostSkills, "Your side"),
     guestSession: buildSide(guestSkills, "Friend's side"),
-    sharedTracks: accessory !== focus ? [focus, accessory] : [focus],
+    sharedTracks: [focus],
   };
 }
 

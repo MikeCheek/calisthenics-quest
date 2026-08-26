@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { playBeep } from "@/lib/sound";
 
 type Phase = "work" | "rest" | "longRest";
 
@@ -22,29 +23,11 @@ export default function PomodoroTimer() {
   const [secondsLeft, setSecondsLeft] = useState(workMin * 60);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const phaseSeconds = (p: Phase) =>
     p === "work" ? workMin * 60 : p === "rest" ? restMin * 60 : longRestMin * 60;
 
-  const beep = () => {
-    try {
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
-      const ctx = audioCtxRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.value = 660;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.4);
-    } catch {
-      // audio not available, ignore
-    }
-  };
+  const beep = () => playBeep();
 
   useEffect(() => {
     if (!running) return;
