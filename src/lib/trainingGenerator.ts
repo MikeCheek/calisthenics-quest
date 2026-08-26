@@ -13,7 +13,7 @@ import {
   BACK_LEVER_TABLE,
   PLANCHE_TABLE,
   HUMAN_FLAG_TABLE,
-  LEGS_TABLE,
+  legsTrack,
   CORE_TABLE,
   muscleUpTrack,
   handstandTrack,
@@ -92,7 +92,7 @@ export function exercisesForTrack(
     case "pushStrength":
       return pushStrengthTrack(skills, equipment);
     case "legs":
-      return LEGS_TABLE[skills.pistolSquat];
+      return legsTrack(skills, equipment);
     case "core":
       return CORE_TABLE[skills.lSit];
   }

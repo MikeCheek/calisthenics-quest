@@ -51,12 +51,20 @@ export default function TrainingPage() {
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="heading text-2xl text-zinc-100">Today&apos;s session</h1>
-          <button
-            onClick={() => setShowTimer((s) => !s)}
-            className="text-xs px-3 py-1.5 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
-          >
-            {showTimer ? "Hide timer" : "Show focus timer"}
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/plan"
+              className="text-xs px-3 py-1.5 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
+            >
+              Plan ahead
+            </Link>
+            <button
+              onClick={() => setShowTimer((s) => !s)}
+              className="text-xs px-3 py-1.5 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
+            >
+              {showTimer ? "Hide timer" : "Show focus timer"}
+            </button>
+          </div>
         </div>
 
         <div>

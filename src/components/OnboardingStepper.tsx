@@ -189,6 +189,8 @@ export default function OnboardingStepper({
               onChange={(v) => setEquipment({ ...equipment, verticalPole: v })} />
             <EquipmentToggle label="Monkey bars" checked={equipment.monkeyBars}
               onChange={(v) => setEquipment({ ...equipment, monkeyBars: v })} />
+            <EquipmentToggle label="Weights (vest, belt, plates, backpack)" checked={equipment.weights}
+              onChange={(v) => setEquipment({ ...equipment, weights: v })} />
           </div>
         </div>
       )}

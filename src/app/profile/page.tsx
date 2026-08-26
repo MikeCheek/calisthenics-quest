@@ -9,6 +9,7 @@ import SkillRadarChart from "@/components/SkillRadarChart";
 import XPHistoryChart from "@/components/XPHistoryChart";
 import { xpProgress, rankTitle } from "@/lib/xp";
 import { TRACK_LABEL } from "@/lib/types";
+import ReminderSettings from "@/components/ReminderSettings";
 
 export default function ProfilePage() {
   const { user, userDoc, loading } = useAuth();
@@ -90,6 +91,7 @@ export default function ProfilePage() {
               ["Wall space", userDoc.equipment.wallSpace],
               ["Vertical pole", userDoc.equipment.verticalPole],
               ["Monkey bars", userDoc.equipment.monkeyBars],
+              ["Weights (vest/belt/plates)", userDoc.equipment.weights],
             ].map(([label, has]) => (
               <span
                 key={label as string}
@@ -102,6 +104,8 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
+
+        <ReminderSettings />
       </main>
     </>
   );

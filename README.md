@@ -3,7 +3,9 @@
 A gamified, mobile-first calisthenics training app: tailored sessions generated
 from your body stats, skill stage, and the equipment you actually have at your
 park — XP and levels, weekly missions, skill/XP charts, a pomodoro-style focus
-timer, and paired training with a friend via a share code. Installable as a PWA.
+timer, day/week/month plan generation with optional AI coach notes, a friends
+list with mutual add and nudges, daily training reminders with rotating fun
+punch-lines, and paired training via a share code. Installable as a PWA.
 
 ## Stack
 
@@ -50,7 +52,37 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /friends/{friendUid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        // both sides of a mutual add need to write: the person adding writes
+        // their own list (auth.uid == uid) AND mirrors the entry into the
+        // other person's list (auth.uid == friendUid, the doc's own id).
+        allow write: if request.auth != null &&
+          (request.auth.uid == uid || request.auth.uid == friendUid);
+      }
+
+      match /pings/{pingId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        // only an established friend can drop a nudge in your inbox
+        allow create: if request.auth != null && request.auth.uid != uid &&
+          request.resource.data.fromUid == request.auth.uid &&
+          exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
+      }
     }
+
+    // minimal public info so friends can be found by code — see PublicProfile
+    match /profiles/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // friend-code -> uid reverse lookup, one doc per user, immutable once set
+    match /usercodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
     match /pairings/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
@@ -80,7 +112,11 @@ real (non-dev) environment, you can install it as an app from the browser's
      age and weight, a tick-marked ruler for height), sex, training days/week,
      and typical session length.
   2. **Where you train** — pull-up bar, parallel bars/dip station, rings,
-     wall space, vertical pole/tree, monkey bars.
+     wall space, vertical pole/tree, monkey bars, and whether you have any
+     weight (a dip belt, weighted vest, plates, or a loaded backpack) —
+     exercises that would otherwise call for weight automatically swap to a
+     bodyweight-only alternative (tempo, deficit, or cluster-set variants)
+     when you don't have any.
   3. **Your skills** — stage pickers for Front Lever, Back Lever, Planche,
      Muscle-Up, Handstand, Human Flag (only if you have a pole), Pistol
      Squat, and L-Sit, plus max pull-ups/dips and archer pull-up.
@@ -102,6 +138,14 @@ real (non-dev) environment, you can install it as an app from the browser's
 - **Profile** (`/profile`) — your detailed stats: an SVG skill radar chart
   across all 8 skills, an XP-over-time line chart, your goal chips, body
   stats, and your equipment list.
+- **Plan** (`/plan`) — generates a schedule instead of just today's
+  session: pick Today / This week / This month and it lays out each day's
+  focus (or rest day) using the same deterministic, equipment- and
+  goal-aware logic as the daily generator, respecting your stated training
+  days per week from onboarding. Tap any day to preview its exercises;
+  today's day links straight into `/training` to actually log it. An
+  optional "Add AI coach notes" toggle calls a small OpenRouter model to
+  write a short intro and one line of encouragement per day — see below.
 - **Pair Up** (`/pair`) — one person creates a 6-character code from their
   profile and the equipment at their spot, the other enters it from their own
   account. Once linked, the app generates a shared-focus session where each
@@ -115,6 +159,88 @@ real (non-dev) environment, you can install it as an app from the browser's
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first with
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`.
+
+## Training reminders & friend nudges
+
+**Reminders** (Profile page → "Training reminders"): toggle on, pick a time,
+and you'll get a local notification once a day with a different fun
+punch-line each time (30+ of them, Duolingo-style, in
+`src/lib/reminderMessages.ts` — add your own there). There's also a "send me
+a test reminder now" button.
+
+**Be aware of a real limitation:** this is implemented with the browser's
+`Notification` API and `setTimeout`, scheduled client-side in
+`src/lib/notifications.ts` — there is no backend push service in this app.
+That means reminders only fire while a tab or installed-PWA instance has been
+open recently enough to keep the timer (or the service worker) alive. It
+will **not** wake up a fully closed app the next day the way a native app's
+push notifications would. For genuinely reliable "notify me even if the app
+is closed" delivery, you'd need to add:
+1. Firebase Cloud Messaging (FCM) — register for a token client-side
+   (`firebase/messaging`, `getToken()`) and store it on the user's doc.
+2. A scheduled Firebase Cloud Function (Cloud Scheduler trigger) that reads
+   everyone's reminder time + FCM token once a minute/hour and calls
+   `admin.messaging().send()` for anyone due.
+
+That's a genuine backend service outside this Next.js app (needs the
+Firebase Blaze plan and a separate `firebase deploy --only functions`), so
+it's intentionally left out of this build rather than shipped half-tested —
+the current local-notification version is fully functional and needs zero
+extra setup, it's just not guaranteed-delivery.
+
+**Friends** (Pair page → top section): every account gets a permanent
+6-character friend code (`users/{uid}.friendCode`, backfilled automatically
+on load if missing). Share it, or enter someone else's, to add each other —
+adding is mutual: it writes to both people's `users/{uid}/friends`
+subcollection in one batch. From your friends list you can:
+- **Nudge** — drops a ping (`users/{uid}/pings`) in their inbox with a random
+  punch-line; if they have the app open, `PingsListener` shows it as a
+  dismissible banner and fires a local notification immediately.
+- **Train together** — creates a pairing code (same mechanism as the
+  standalone "Create a code" flow) and sends a nudge containing that code, so
+  your friend gets pinged with an invite instead of you having to message
+  them the code separately.
+
+## AI coach notes (optional, via OpenRouter)
+
+The Plan page has an optional "Add AI coach notes" toggle. Here's the
+reasoning behind how it's scoped, and why:
+
+**What the LLM does and doesn't do.** The actual training plan — which days
+you train, what focus each day gets, which exercises and how many sets/reps
+— is always produced by the deterministic generator (`src/lib/planGenerator.ts`
++ `src/lib/trainingGenerator.ts`), the same one used everywhere else in the
+app. It's rule-based, matched exactly to your equipment and skill stage, and
+has zero risk of hallucinating an exercise or a rep count. The LLM is called
+*after* that plan already exists, and its only job is to write a short intro
+line and one short encouragement per training day — text, not prescriptions.
+It's given the finished plan and explicitly told not to invent or change any
+exercise. If it returns something that doesn't parse as valid JSON, the app
+just shows the plan without notes rather than guessing.
+
+This is a deliberate scoping decision: letting a general-purpose LLM freely
+prescribe sets/reps/exercise selection in a physical training app is a real
+correctness and safety risk (invented exercise names, unsafe progressions,
+ignoring your equipment). Keeping that part rule-based and using the model
+only for motivational framing gets the "feels personalized" benefit without
+that risk.
+
+**Setup.** Add to `.env.local` (server-side only — never exposed to the browser):
+
+```
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_MODEL=openrouter/free
+```
+
+Get a free key at https://openrouter.ai/keys (no card required).
+`openrouter/free` is OpenRouter's auto-router alias that picks a current
+zero-cost model for you — convenient, but the specific free-tier lineup on
+OpenRouter rotates weekly as providers add/remove models, and free-tier
+requests are rate-limited (roughly 20/min, 50–1000/day depending on account
+history). If you want a fixed model instead of the auto-router, swap in any
+current `:free`-suffixed model ID from https://openrouter.ai/models
+(filter by price). Without this env var set, the toggle just shows a small
+"not configured" note and the rest of the plan works exactly the same.
 
 ## Notes / where to extend
 
@@ -130,8 +256,19 @@ real (non-dev) environment, you can install it as an app from the browser's
 - The skill radar chart's axis-to-level mapping is in
   `src/components/SkillRadarChart.tsx` (`STAGE_ORDER`) — add a skill there and
   to `AXES` to plot it.
+- Weighted-exercise fallbacks (used when `equipment.weights` is off) live
+  alongside their weighted counterparts in `src/lib/trainingData.ts` — search
+  for `equipment.weights ?` to find and extend them.
+- The plan generator's rest-day spacing (`isTrainingDay` in
+  `src/lib/planGenerator.ts`) spreads your stated training-days-per-week
+  evenly across each 7-day block; tweak that function to change the pattern.
 - XP curve and rank titles are in `src/lib/xp.ts`.
 - Weekly missions are (re)generated in `src/lib/missions.ts`; add new mission
   kinds by extending the `Mission["kind"]` union and `bumpMissions`.
+- More reminder punch-lines go in `REMINDER_LINES` in
+  `src/lib/reminderMessages.ts` — it avoids repeating the last one shown.
+- The mutual-friend and ping data layer is in `src/lib/store.ts`
+  (`addFriend`, `listenFriends`, `sendPing`, `listenPings`); the UI is
+  `src/components/FriendsPanel.tsx` and `src/components/PingsListener.tsx`.
 - To regenerate the app icons, see the inline Python/PIL script used to build
   `public/icons/*.png` (simple bar-and-figure glyph on a rounded dark square).

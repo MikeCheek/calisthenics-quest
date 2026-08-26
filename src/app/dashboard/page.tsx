@@ -68,6 +68,14 @@ export default function DashboardPage() {
 
         <MissionList missions={missions} />
 
+        <Link href="/plan" className="panel p-4 flex items-center justify-between">
+          <div>
+            <div className="heading text-base text-zinc-100">Plan ahead</div>
+            <div className="text-sm text-zinc-400">Generate a schedule for the week or month</div>
+          </div>
+          <span className="text-orange-400 text-sm">Open →</span>
+        </Link>
+
         <Link href="/profile" className="panel p-4 flex items-center justify-between">
           <div>
             <div className="heading text-base text-zinc-100">Your progress</div>

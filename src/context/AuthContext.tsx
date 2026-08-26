@@ -14,8 +14,14 @@ import {
   User,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { fetchUserDoc, createUserDoc } from "@/lib/store";
-import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_SKILLS, UserDoc } from "@/lib/types";
+import { fetchUserDoc, createUserDoc, ensureFriendCode } from "@/lib/store";
+import {
+  DEFAULT_BODY,
+  DEFAULT_EQUIPMENT,
+  DEFAULT_NOTIFICATIONS,
+  DEFAULT_SKILLS,
+  UserDoc,
+} from "@/lib/types";
 
 interface AuthContextValue {
   user: User | null;
@@ -46,6 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         equipment: DEFAULT_EQUIPMENT,
         goalTracks: [],
         xpHistory: [],
+        notifications: DEFAULT_NOTIFICATIONS,
+        friendCode: "",
         onboarded: false,
         xp: 0,
         level: 1,
@@ -55,6 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       await createUserDoc(doc);
+    }
+    // Backfills a friend code + public profile for pre-existing accounts too,
+    // and keeps the public profile's level/streak in sync on every load.
+    try {
+      const code = await ensureFriendCode(doc.uid, doc.displayName, doc.photoURL, doc.level, doc.streak);
+      doc = { ...doc, friendCode: code };
+    } catch {
+      // non-fatal — friends features degrade gracefully without a code yet
     }
     setUserDoc(doc);
   };

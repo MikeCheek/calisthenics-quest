@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import PWARegister from "@/components/PWARegister";
+import ReminderScheduler from "@/components/ReminderScheduler";
+import PingsListener from "@/components/PingsListener";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,7 +47,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="font-sans min-h-screen antialiased" suppressHydrationWarning>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <ReminderScheduler />
+          <PingsListener />
+        </AuthProvider>
         <PWARegister />
       </body>
     </html>

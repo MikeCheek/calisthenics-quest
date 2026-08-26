@@ -1,6 +1,7 @@
 import { TrainingSession, UserDoc } from "./types";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
-import { updateProgress } from "./store";
+import { updateProgress, syncPublicProfile } from "./store";
+import { levelFromXp } from "./xp";
 
 function isYesterday(dateISO: string): boolean {
   const d = new Date(dateISO);
@@ -52,5 +53,19 @@ export async function completeSession(
   };
 
   await updateProgress(userDoc.uid, patch);
+
+  if (userDoc.friendCode) {
+    syncPublicProfile({
+      uid: userDoc.uid,
+      displayName: userDoc.displayName,
+      photoURL: userDoc.photoURL,
+      friendCode: userDoc.friendCode,
+      level: levelFromXp(totalXp),
+      streak: newStreak,
+    }).catch(() => {
+      // best-effort — a stale level/streak shown to friends isn't critical
+    });
+  }
+
   return patch;
 }

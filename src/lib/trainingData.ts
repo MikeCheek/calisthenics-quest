@@ -132,7 +132,9 @@ export function muscleUpTrack(skills: SkillProfile, equipment: TrainingEquipment
       { name: "False grip pull-ups", detail: "3 x 5 reps", restSeconds: 120 },
     ],
     multiple: [
-      { name: "Weighted muscle-ups", detail: "4 x 3-4 reps (+5-10kg)", restSeconds: 180 },
+      equipment.weights
+        ? { name: "Weighted muscle-ups", detail: "4 x 3-4 reps (+5-10kg)", restSeconds: 180 }
+        : { name: "Muscle-up cluster sets", detail: "4 x max unbroken reps, rest-pause 15s between", restSeconds: 180 },
       { name: "Muscle-up EMOM", detail: "8 min, 1-2 reps per minute", restSeconds: 0 },
       { name: "High muscle-ups (sternum to bar)", detail: "3 x 3-4 reps", restSeconds: 150 },
     ],
@@ -205,27 +207,32 @@ export const HUMAN_FLAG_TABLE: Record<HumanFlagStage, Exercise[]> = {
   ],
 };
 
-// ---- Legs — pistol squat progression (no equipment needed) ----
-export const LEGS_TABLE: Record<PistolSquatStage, Exercise[]> = {
-  none: [
-    { name: "Bodyweight squats", detail: "4 x 15-20 reps", restSeconds: 60 },
-    { name: "Split squats", detail: "3 x 10 reps per side", restSeconds: 75 },
-    { name: "Box / bench pistol negatives", detail: "3 x 5 reps per side, slow lower", restSeconds: 90 },
-    { name: "Calf raises", detail: "3 x 15-20 reps", restSeconds: 60 },
-  ],
-  assisted: [
-    { name: "Assisted pistol squats (rail/bar support)", detail: "4 x 5-6 reps per side", restSeconds: 90 },
-    { name: "Bulgarian split squats", detail: "3 x 8-10 reps per side", restSeconds: 90 },
-    { name: "Cossack squats", detail: "3 x 6-8 reps per side", restSeconds: 90 },
-    { name: "Single-leg glute bridges", detail: "3 x 10 reps per side", restSeconds: 75 },
-  ],
-  full: [
-    { name: "Pistol squats", detail: "4 x 5-6 reps per side", restSeconds: 120 },
-    { name: "Shrimp squat progression", detail: "3 x 4-5 reps per side", restSeconds: 120 },
-    { name: "Jump squats", detail: "3 x 8 reps", restSeconds: 90 },
-    { name: "Weighted pistol squats", detail: "3 x 4-5 reps per side", restSeconds: 120 },
-  ],
-};
+// ---- Legs — pistol squat progression (no equipment needed, weight optional) ----
+export function legsTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
+  const table: Record<PistolSquatStage, Exercise[]> = {
+    none: [
+      { name: "Bodyweight squats", detail: "4 x 15-20 reps", restSeconds: 60 },
+      { name: "Split squats", detail: "3 x 10 reps per side", restSeconds: 75 },
+      { name: "Box / bench pistol negatives", detail: "3 x 5 reps per side, slow lower", restSeconds: 90 },
+      { name: "Calf raises", detail: "3 x 15-20 reps", restSeconds: 60 },
+    ],
+    assisted: [
+      { name: "Assisted pistol squats (rail/bar support)", detail: "4 x 5-6 reps per side", restSeconds: 90 },
+      { name: "Bulgarian split squats", detail: "3 x 8-10 reps per side", restSeconds: 90 },
+      { name: "Cossack squats", detail: "3 x 6-8 reps per side", restSeconds: 90 },
+      { name: "Single-leg glute bridges", detail: "3 x 10 reps per side", restSeconds: 75 },
+    ],
+    full: [
+      { name: "Pistol squats", detail: "4 x 5-6 reps per side", restSeconds: 120 },
+      { name: "Shrimp squat progression", detail: "3 x 4-5 reps per side", restSeconds: 120 },
+      { name: "Jump squats", detail: "3 x 8 reps", restSeconds: 90 },
+      equipment.weights
+        ? { name: "Weighted pistol squats", detail: "3 x 4-5 reps per side", restSeconds: 120 }
+        : { name: "Deficit pistol squats (raised surface)", detail: "3 x 4-5 reps per side", restSeconds: 120 },
+    ],
+  };
+  return table[skills.pistolSquat];
+}
 
 // ---- Core — L-sit progression (floor or bars) ----
 export const CORE_TABLE: Record<LSitStage, Exercise[]> = {
@@ -269,13 +276,17 @@ export function pullStrengthTrack(skills: SkillProfile, equipment: TrainingEquip
   } else if (pullUpMaxReps < 12 || !archerPullUp) {
     list = [
       { name: "Archer pull-ups", detail: "4 x 3-4 reps per side", restSeconds: 120 },
-      { name: "Weighted pull-ups", detail: "3 x 5 reps (+5-10kg)", restSeconds: 150 },
+      equipment.weights
+        ? { name: "Weighted pull-ups", detail: "3 x 5 reps (+5-10kg)", restSeconds: 150 }
+        : { name: "L-sit pull-ups", detail: "3 x 5 reps", restSeconds: 150 },
       { name: "Typewriter pull-ups", detail: "3 x 4 reps per side", restSeconds: 120 },
     ];
   } else {
     list = [
       { name: "One-arm chin negatives", detail: "4 x 2-3 reps per side (assisted)", restSeconds: 150 },
-      { name: "Weighted pull-ups", detail: "4 x 4-5 reps (+15-20% bodyweight)", restSeconds: 180 },
+      equipment.weights
+        ? { name: "Weighted pull-ups", detail: "4 x 4-5 reps (+15-20% bodyweight)", restSeconds: 180 }
+        : { name: "Tempo pull-ups (5s up, 3s hold, 5s down)", detail: "3 x 5 reps", restSeconds: 180 },
       { name: "Typewriter pull-ups", detail: "3 x 4-5 reps per side", restSeconds: 150 },
       { name: "Front lever pulls", detail: "3 x 4-5 reps", restSeconds: 150 },
     ];
@@ -303,13 +314,17 @@ export function pushStrengthTrack(skills: SkillProfile, equipment: TrainingEquip
     }
     if (dipMaxReps < 15) {
       return [
-        { name: "Weighted dips", detail: "4 x 6-8 reps", restSeconds: 120 },
+        equipment.weights
+          ? { name: "Weighted dips", detail: "4 x 6-8 reps", restSeconds: 120 }
+          : { name: "Deficit dips (parallettes for extra ROM)", detail: "4 x 6-8 reps", restSeconds: 120 },
         { name: "Slow-tempo dips", detail: "3 x 6 reps, 3s down / 3s up", restSeconds: 90 },
         { name: "Pseudo planche push-ups", detail: "3 x 8-10 reps", restSeconds: 90 },
       ];
     }
     return [
-      { name: "Weighted dips", detail: "4 x 5-6 reps (+15-20% bodyweight)", restSeconds: 150 },
+      equipment.weights
+        ? { name: "Weighted dips", detail: "4 x 5-6 reps (+15-20% bodyweight)", restSeconds: 150 }
+        : { name: "Tempo dips (4s down, 2s up)", detail: "4 x 5-6 reps", restSeconds: 150 },
       { name: "Ring / bar support hold", detail: "3 x max hold", restSeconds: 90 },
       { name: "Planche push-ups", detail: "3 x 5 reps", restSeconds: 150 },
     ];

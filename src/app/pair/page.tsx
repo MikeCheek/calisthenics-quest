@@ -7,9 +7,11 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
-import { createPairing, joinPairing, PairingDoc } from "@/lib/store";
+import FriendsPanel from "@/components/FriendsPanel";
+import { createPairing, joinPairing, sendPing, PairingDoc } from "@/lib/store";
 import { generatePairedSession } from "@/lib/trainingGenerator";
 import { completeSession } from "@/lib/sessionComplete";
+import { Friend } from "@/lib/types";
 import { Copy, Users } from "lucide-react";
 
 type Mode = "choose" | "create" | "join";
@@ -23,6 +25,7 @@ export default function PairPage() {
   const [pairing, setPairing] = useState<PairingDoc | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [invitedName, setInvitedName] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -50,6 +53,25 @@ export default function PairPage() {
       userDoc.skills,
       userDoc.equipment
     );
+    setCode(newCode);
+    setMode("create");
+  };
+
+  const handleTrainTogether = async (friend: Friend) => {
+    const newCode = await createPairing(
+      userDoc.uid,
+      userDoc.displayName,
+      userDoc.body,
+      userDoc.skills,
+      userDoc.equipment
+    );
+    await sendPing(
+      friend.uid,
+      userDoc.uid,
+      userDoc.displayName,
+      `wants to train together — join with code ${newCode}`
+    );
+    setInvitedName(friend.displayName);
     setCode(newCode);
     setMode("create");
   };
@@ -93,6 +115,15 @@ export default function PairPage() {
     await refreshUserDoc();
   };
 
+  const resetToChoose = () => {
+    setMode("choose");
+    setCode("");
+    setPairing(null);
+    setInvitedName(null);
+    setCompleted(false);
+    setError(null);
+  };
+
   return (
     <>
       <Nav />
@@ -101,31 +132,36 @@ export default function PairPage() {
           <Users size={26} className="text-orange-400" /> Pair training
         </h1>
 
+        {!code && mode === "choose" && <FriendsPanel onTrainTogether={handleTrainTogether} />}
+
         {!code && mode === "choose" && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            <button
-              onClick={handleCreate}
-              className="panel rounded-lg p-5 text-left hover:border-orange-500 border border-transparent"
-            >
-              <div className="heading text-lg text-zinc-100 mb-1">Create a code</div>
-              <div className="text-sm text-zinc-400">
-                Generate a code from your profile and send it to a friend.
-              </div>
-            </button>
-            <button
-              onClick={() => setMode("join")}
-              className="panel rounded-lg p-5 text-left hover:border-orange-500 border border-transparent"
-            >
-              <div className="heading text-lg text-zinc-100 mb-1">Join a code</div>
-              <div className="text-sm text-zinc-400">
-                Enter a code your friend shared to link up your session.
-              </div>
-            </button>
+          <div>
+            <div className="text-xs text-zinc-500 mb-2">Or link up with anyone using a one-off code</div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <button
+                onClick={handleCreate}
+                className="panel p-5 text-left hover:border-orange-500 border border-transparent"
+              >
+                <div className="heading text-lg text-zinc-100 mb-1">Create a code</div>
+                <div className="text-sm text-zinc-400">
+                  Generate a code from your profile and send it to anyone.
+                </div>
+              </button>
+              <button
+                onClick={() => setMode("join")}
+                className="panel p-5 text-left hover:border-orange-500 border border-transparent"
+              >
+                <div className="heading text-lg text-zinc-100 mb-1">Join a code</div>
+                <div className="text-sm text-zinc-400">
+                  Enter a code someone shared to link up your session.
+                </div>
+              </button>
+            </div>
           </div>
         )}
 
         {!code && mode === "join" && (
-          <div className="panel rounded-lg p-5 space-y-3">
+          <div className="panel p-5 space-y-3">
             <div className="heading text-lg text-zinc-100">Enter code</div>
             <input
               value={joinInput}
@@ -141,13 +177,20 @@ export default function PairPage() {
             >
               Link up
             </button>
+            <button onClick={resetToChoose} className="w-full text-xs text-zinc-500">
+              Back
+            </button>
           </div>
         )}
 
         {code && !bothReady && (
-          <div className="panel rounded-lg p-6 text-center space-y-3">
+          <div className="panel p-6 text-center space-y-3">
             <div className="text-sm text-zinc-400">
-              {isHost === false ? "Waiting for the host..." : "Share this code with your friend"}
+              {isHost === false
+                ? "Waiting for the host..."
+                : invitedName
+                ? `Nudge sent to ${invitedName} — waiting for them to join`
+                : "Share this code with whoever you're training with"}
             </div>
             <div className="flex items-center justify-center gap-2">
               <div className="stat-mono text-4xl tracking-[0.3em] text-orange-400">{code}</div>
@@ -160,14 +203,17 @@ export default function PairPage() {
               </button>
             </div>
             <div className="text-xs text-zinc-500">
-              Waiting for your friend to enter this code on their device...
+              Waiting for them to enter this code on their device...
             </div>
+            <button onClick={resetToChoose} className="text-xs text-zinc-500">
+              Cancel
+            </button>
           </div>
         )}
 
         {paired && mySession && theirSession && (
           <div className="space-y-4">
-            <div className="panel rounded-lg p-3 text-sm text-zinc-400">
+            <div className="panel p-3 text-sm text-zinc-400">
               Linked with <span className="text-zinc-100">{partnerName}</span> — today&apos;s
               shared focus: <span className="text-orange-400">{paired.focusLabel}</span>. You
               each get exercises matched to your own skill stage, based on the equipment at{" "}

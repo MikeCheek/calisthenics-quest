@@ -52,6 +52,7 @@ export interface TrainingEquipment {
   wallSpace: boolean; // wall for handstand work
   verticalPole: boolean; // pole or sturdy tree for human flag
   monkeyBars: boolean; // grip / traverse work
+  weights: boolean; // dip belt, weight vest, plates, or a loaded backpack
 }
 
 export const DEFAULT_EQUIPMENT: TrainingEquipment = {
@@ -61,6 +62,7 @@ export const DEFAULT_EQUIPMENT: TrainingEquipment = {
   wallSpace: true,
   verticalPole: false,
   monkeyBars: false,
+  weights: false,
 };
 
 export type SkillTrack =
@@ -122,6 +124,16 @@ export interface XPHistoryPoint {
   xp: number;
 }
 
+export interface NotificationPrefs {
+  enabled: boolean;
+  time: string; // "HH:MM", 24h local time
+}
+
+export const DEFAULT_NOTIFICATIONS: NotificationPrefs = {
+  enabled: false,
+  time: "18:00",
+};
+
 export interface UserDoc {
   uid: string;
   displayName: string;
@@ -139,7 +151,36 @@ export interface UserDoc {
   totalSessionsCompleted: number;
   missions: Mission[];
   xpHistory: XPHistoryPoint[];
+  notifications: NotificationPrefs;
+  friendCode: string;
   createdAt: string;
+}
+
+// Minimal public-facing profile, readable by any signed-in user, so friends
+// can be found by code and shown in each other's friends list without
+// exposing skills/equipment/body stats (those stay in the private users/{uid} doc).
+export interface PublicProfile {
+  uid: string;
+  displayName: string;
+  photoURL?: string;
+  friendCode: string;
+  level: number;
+  streak: number;
+}
+
+export interface Friend {
+  uid: string;
+  displayName: string;
+  photoURL?: string;
+  addedAtISO: string;
+}
+
+export interface Ping {
+  id: string;
+  fromUid: string;
+  fromName: string;
+  message: string;
+  createdAtISO: string;
 }
 
 export const DEFAULT_SKILLS: SkillProfile = {
