@@ -148,14 +148,16 @@ real (non-dev) environment, you can install it as an app from the browser's
      a loaded backpack) — exercises that would otherwise call for weight or
      bands automatically swap to what you actually have.
   3. **Your level** — an adaptive placement quiz rather than manually
-     setting all 50 skills: pick a self-described tier (Just starting out /
-     Can do a few things / Can do some solid things / Expert), answer up to
-     8 concrete yes/no questions calibrated to that tier ("can you hold a
-     tuck front lever for 5+ seconds?"), and land on a computed level and
-     rank. See "The placement quiz" below for the full design — including
-     the always-available manual escape hatch for people who'd rather set
-     every skill by hand, which is exactly the old flow this replaced. Also
-     collects max pull-ups/dips and archer pull-up.
+     setting all 50 skills: it starts with one easy and one hard yes/no
+     question to bracket your whole range immediately, then keeps asking
+     whatever question narrows that bracket fastest, real questions with a
+     real checkable bar ("can you hold a tuck front lever for 5+
+     seconds?") — stopping the moment it's confident, not after a fixed
+     count, so it's often just 2-6 questions. See "The placement quiz"
+     below for the full design — including the always-available manual
+     escape hatch for people who'd rather set every skill by hand, which is
+     exactly the old flow this replaced. Also collects max pull-ups/dips
+     and archer pull-up.
   4. **Your goals** — pick up to 4 skills you most want to progress; those
      focuses show up more often in your training rotation.
 - **Training** (`/training`) generates a *complete* session for a rotating
@@ -322,32 +324,48 @@ show a checkmark; your current level gets a pulsing highlight.
 
 ## The placement quiz (`SkillAssessmentStep.tsx`)
 
-Onboarding's old "set all 50 skills manually" step is now a quick adaptive
-quiz by default — manually setting every skill is still fully available,
-just no longer the first thing you see.
+Onboarding's old "set all 50 skills manually" step is now a genuinely
+adaptive quiz by default — manually setting every skill is still fully
+available, just no longer the first thing you see.
 
-1. **Pick a tier.** Four self-described options — "Just starting out,"
-   "Can do a few things," "Can do some solid things," "Expert / very
-   experienced" — each with a one-line hint, not a rigid definition.
-2. **Answer up to 8 concrete questions**, one at a time with its own mini
-   progress bar. Every question is calibrated to that tier and is a real
-   yes/no with a checkable bar — never "are you flexible?", always "can you
-   hold a tuck front lever for 5+ seconds?" (`src/lib/diagnosticQuestions.ts`
-   — 32 questions total, 8 per tier, each mapped to one exact `(skill,
-   stage)` pair; every single one is cross-checked at dev time against the
-   real stage tables the same way the trophy road's milestones are, so a
-   typo'd stage name can't silently no-op). A "yes" records that skill at
-   mastery 4 (Consistent) — specific enough to trust, short of claiming
-   outright mastery; a "no" leaves that skill exactly where it already was,
-   never a downgrade.
-3. **See the result.** The computed level isn't a separate formula — the
-   quiz-derived skills are fed straight through the same `effectiveLevel`
-   floor system the trophy road already uses, so the number you land on and
-   the trophy road can never disagree. The result screen states plainly
-   that this is a starting point, not a strict lock-in.
+**This isn't a fixed question list — it's a real-time bisection.** The
+question pool (`src/lib/diagnosticQuestions.ts`, 32 questions total) spans
+the whole difficulty range, and every question's difficulty is the *exact
+same number* the trophy road uses for that skill+stage
+(`levelForSkillStage` — one source of truth, so the quiz and the road can
+never disagree). The engine:
+
+1. **Asks the easiest question in the whole pool first, then the hardest
+   one second** — deliberately bracketing the full range in the first two
+   questions rather than guessing near the middle, so the algorithm knows
+   almost immediately whether it's talking to a rank beginner, a
+   near-expert, or someone in between.
+2. **From question 3 onward, always asks whatever remaining question sits
+   closest to the midpoint of the current bracket.** A "yes" raises the
+   confirmed floor; a "no" lowers the confirmed ceiling; the bracket only
+   ever narrows, never re-widens.
+3. **Stops the moment the bracket is tight enough** (currently an 8-level
+   window) **— never a fixed count.** In practice this means someone who
+   answers "no" to both the easiest and hardest question converges in as
+   few as 2 questions (`nextQuestion` in `diagnosticQuestions.ts` returns
+   `null` the instant the bracket is tight, the pool runs dry, or a 12-question
+   safety cap is hit — whichever comes first). I ran this against simulated
+   athletes across the full range before shipping it: a true beginner and a
+   complete expert both converged in exactly 2 questions; someone in the
+   middle took 5.
+
+Every question is a real, checkable yes/no — never "are you flexible?",
+always "can you hold a tuck front lever for 5+ seconds?" A "yes" records
+that skill at mastery 4 (Consistent) — specific enough to trust, short of
+claiming outright mastery; a "no" leaves that skill exactly where it
+already was, never a downgrade. **The bracket itself is only used to decide
+which question to ask next** — the level you actually land on is computed
+by feeding whichever skills got confirmed through the same `effectiveLevel`
+floor system everything else in the app uses, so it's grounded in real
+skill claims rather than an abstract number.
 
 **The manual picker never went away.** "Prefer to set every skill
-yourself?" on the tier screen, and "Fine-tune" on the result screen, both
+yourself?" on the intro screen, and "Fine-tune" on the result screen, both
 drop straight into the original full 50-skill `SkillTabPicker` — the same
 component, same gated mastery selector, same live level indicator it always
 had. The quiz is the new default path, not a replacement for precision.
@@ -904,12 +922,16 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   tunable if the gesture feels too sensitive or not sensitive enough on a
   given device.
 - To add or change a placement-quiz question, edit `DIAGNOSTIC_QUESTIONS`
-  in `src/lib/diagnosticQuestions.ts` — each entry is just `{ tier, text,
-  skill, stage }`; there's no separate registration step. The mastery a
-  "yes" records (`QUIZ_MASTERY`, currently 4) and the number of questions
-  per tier (currently 8, capped by how many entries exist for that tier)
-  are both adjustable there too. Same cross-check discipline as everywhere
-  else in the skill system applies: a typo'd stage name won't be caught by
+  in `src/lib/diagnosticQuestions.ts` — each entry is just `{ id, text,
+  skill, stage }`; its difficulty is computed automatically from the
+  trophy road (`levelForSkillStage`), not set by hand, so a new question
+  slots into the bisection at the right point without any extra work. The
+  mastery a "yes" records (`QUIZ_MASTERY`, currently 4), the convergence
+  window that decides when to stop (`CONVERGENCE_WINDOW`, currently 8
+  levels — smaller means more questions but a tighter final bracket), and
+  the safety cap on total questions (`MAX_QUESTIONS`, currently 12) are all
+  adjustable there too. Same cross-check discipline as everywhere else in
+  the skill system applies: a typo'd stage name won't be caught by
   TypeScript (the field is a plain string), so re-run a check like the ones
   used elsewhere in this codebase against `STAGE_ORDER` if you add
   questions.
