@@ -120,6 +120,19 @@ real (non-dev) environment, you can install it as an app from the browser's
 
 ## How it works
 
+- **Landing page** (`/`, signed-out visitors only) — no longer just a
+  sign-in button. A **live bonus wheel demo** (`LandingWheelDemo.tsx`) lets
+  anyone spin for a real exercise across 12 curated skills — same pool
+  logic as the real wheel, same exercise timer, same AI tip button —
+  entirely without an account (it spins against `DEFAULT_SKILLS`/
+  `DEFAULT_EQUIPMENT` at a beginner-appropriate difficulty, and doesn't
+  award XP since there's no account to award it to). Below that, a
+  **progress preview** (`LandingProgressPreview.tsx`) shows what tracking
+  actually looks like — a level/streak card, the skill radar chart, and a
+  trophy-road snippet — using clearly-labeled fabricated example data, not
+  live or real in any way. A feature grid and a second sign-in CTA close
+  out the page. Signed-in visitors still get redirected straight past all
+  of this to `/dashboard` or `/onboarding` as before.
 - **Onboarding** (`/onboarding`) is a 4-step mobile wizard:
   1. **About you** — age/height/weight via scroll-snap pickers (a wheel for
      age and weight, a tick-marked ruler for height), sex, which specific
@@ -196,7 +209,18 @@ real (non-dev) environment, you can install it as an app from the browser's
   links and (for the trophy road) the clickable level badge.
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first with
   app-shell caching) + generated icons in `public/icons/`. Registered from
-  `src/components/PWARegister.tsx`.
+  `src/components/PWARegister.tsx`. `display: "standalone"` plus a
+  `display_override` fallback list keep the installed app's browser address
+  bar hidden across engines; `appleWebApp.statusBarStyle:
+  "black-translucent"` gives the same effect on iOS but draws page content
+  underneath the status bar, so `env(safe-area-inset-top)` padding is
+  applied globally at the `body` level in `globals.css` (a no-op in a
+  normal browser tab, non-zero once installed) to keep content clear of the
+  notch/status bar on every page, not just ones using the shared `Nav`.
+  **If you change manifest/meta PWA settings, existing installs won't pick
+  them up automatically** — uninstall and reinstall the PWA (remove it from
+  the home screen, revisit the site, install again) to see changes; this is
+  a platform limitation, not a bug in the app.
 
 ## The 50 skills, and how they fit together
 
@@ -421,7 +445,16 @@ difficulty (Easier / Your level / Harder), then spin. The exercise pool
 isn't just one stage's 3 exercises — it combines exercises from *every*
 stage of that skill, weighted so stages near your chosen difficulty come up
 more often without excluding the rest (`wheelPoolWeighted` in
-`src/lib/wheelPool.ts`), landing on 20+ possible segments.
+`src/lib/wheelPool.ts`), landing on 20+ possible segments. A "🔀 Randomize
+skill too" button next to Spin picks a random skill *and* difficulty from
+whatever you have equipment for, then spins immediately — for when you want
+the skill itself to be part of the chance too, not just the exercise and
+modifier (`spinRandomSkill` in `src/app/wheel/page.tsx`). Both this and the
+regular Spin button funnel into the same `runSpin(pool)`, which takes the
+exercise pool as an explicit argument rather than reading it from state —
+that's what avoids a re-render race between "the skill/difficulty just
+changed" and "the pool for the wheel visual just got set," since both
+updates land in the same React batch as the spin actually starting.
 
 The bonus/malus system sits **above** the wheel as two side-by-side
 vertical reels — a modifier *type* on the left, its *quantity* on the
@@ -701,3 +734,10 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   aren't themselves exact `LEVEL_PATH` nodes (interpolating from the
   nearest tracked milestone at or above that difficulty) — used to gate
   mastery on stages the road doesn't explicitly list.
+- The landing page's demo skill list (`DEMO_SKILLS` in
+  `LandingWheelDemo.tsx`) is a hand-picked 12 out of the full 50 — add or
+  swap entries there for different variety. Its mock progress data
+  (`MOCK_SKILLS`/`MOCK_LEVEL`/`MOCK_MILESTONES` in
+  `LandingProgressPreview.tsx`) is hardcoded and intentionally static —
+  it's a marketing preview, not a simulation, so it never needs to match
+  any real leveling math.

@@ -22,6 +22,12 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "BarQuests",
   },
+  other: {
+    // Chromium's older/alternate check for standalone display, alongside
+    // the manifest — belt-and-suspenders so an installed PWA never shows
+    // the browser's address bar regardless of exact engine/version.
+    "mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

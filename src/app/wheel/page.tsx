@@ -26,7 +26,7 @@ import {
 } from "@/lib/wheelModifiers";
 import { awardXp, Celebration } from "@/lib/sessionComplete";
 import { playBeep } from "@/lib/sound";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Shuffle } from "lucide-react";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -138,12 +138,33 @@ function WheelContent() {
     .map((_, i) => `${WEDGE_COLORS[i % WEDGE_COLORS.length]} ${i * anglePer}deg ${(i + 1) * anglePer}deg`)
     .join(", ");
 
-  const spin = () => {
-    if (spinPhase !== "idle" || currentPool.length === 0) return;
+  const spin = () => runSpin(currentPool);
+
+  const spinRandomSkill = () => {
+    if (spinPhase !== "idle" || availableSkills.length === 0) return;
+    const randomSkill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+    const randomDifficulty = ([-1, 0, 1] as const)[Math.floor(Math.random() * 3)];
+    const pool = wheelPoolWeighted(randomSkill, userDoc.skills, userDoc.equipment, randomDifficulty);
+    setTrack(randomSkill);
+    setDifficulty(randomDifficulty);
+    setSuggestionDismissed(false);
+    setDisplayPool(pool);
+    // runSpin sets spinPhase to "spinning" synchronously in this same
+    // event handler, so the pool-recompute effect above (which only fires
+    // while idle) never gets a chance to reshuffle what we just set here —
+    // both updates land in the same React batch.
+    runSpin(pool);
+  };
+
+  const runSpin = (pool: Exercise[]) => {
+    if (spinPhase !== "idle" || pool.length === 0) return;
     timers.current.forEach(clearTimeout);
     timers.current = [];
 
-    spinPoolRef.current = currentPool;
+    const segs = Math.max(1, pool.length);
+    const anglePerSeg = 360 / segs;
+
+    spinPoolRef.current = pool;
     setLandedExercise(null);
     setRevealedType(null);
     setRevealedQuantity(null);
@@ -156,11 +177,11 @@ function WheelContent() {
 
     // Pre-select every winner up front so each reel's reveal is just a
     // scheduled disclosure of an already-decided outcome.
-    const winnerExerciseIdx = Math.floor(Math.random() * currentPool.length);
+    const winnerExerciseIdx = Math.floor(Math.random() * pool.length);
     const winnerType = pickRandomModifierType();
     const winnerQuantity = pickRandomQuantity(winnerType);
 
-    const winnerCenter = winnerExerciseIdx * anglePer + anglePer / 2;
+    const winnerCenter = winnerExerciseIdx * anglePerSeg + anglePerSeg / 2;
     const target = (360 - winnerCenter) % 360;
     const base = rotation - (rotation % 360);
     setRotation(base + 360 * 6 + target);
@@ -343,13 +364,22 @@ function WheelContent() {
             </div>
 
             {spinPhase === "idle" && (
-              <button
-                onClick={spin}
-                disabled={currentPool.length === 0}
-                className="px-8 py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-50"
-              >
-                🎰 Spin
-              </button>
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={spin}
+                  disabled={currentPool.length === 0}
+                  className="px-8 py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-50"
+                >
+                  🎰 Spin
+                </button>
+                <button
+                  onClick={spinRandomSkill}
+                  disabled={availableSkills.length === 0}
+                  className="text-xs px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Shuffle size={12} /> Randomize skill too
+                </button>
+              </div>
             )}
             {spinPhase === "spinning" && (
               <div className="text-sm text-zinc-400 animate-pulse">Spinning...</div>

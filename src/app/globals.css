@@ -13,6 +13,12 @@
 html, body {
   background-color: #09090b; /* zinc-950 */
   color: #f4f4f5; /* zinc-100 */
+  /* Keeps content clear of the notch/status bar in installed-PWA
+     standalone mode (env() is 0px in a normal browser tab, so this is a
+     no-op there). Applied globally rather than per-header so every page
+     — including ones without the shared Nav, like onboarding and the
+     landing page — is covered automatically. */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Simple, calm heading style — no uppercase/stencil branding */
@@ -43,6 +49,10 @@ html, body {
 
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 @keyframes pop-in {
