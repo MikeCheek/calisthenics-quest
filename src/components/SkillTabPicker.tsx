@@ -9,6 +9,13 @@ const SKILL_ORDER: StagedSkillKey[] = [
   "oneArmPullUp", "oneArmPushUp", "oneArmHandstand", "handstandPushUp",
   "dragonFlag", "elbowLever", "manna", "nordicCurl", "shrimpSquat",
   "ironCross", "maltese", "impossibleDip",
+  "chestToBarPullUp", "wideGripPullUp", "typewriterPullUp", "toesToBar", "lSitPullUp",
+  "skinTheCat", "germanHang", "flagPullUp", "ringMuscleUp", "ninetyDegreePushUp",
+  "clapPushUp", "kipUp", "handstandWalk", "wallWalk", "pikePress",
+  "supermanHold", "sidePlank", "copenhagenPlank", "bridge", "turkishGetUp",
+  "jumpPistol", "sissySquat", "cossackSquat", "ropeClimb",
+  "backFlip", "frontFlip", "windmill", "aroundTheWorld",
+  "invertedCross", "victorianCross",
 ];
 
 export default function SkillTabPicker({

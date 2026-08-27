@@ -68,6 +68,14 @@ export default function DashboardPage() {
 
         <MissionList missions={missions} />
 
+        <Link href="/path" className="panel p-4 flex items-center justify-between border-orange-500/30">
+          <div>
+            <div className="heading text-base text-zinc-100">Trophy road</div>
+            <div className="text-sm text-zinc-400">All 50 skills, mapped across every level</div>
+          </div>
+          <span className="text-orange-400 text-sm">Open →</span>
+        </Link>
+
         <Link href="/plan" className="panel p-4 flex items-center justify-between">
           <div>
             <div className="heading text-base text-zinc-100">Plan ahead</div>

@@ -2,10 +2,11 @@
 
 A gamified, mobile-first calisthenics training app: complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
-skill stage — across 20 tracked skills, from Front Lever to Iron Cross and
+skill stage — across 50 tracked skills, from Front Lever to Iron Cross, Victorian Cross, and
 Manna — and the equipment you actually have at your park, including bands
 and weights — with a per-exercise timer, AI-powered technique tips, a
-casino-style bonus wheel with randomized modifiers, live easier/harder
+casino-style bonus wheel with randomized modifiers, a Clash Royale-style
+trophy road mapping every skill milestone across your level, live easier/harder
 adjustments, XP and levels with celebration animations, streaks that freeze
 through rest days instead of breaking, weekly missions, skill/XP charts, a
 pomodoro-style focus timer, day/week/month plan generation with optional AI
@@ -123,14 +124,13 @@ real (non-dev) environment, you can install it as an app from the browser's
      and whether you have any weight (a dip belt, weighted vest, plates, or
      a loaded backpack) — exercises that would otherwise call for weight or
      bands automatically swap to what you actually have.
-  3. **Your skills** — all 20 tracked skills, from the everyday (Front
+  3. **Your skills** — all 50 tracked skills, from the everyday (Front
      Lever, Planche, Muscle-Up, Handstand) through the rarer/advanced ones
-     (Iron Cross, Maltese, One-Arm Pull-Up, One-Arm Handstand, Dragon Flag,
-     Elbow Lever, One-Arm Push-Up, Nordic Curl, Shrimp Squat, Handstand
-     Push-Up, Impossible Dip, Manna). A horizontal scroller picks which
-     skill you're setting (`src/components/SkillTabPicker.tsx`) instead of
-     stacking 20 pickers down the page, plus max pull-ups/dips and archer
-     pull-up.
+     (Iron Cross, Maltese, One-Arm Pull-Up, One-Arm Handstand, Victorian
+     Cross, Manna, and 38 more — see "The 50 skills" below for the full
+     list). A horizontal scroller picks which skill you're setting
+     (`src/components/SkillTabPicker.tsx`) instead of stacking 50 pickers
+     down the page, plus max pull-ups/dips and archer pull-up.
   4. **Your goals** — pick up to 4 skills you most want to progress; those
      focuses show up more often in your training rotation.
 - **Training** (`/training`) generates a *complete* session for a rotating
@@ -156,8 +156,11 @@ real (non-dev) environment, you can install it as an app from the browser's
 - **Dashboard** (`/dashboard`) is a focused home screen: XP bar, streak,
   today's suggested focus, quick actions, and this week's missions.
 - **Profile** (`/profile`) — your detailed stats: an SVG skill radar chart
-  across all 8 skills, an XP-over-time line chart, your goal chips, body
-  stats, and your equipment list.
+  across the 8 foundational skills, a full scrollable list of all 50
+  skills and your stage in each, an XP-over-time line chart, your goal
+  chips, body stats, and your equipment list.
+- **Trophy road** (`/path`) — a Clash Royale-style level path mapping
+  every one of the 50 skills across levels 1–66; see its own section below.
 - **Plan** (`/plan`) — generates a schedule instead of just today's
   session: pick Today / This week / This month and it lays out each day's
   focus (or rest day) using the same deterministic, equipment- and
@@ -181,31 +184,45 @@ real (non-dev) environment, you can install it as an app from the browser's
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`.
 
-## The 20 skills, and how they fit together
+## The 50 skills, and how they fit together
 
 There are two layers, kept deliberately separate:
 
 - **10 macro tracks** (`SkillTrack` in `src/lib/types.ts`) — Front Lever,
   Back Lever, Planche, Muscle-Up, Handstand, Human Flag, Pull Strength, Push
   Strength, Legs, Core. These drive the daily session rotation and goals —
-  keeping the rotation at 10 (rather than 20) means each focus still comes
-  around every few days instead of once every three weeks.
-- **20 individually-progressed skills** (`StagedSkillKey`) — the 8 skills
+  keeping the rotation at 10 (rather than 50) means each focus still comes
+  around every few days instead of once every seven weeks.
+- **50 individually-progressed skills** (`StagedSkillKey`) — the 8 skills
   behind those macro tracks (Front Lever, Back Lever, Planche, Muscle-Up,
-  Handstand, Human Flag, Pistol Squat, L-Sit), plus 12 rarer/advanced ones
-  that aren't part of the daily rotation but are fully tracked, staged, and
-  trainable: Iron Cross, Maltese, One-Arm Pull-Up, One-Arm Handstand,
-  Dragon Flag, Elbow Lever, One-Arm Push-Up, Nordic Curl, Shrimp Squat,
-  Handstand Push-Up, Impossible Dip, and Manna
-  (`src/lib/advancedSkills.ts`). If you're actively working on one of the 12
-  (stage past "none", and you have the equipment it needs — Iron Cross and
-  Maltese want rings, for instance, checked via `advancedSkillAvailable`),
-  a bonus block for it shows up in your regular sessions
-  (`advancedSkillBonusSet`), and all 20 are always spinnable on the bonus
+  Handstand, Human Flag, Pistol Squat, L-Sit), plus 42 more that aren't part
+  of the daily rotation but are fully tracked, staged, and trainable. 12 of
+  those are the original "rarer/advanced" set (Iron Cross, Maltese, One-Arm
+  Pull-Up, One-Arm Handstand, Dragon Flag, Elbow Lever, One-Arm Push-Up,
+  Nordic Curl, Shrimp Squat, Handstand Push-Up, Impossible Dip, Manna —
+  `src/lib/advancedSkills.ts`), and 30 more round it out to 50
+  (`src/lib/advancedSkills2.ts`): Clap Push-Up, Kip-Up, Back Flip, Front
+  Flip, Windmill, Around the World, Handstand Walk, Wall Walk, Superman
+  Hold, Side Plank, Copenhagen Plank, Bridge, Turkish Get-Up, Pike Press,
+  Rope Climb, Skin the Cat, German Hang, Chest-to-Bar Pull-Up, Wide-Grip
+  Pull-Up, Ring Muscle-Up, 90° Push-Up, Jump Pistol, Sissy Squat, Cossack
+  Squat, Flag Pull-Up, L-Sit Pull-Up, Typewriter Pull-Up, Toes-to-Bar,
+  Inverted Cross, and Victorian Cross. To keep 42 skills' worth of data
+  tractable, most of the 30 newest ones share one of two generic
+  progressions (`SimpleSkillStage`: none → developing → full, or
+  `AssistedSkillStage`: none → assisted → developing → full) rather than
+  each getting a bespoke stage vocabulary — the original 20 keep their
+  specific named stages (tuck, straddle, one-leg, etc).
+
+  If you're actively working on one of the 42 (stage past "none", and you
+  have the equipment it needs — Iron Cross and Maltese want rings, Flag
+  Pull-Up wants a pole, and so on, checked via `advancedSkillAvailable`), a
+  bonus block for it shows up in your regular sessions
+  (`advancedSkillBonusSet`), and all 50 are always spinnable on the bonus
   wheel regardless of the daily rotation.
 
 **Progression audit.** A few of the original 8 skills' stage ladders were
-missing a rung — fixed now:
+missing a rung — fixed:
 - Back Lever was missing "one leg" (Front Lever always had it) — added
   between advanced tuck and straddle.
 - Human Flag was missing "advanced tuck" (the single-leg-tuck stage) —
@@ -220,9 +237,61 @@ TypeScript won't catch a table that's missing it (the tables are typed as
 `Record<Stage, Exercise[]>`, so a missing key is a compile error), but a
 *typo'd* stage name in the separate `STAGE_ORDER` map (`src/lib/stageOrder.ts`)
 would silently resolve to nothing at runtime since it's a plain string-keyed
-lookup — worth re-running a quick cross-check if you add or rename a stage
-there (a script for this isn't included, but the check is a few lines: diff
-each `XStage` union in `types.ts` against `STAGE_ORDER[x]`).
+lookup. All 50 skills' stage lists were cross-checked programmatically
+against both their type definitions and `STAGE_ORDER` before shipping (zero
+mismatches) — worth re-running that check if you add or rename a stage;
+it's a few lines: diff each `XStage` union (or `SimpleSkillStage`/
+`AssistedSkillStage`) in `types.ts` against `STAGE_ORDER[x]`.
+
+## Trophy road (`/path`)
+
+A Clash Royale-style level path — every level from 1 up shows what it
+unlocks, grouped into chapters that reuse the same rank titles shown
+elsewhere (`RANK_TITLES` in `src/lib/xp.ts`, so "Chapter 3" on the road and
+your rank badge always agree). The data lives in `src/lib/levelPath.ts`:
+66 milestones spanning levels 1–66, hand-placed so every one of the 50
+skills gets at least one milestone, and the 8 foundational skills (plus a
+few flagship advanced ones) get multiple as they climb toward "full" —
+so leveling up keeps paying off on skills you already have, not just
+handing out new ones. A handful of plain numeric milestones (pull-up/dip
+rep targets) are mixed in for the non-staged strength numbers. Every node's
+skill+stage reference was cross-checked against the real stage tables
+before shipping.
+
+The screen (`src/app/path/page.tsx`) renders chapters highest-to-lowest —
+level 1 ends up at the bottom of the page, higher levels toward the top —
+and auto-scrolls to center your current level on open, so you land right
+where you are rather than at the very bottom every time. Locked milestones
+show a lock icon; passed ones show a checkmark; your current level gets a
+pulsing highlight.
+
+**A scoping decision worth being upfront about:** the trophy road is an
+informational/motivational layer, not an enforcement mechanism. It shows
+what a given level *typically* corresponds to, but it does not gate what
+you can self-report in onboarding, and self-reported skills (not your
+level) are still what the training generator, the bonus wheel, and the
+radar chart actually use to tailor your sessions. Making the trophy road
+the literal source of truth — where you *can't* mark a skill as unlocked
+until you hit the required level, and reps/hold targets on the exercise
+tables actually scale with level rather than being fixed per stage — would
+be a substantial rework touching nearly every existing feature (onboarding,
+the training generator, the wheel, the radar chart, the AI tips) and was
+judged too risky to retrofit safely in one pass. If you want that
+enforcement, the natural next step is: read `LEVEL_PATH` in the onboarding
+save handler to clamp any stage a level hasn't reached yet, and parameterize
+`Exercise.detail` in the stage tables by level rather than hardcoding it.
+
+## Notes / where to extend (skills & path)
+
+- To add a 51st skill: add its `Stage` type (or reuse `SimpleSkillStage`/
+  `AssistedSkillStage`) and a `SkillProfile` field in `types.ts`, add it to
+  `DEFAULT_SKILLS`, `AdvancedSkill`, `ADVANCED_SKILL_LABEL`, and
+  `STAGE_ORDER`; write its exercise table in `advancedSkills2.ts` (or a new
+  file) and register it in `ADVANCED_TABLES` in `advancedSkills.ts`; add it
+  to the `SKILL_ORDER` arrays in `SkillTabPicker.tsx`, the profile page, and
+  the wheel page; optionally give it a `LEVEL_PATH` milestone.
+- The trophy road's chapter grouping is derived from `RANK_TITLES`, not
+  hardcoded — add a rank tier there and the road picks it up automatically.
 
 ## Exercise timer, the bonus wheel, AI tips, and live adjustments
 
@@ -239,7 +308,7 @@ you for the next set. Either way, all the sets/rests for that one exercise
 are already wired up correctly from its own data — nothing to configure.
 
 **Bonus wheel** (`/wheel`, its own screen — linked from the Training page).
-Casino-style: pick any of the 20 skills you have equipment for and a
+Casino-style: pick any of the 50 skills you have equipment for and a
 difficulty (Easier / Your level / Harder), then spin. The pool isn't just
 one stage's 3 exercises — it combines exercises from *every* stage of that
 skill, weighted so stages near your chosen difficulty come up more often

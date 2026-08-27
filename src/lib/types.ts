@@ -33,6 +33,13 @@ export type HandstandPushUpStage = "none" | "negative" | "wallFull" | "freestand
 export type ImpossibleDipStage = "none" | "band" | "negative" | "full";
 export type MannaStage = "none" | "vSit" | "straddle" | "full";
 
+// ---- 30 more skills (rounding out to 50 total). Two shared generic
+// progressions are reused across most of these rather than inventing a
+// unique stage vocabulary for each — keeps the data set tractable while
+// still giving every skill a real none -> full arc.
+export type SimpleSkillStage = "none" | "developing" | "full";
+export type AssistedSkillStage = "none" | "assisted" | "developing" | "full";
+
 export interface SkillProfile {
   frontLever: FrontLeverStage;
   backLever: BackLeverStage;
@@ -54,6 +61,37 @@ export interface SkillProfile {
   handstandPushUp: HandstandPushUpStage;
   impossibleDip: ImpossibleDipStage;
   manna: MannaStage;
+  // 30 more skills
+  clapPushUp: SimpleSkillStage;
+  kipUp: SimpleSkillStage;
+  backFlip: SimpleSkillStage;
+  frontFlip: SimpleSkillStage;
+  windmill: SimpleSkillStage;
+  aroundTheWorld: SimpleSkillStage;
+  handstandWalk: SimpleSkillStage;
+  wallWalk: SimpleSkillStage;
+  supermanHold: SimpleSkillStage;
+  sidePlank: SimpleSkillStage;
+  copenhagenPlank: SimpleSkillStage;
+  bridge: SimpleSkillStage;
+  turkishGetUp: SimpleSkillStage;
+  pikePress: SimpleSkillStage;
+  ropeClimb: SimpleSkillStage;
+  skinTheCat: AssistedSkillStage;
+  germanHang: AssistedSkillStage;
+  chestToBarPullUp: AssistedSkillStage;
+  wideGripPullUp: AssistedSkillStage;
+  ringMuscleUp: AssistedSkillStage;
+  ninetyDegreePushUp: AssistedSkillStage;
+  jumpPistol: AssistedSkillStage;
+  sissySquat: AssistedSkillStage;
+  cossackSquat: AssistedSkillStage;
+  flagPullUp: AssistedSkillStage;
+  lSitPullUp: AssistedSkillStage;
+  typewriterPullUp: AssistedSkillStage;
+  toesToBar: AssistedSkillStage;
+  invertedCross: AssistedSkillStage;
+  victorianCross: AssistedSkillStage;
   pullUpMaxReps: number;
   archerPullUp: boolean;
   dipMaxReps: number;
@@ -107,7 +145,8 @@ export type SkillTrack =
   | "legs"
   | "core";
 
-// All individually-tracked skills, including the 12 rarer/advanced ones —
+// All individually-tracked skills beyond the 8 macro-track ones — the
+// original 12 rarer/advanced skills plus the 30 that round it out to 50 —
 // used for self-assessment, the profile skill list, and the bonus wheel.
 export type AdvancedSkill =
   | "ironCross"
@@ -121,7 +160,37 @@ export type AdvancedSkill =
   | "shrimpSquat"
   | "handstandPushUp"
   | "impossibleDip"
-  | "manna";
+  | "manna"
+  | "clapPushUp"
+  | "kipUp"
+  | "backFlip"
+  | "frontFlip"
+  | "windmill"
+  | "aroundTheWorld"
+  | "handstandWalk"
+  | "wallWalk"
+  | "supermanHold"
+  | "sidePlank"
+  | "copenhagenPlank"
+  | "bridge"
+  | "turkishGetUp"
+  | "pikePress"
+  | "ropeClimb"
+  | "skinTheCat"
+  | "germanHang"
+  | "chestToBarPullUp"
+  | "wideGripPullUp"
+  | "ringMuscleUp"
+  | "ninetyDegreePushUp"
+  | "jumpPistol"
+  | "sissySquat"
+  | "cossackSquat"
+  | "flagPullUp"
+  | "lSitPullUp"
+  | "typewriterPullUp"
+  | "toesToBar"
+  | "invertedCross"
+  | "victorianCross";
 
 export type AnySkill = SkillTrack | AdvancedSkill;
 
@@ -254,6 +323,36 @@ export const DEFAULT_SKILLS: SkillProfile = {
   handstandPushUp: "none",
   impossibleDip: "none",
   manna: "none",
+  clapPushUp: "none",
+  kipUp: "none",
+  backFlip: "none",
+  frontFlip: "none",
+  windmill: "none",
+  aroundTheWorld: "none",
+  handstandWalk: "none",
+  wallWalk: "none",
+  supermanHold: "none",
+  sidePlank: "none",
+  copenhagenPlank: "none",
+  bridge: "none",
+  turkishGetUp: "none",
+  pikePress: "none",
+  ropeClimb: "none",
+  skinTheCat: "none",
+  germanHang: "none",
+  chestToBarPullUp: "none",
+  wideGripPullUp: "none",
+  ringMuscleUp: "none",
+  ninetyDegreePushUp: "none",
+  jumpPistol: "none",
+  sissySquat: "none",
+  cossackSquat: "none",
+  flagPullUp: "none",
+  lSitPullUp: "none",
+  typewriterPullUp: "none",
+  toesToBar: "none",
+  invertedCross: "none",
+  victorianCross: "none",
   pullUpMaxReps: 5,
   archerPullUp: false,
   dipMaxReps: 5,
@@ -297,6 +396,36 @@ export const ADVANCED_SKILL_LABEL: Record<AdvancedSkill, string> = {
   handstandPushUp: "Handstand Push-Up",
   impossibleDip: "Impossible Dip",
   manna: "Manna",
+  clapPushUp: "Clap Push-Up",
+  kipUp: "Kip-Up",
+  backFlip: "Back Flip",
+  frontFlip: "Front Flip",
+  windmill: "Windmill",
+  aroundTheWorld: "Around the World",
+  handstandWalk: "Handstand Walk",
+  wallWalk: "Wall Walk",
+  supermanHold: "Superman Hold",
+  sidePlank: "Side Plank",
+  copenhagenPlank: "Copenhagen Plank",
+  bridge: "Bridge",
+  turkishGetUp: "Turkish Get-Up",
+  pikePress: "Pike Press",
+  ropeClimb: "Rope Climb",
+  skinTheCat: "Skin the Cat",
+  germanHang: "German Hang",
+  chestToBarPullUp: "Chest-to-Bar Pull-Up",
+  wideGripPullUp: "Wide-Grip Pull-Up",
+  ringMuscleUp: "Ring Muscle-Up",
+  ninetyDegreePushUp: "90° Push-Up",
+  jumpPistol: "Jump Pistol",
+  sissySquat: "Sissy Squat",
+  cossackSquat: "Cossack Squat",
+  flagPullUp: "Flag Pull-Up",
+  lSitPullUp: "L-Sit Pull-Up",
+  typewriterPullUp: "Typewriter Pull-Up",
+  toesToBar: "Toes-to-Bar",
+  invertedCross: "Inverted Cross",
+  victorianCross: "Victorian Cross",
 };
 
 export const ANY_SKILL_LABEL: Record<AnySkill, string> = {
@@ -304,7 +433,7 @@ export const ANY_SKILL_LABEL: Record<AnySkill, string> = {
   ...ADVANCED_SKILL_LABEL,
 };
 
-// All 20 individually-progressed skills (SkillProfile's staged fields),
+// All 50 individually-progressed skills (SkillProfile's staged fields),
 // labeled for display — distinct from TRACK_LABEL, since a couple of the
 // 10 macro rotation tracks ("Legs", "Core") don't share a name with the
 // specific skill they're built around (Pistol Squat, L-Sit).
