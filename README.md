@@ -1,4 +1,4 @@
-# BarQuest
+# BarQuests
 
 A gamified, mobile-first calisthenics training app: complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,

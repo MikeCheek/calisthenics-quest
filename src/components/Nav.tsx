@@ -26,7 +26,7 @@ export default function Nav() {
       <header className="border-b border-zinc-800 bg-zinc-950">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
           <Link href="/dashboard" className="heading text-base text-zinc-100 flex items-center gap-1.5">
-            <span className="text-orange-400">▲</span> BarQuest
+            <span className="text-orange-400">▲</span> BarQuests
           </Link>
           <div className="flex items-center gap-3">
             {progress && (

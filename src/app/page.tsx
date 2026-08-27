@@ -19,7 +19,7 @@ export default function LandingPage() {
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
         <div className="text-orange-400 text-4xl mb-2">▲</div>
-        <h1 className="heading text-5xl text-zinc-100 mb-3">BarQuest</h1>
+        <h1 className="heading text-5xl text-zinc-100 mb-3">BarQuests</h1>
         <p className="text-zinc-400 mb-8">
           Tailored calisthenics training for the outdoor bars. Level up your
           front lever, planche, muscle-up and handstand — track XP, complete

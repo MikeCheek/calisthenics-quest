@@ -70,8 +70,8 @@ ${skillStage ? `Athlete's current stage in this skill: ${skillStage}` : ""}`;
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://barquest.app",
-        "X-Title": "BarQuest",
+        "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://barquests.vercel.app",
+        "X-Title": "BarQuests",
       },
       body: JSON.stringify({
         model,

@@ -1,6 +1,6 @@
 {
-  "name": "BarQuest — Calisthenics Training",
-  "short_name": "BarQuest",
+  "name": "BarQuests — Calisthenics Training",
+  "short_name": "BarQuests",
   "description": "Tailored calisthenics training, XP, missions and paired workouts for the outdoor bars.",
   "start_url": "/dashboard",
   "scope": "/",

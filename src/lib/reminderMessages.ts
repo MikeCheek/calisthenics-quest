@@ -35,7 +35,7 @@ export const REMINDER_LINES: string[] = [
   "That skill you want isn't coming to you. Go get it.",
 ];
 
-const STORAGE_KEY = "barquest:lastReminderIndex";
+const STORAGE_KEY = "barquests:lastReminderIndex";
 
 export function pickReminderLine(): string {
   let lastIndex = -1;

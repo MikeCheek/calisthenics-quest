@@ -1,4 +1,4 @@
-const CACHE_NAME = "barquest-v1";
+const CACHE_NAME = "barquests-v1";
 const APP_SHELL = ["/", "/dashboard", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.json"];
 
 self.addEventListener("install", (event) => {

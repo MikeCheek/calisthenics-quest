@@ -1,4 +1,4 @@
-// Core domain types for BarQuest
+// Core domain types for BarQuests
 
 export type FrontLeverStage =
   | "none" | "tuck" | "advancedTuck" | "oneLeg" | "straddle" | "full";

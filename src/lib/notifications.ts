@@ -33,7 +33,7 @@ async function showNotification(title: string, body: string, tag: string) {
 }
 
 export async function fireTrainingReminder() {
-  await showNotification("BarQuest", pickReminderLine(), "training-reminder");
+  await showNotification("BarQuests", pickReminderLine(), "training-reminder");
 }
 
 export async function firePing(fromName: string, message: string) {

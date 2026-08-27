@@ -13,14 +13,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BarQuest — Calisthenics Training, Gamified",
+  title: "BarQuests — Calisthenics Training, Gamified",
   description:
     "Tailored calisthenics training plans, XP, missions and paired workouts — built around the equipment you actually have.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "BarQuest",
+    title: "BarQuests",
   },
   icons: {
     icon: [
