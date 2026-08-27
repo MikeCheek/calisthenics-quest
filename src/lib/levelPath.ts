@@ -86,6 +86,7 @@ export const LEVEL_PATH: PathNode[] = [
 
 export interface Chapter {
   title: string;
+  blurb: string;
   minLevel: number;
   maxLevel: number;
   nodes: PathNode[];
@@ -101,6 +102,7 @@ export function pathChapters(): Chapter[] {
     const maxLevel = next ? next.min - 1 : Infinity;
     return {
       title: tier.title,
+      blurb: tier.blurb,
       minLevel: tier.min,
       maxLevel,
       nodes: LEVEL_PATH.filter((n) => n.level >= tier.min && n.level <= maxLevel),
@@ -110,4 +112,44 @@ export function pathChapters(): Chapter[] {
 
 export function nodeUnlocked(node: PathNode, currentLevel: number): boolean {
   return currentLevel >= node.level;
+}
+
+// The level at which a skill first shows up anywhere on the road — its
+// "suggested starting point," not a hard requirement.
+export function firstPathLevelForSkill(skill: StagedSkillKey): number | null {
+  const node = LEVEL_PATH.find((n) => n.skill === skill);
+  return node ? node.level : null;
+}
+
+// All path nodes for one skill, in level order — useful for showing a
+// skill's whole suggested arc (e.g. tuck at 16, straddle at 40, full at 61).
+export function pathNodesForSkill(skill: StagedSkillKey): PathNode[] {
+  return LEVEL_PATH.filter((n) => n.skill === skill).sort((a, b) => a.level - b.level);
+}
+
+// A skill counts as "a stretch" for someone's current level if the road
+// doesn't suggest it until well beyond where they are — advisory only,
+// never a hard block.
+const STRETCH_MARGIN = 6;
+
+export function isSkillAStretch(skill: StagedSkillKey, playerLevel: number): boolean {
+  const first = firstPathLevelForSkill(skill);
+  if (first === null) return false;
+  return first - playerLevel > STRETCH_MARGIN;
+}
+
+// Suggests a gentler skill to try instead: the highest-level road milestone
+// that's already within reach (<= player level) and that the athlete
+// hasn't self-reported any progress on yet. Falls back to the very first
+// skill on the road if everything reachable is already underway.
+export function suggestEasierSkill(
+  playerLevel: number,
+  skills: Partial<Record<StagedSkillKey, string>>
+): PathNode | null {
+  const reachable = LEVEL_PATH.filter((n) => n.skill && n.level <= playerLevel).sort(
+    (a, b) => b.level - a.level
+  );
+  const notStarted = reachable.find((n) => n.skill && (skills[n.skill] ?? "none") === "none");
+  if (notStarted) return notStarted;
+  return reachable[0] ?? LEVEL_PATH.find((n) => n.skill) ?? null;
 }

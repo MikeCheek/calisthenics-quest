@@ -3,15 +3,18 @@
 A gamified, mobile-first calisthenics training app: complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
 skill stage — across 50 tracked skills, from Front Lever to Iron Cross, Victorian Cross, and
-Manna — and the equipment you actually have at your park, including bands
-and weights — with a per-exercise timer, AI-powered technique tips, a
-casino-style bonus wheel with randomized modifiers, a Clash Royale-style
-trophy road mapping every skill milestone across your level, live easier/harder
-adjustments, XP and levels with celebration animations, streaks that freeze
-through rest days instead of breaking, weekly missions, skill/XP charts, a
-pomodoro-style focus timer, day/week/month plan generation with optional AI
-coach notes, a friends list with mutual add and nudges, daily training
-reminders with rotating fun punch-lines, and paired training via a share
+Manna, each with its own description in a full skills catalog — and the
+equipment you actually have at your park, including bands and weights —
+with a per-exercise timer, AI-powered technique tips, a casino-style bonus
+wheel with randomized modifiers (and a nudge toward an easier skill if you
+pick one that's a stretch for your level), a Clash Royale-style trophy road
+mapping every skill across your level with its own calisthenics-flavored
+chapter titles, live easier/harder adjustments, XP and levels with
+celebration animations, streaks that freeze through rest days instead of
+breaking, weekly missions, skill/XP charts, a pomodoro-style focus timer,
+day/week/month plan generation with optional AI coach notes, a friends list
+with mutual add and nudges, daily training reminders with rotating fun
+punch-lines, and paired training via a share
 code. Installable as a PWA.
 
 ## Stack
@@ -177,9 +180,11 @@ real (non-dev) environment, you can install it as an app from the browser's
   location's equipment, with synced set/rest structure.
 - **Focus Timer** (`/pomodoro`, also toggleable inside a training session) is
   a configurable work/rest interval timer with an audio cue at each transition.
-- **Bottom tab bar** is the primary navigation on phones (Home / Train / Pair
-  / Profile / Timer); a slim top bar with a secondary nav row appears on
-  wider screens.
+- **Bottom tab bar** is the primary navigation on phones (Home / Train /
+  Skills / Pair / Profile); a slim top bar with a secondary nav row appears
+  on wider screens. The Pomodoro timer and Trophy road moved off the tab
+  bar to make room for Skills — both stay one tap away via Dashboard quick
+  links and (for the trophy road) the clickable level badge.
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first with
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`.
@@ -245,25 +250,37 @@ it's a few lines: diff each `XStage` union (or `SimpleSkillStage`/
 
 ## Trophy road (`/path`)
 
-A Clash Royale-style level path — every level from 1 up shows what it
-unlocks, grouped into chapters that reuse the same rank titles shown
-elsewhere (`RANK_TITLES` in `src/lib/xp.ts`, so "Chapter 3" on the road and
-your rank badge always agree). The data lives in `src/lib/levelPath.ts`:
-66 milestones spanning levels 1–66, hand-placed so every one of the 50
-skills gets at least one milestone, and the 8 foundational skills (plus a
-few flagship advanced ones) get multiple as they climb toward "full" —
-so leveling up keeps paying off on skills you already have, not just
-handing out new ones. A handful of plain numeric milestones (pull-up/dip
-rep targets) are mixed in for the non-staged strength numbers. Every node's
-skill+stage reference was cross-checked against the real stage tables
-before shipping.
+A Clash Royale-style level path — every level from 1 up shows roughly
+what's within reach, grouped into chapters that reuse the same rank titles
+shown elsewhere (`RANK_TITLES` in `src/lib/xp.ts`, now with a short flavor
+`blurb` per tier too, so "Chapter 3" on the road and your rank badge always
+agree and read like an actual progression story, not a spreadsheet). The
+data lives in `src/lib/levelPath.ts`: 66 milestones spanning levels 1–66,
+hand-placed so every one of the 50 skills gets at least one milestone, and
+the 8 foundational skills (plus a few flagship advanced ones) get multiple
+as they climb toward "full" — so leveling up keeps paying off on skills you
+already have, not just handing out new ones. A handful of plain numeric
+milestones (pull-up/dip rep targets) are mixed in for the non-staged
+strength numbers. Every node's skill+stage reference was cross-checked
+against the real stage tables before shipping.
+
+**Deliberately not strict.** The copy throughout is phrased as guidance,
+not requirements — "around level 16" rather than "level 16 required,"
+milestones use a sparkle rather than a hard lock icon, and the intro text
+says outright that it's "a loose guide, not a checklist." The goal is a
+sense of a calisthenics journey with real names and titles attached to your
+progress, not a gate you have to satisfy.
+
+**Reachable from everywhere.** The level display is clickable throughout
+the app — the level badge in the top nav bar, and the whole XP/streak card
+on the Dashboard — both link straight to `/path`. It's also linked directly
+from the Dashboard's quick actions.
 
 The screen (`src/app/path/page.tsx`) renders chapters highest-to-lowest —
 level 1 ends up at the bottom of the page, higher levels toward the top —
 and auto-scrolls to center your current level on open, so you land right
-where you are rather than at the very bottom every time. Locked milestones
-show a lock icon; passed ones show a checkmark; your current level gets a
-pulsing highlight.
+where you are rather than at the very bottom every time. Passed milestones
+show a checkmark; your current level gets a pulsing highlight.
 
 **A scoping decision worth being upfront about:** the trophy road is an
 informational/motivational layer, not an enforcement mechanism. It shows
@@ -280,6 +297,35 @@ judged too risky to retrofit safely in one pass. If you want that
 enforcement, the natural next step is: read `LEVEL_PATH` in the onboarding
 save handler to clamp any stage a level hasn't reached yet, and parameterize
 `Exercise.detail` in the stage tables by level rather than hardcoding it.
+
+## Skills catalog (`/skills`) and "too hard for your level" suggestions
+
+A dedicated browsing screen for all 50 skills, grouped into six categories
+(Levers & Static Holds, Pulling, Pressing & Balance, Core & Compression,
+Legs, Dynamic & Flashy — `src/lib/skillCategories.ts`, cross-checked to
+cover exactly the 50 skills with no gaps or overlaps). Every skill has:
+
+- An **i** info icon that opens a modal (`src/components/Modal.tsx`) with a
+  plain-English description of what the skill actually is
+  (`src/lib/skillDescriptions.ts` — one written for each of the 50), your
+  current self-reported stage, and its suggested arc on the trophy road
+  (e.g. front lever: tuck around level 16, straddle around 40, full around
+  61).
+- Tapping the skill itself (or "Train this skill" in the modal) sends you
+  to the bonus wheel pre-loaded with that skill via `/wheel?skill=<skill>`.
+
+**Suggesting an easier skill.** If the skill you pick is well beyond where
+the trophy road says you typically are — `isSkillAStretch` in
+`src/lib/levelPath.ts`, currently "more than 6 levels ahead of you" — both
+the info modal and the wheel screen itself show a gentle suggestion instead
+of silently sending you in over your head: "this one's a stretch for level
+N — [suggested skill] might be a better fit," with buttons for either the
+suggested skill or "train this anyway." The suggested alternative
+(`suggestEasierSkill`) is the highest-level trophy-road milestone that's
+already within your reach and that you haven't self-reported any progress
+on yet — so it's tailored to what you specifically haven't started, not a
+generic "go do the basics" nudge. Like the rest of the road, this is
+advisory, never a hard block — "train this anyway" is always right there.
 
 ## Notes / where to extend (skills & path)
 
@@ -538,3 +584,14 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   re-fetches, but repeat taps within one view don't. The prompt lives in
   `src/app/api/exercise-tip/route.ts` and follows the same JSON-hardening
   and always-log approach as `/api/plan-coach`.
+- To add a description or recategorize a skill for `/skills`, edit
+  `src/lib/skillDescriptions.ts` and `src/lib/skillCategories.ts`
+  respectively — both are checked at build time against `StagedSkillKey`
+  (`Record<StagedSkillKey, string>` for descriptions), so a missing skill
+  in the description map is a compile error, though categories currently
+  aren't type-enforced to sum to all 50 (there's a one-off Python
+  cross-check used during development, not a build step — worth re-running
+  if you add a 51st skill).
+- The "too hard for your level" threshold (`STRETCH_MARGIN` in
+  `src/lib/levelPath.ts`) is a flat 6-level margin applied uniformly; make
+  it configurable per-chapter if some tiers should be more/less forgiving.

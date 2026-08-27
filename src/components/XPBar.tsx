@@ -1,15 +1,20 @@
 "use client";
 
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { xpProgress, rankTitle } from "@/lib/xp";
 
 export default function XPBar({ xp, streak }: { xp: number; streak: number }) {
   const p = xpProgress(xp);
   return (
-    <div className="panel rounded-lg p-4">
+    <Link href="/path" className="panel rounded-lg p-4 block hover:border-orange-500/50 transition-colors">
       <div className="flex items-baseline justify-between mb-2">
-        <div>
-          <div className="heading text-2xl text-zinc-100">Level {p.level}</div>
-          <div className="text-xs text-zinc-400 stat-mono">{rankTitle(p.level)}</div>
+        <div className="flex items-center gap-1">
+          <div>
+            <div className="heading text-2xl text-zinc-100">Level {p.level}</div>
+            <div className="text-xs text-zinc-400 stat-mono">{rankTitle(p.level)}</div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-600" />
         </div>
         <div className="text-right">
           <div className="stat-mono text-lg text-orange-400">{streak}🔥</div>
@@ -25,6 +30,7 @@ export default function XPBar({ xp, streak }: { xp: number; streak: number }) {
       <div className="text-xs text-zinc-400 mt-1 stat-mono">
         {p.into} / {p.span} XP to level {p.level + 1}
       </div>
-    </div>
+      <div className="text-xs text-orange-400 mt-2">View trophy road →</div>
+    </Link>
   );
 }

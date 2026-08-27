@@ -8,7 +8,7 @@ import { pathChapters, nodeUnlocked, PathNode } from "@/lib/levelPath";
 import { SKILL_FIELD_LABEL } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import { xpProgress } from "@/lib/xp";
-import { Lock, Check, MapPin, Dumbbell, Hash } from "lucide-react";
+import { Sparkle, Check, MapPin, Dumbbell, Hash } from "lucide-react";
 
 export default function PathPage() {
   const { user, userDoc, loading } = useAuth();
@@ -42,8 +42,8 @@ export default function PathPage() {
         <div className="mb-4">
           <h1 className="heading text-2xl text-zinc-100">Trophy road</h1>
           <p className="text-zinc-400 text-sm">
-            Every skill milestone, from level 1 up. You&apos;re at level {level} — scroll up for
-            what&apos;s next, down to see what you&apos;ve already passed.
+            A loose guide, not a checklist — roughly what tends to be within reach at each level.
+            You&apos;re level {level}. Scroll up for what&apos;s ahead, down for what you&apos;ve passed.
           </p>
         </div>
 
@@ -62,6 +62,7 @@ export default function PathPage() {
                   {chapter.title} · Lv {chapter.minLevel}
                   {Number.isFinite(chapter.maxLevel) ? `–${chapter.maxLevel}` : "+"}
                 </div>
+                <div className="text-xs text-zinc-500 mt-1 ml-1 max-w-xs">{chapter.blurb}</div>
               </div>
 
               <div className="space-y-3">
@@ -75,7 +76,7 @@ export default function PathPage() {
                   />
                 ))}
                 {chapter.nodes.length === 0 && (
-                  <div className="text-xs text-zinc-600 pl-2 pb-2">Keep going — more unlocks ahead.</div>
+                  <div className="text-xs text-zinc-600 pl-2 pb-2">Keep going — more ahead.</div>
                 )}
               </div>
             </div>
@@ -114,7 +115,7 @@ function PathNodeCard({
         {unlocked ? (
           <Check size={12} className="text-zinc-950" />
         ) : (
-          <Lock size={11} className="text-zinc-600" />
+          <Sparkle size={11} className="text-zinc-600" />
         )}
       </div>
 
@@ -126,7 +127,7 @@ function PathNodeCard({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-xs text-zinc-500">
             {node.isStat ? <Hash size={11} /> : <Dumbbell size={11} />}
-            Level {node.level}
+            Around level {node.level}
             {isCurrent && (
               <span className="flex items-center gap-0.5 text-orange-400 ml-1">
                 <MapPin size={11} /> you are here

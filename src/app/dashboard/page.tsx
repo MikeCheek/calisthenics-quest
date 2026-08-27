@@ -91,6 +91,17 @@ export default function DashboardPage() {
           </div>
           <span className="text-orange-400 text-sm">View →</span>
         </Link>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/skills" className="panel p-3 text-center">
+            <div className="text-sm text-zinc-100">Skills catalog</div>
+            <div className="text-xs text-zinc-500">All 50, with tips</div>
+          </Link>
+          <Link href="/pomodoro" className="panel p-3 text-center">
+            <div className="text-sm text-zinc-100">Focus timer</div>
+            <div className="text-xs text-zinc-500">Pomodoro-style</div>
+          </Link>
+        </div>
       </main>
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import ExerciseTimer from "@/components/ExerciseTimer";
@@ -10,9 +10,12 @@ import ModifierReel from "@/components/ModifierReel";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { Exercise, StagedSkillKey, SKILL_FIELD_LABEL } from "@/lib/types";
 import { wheelPoolWeighted, wheelTrackAvailable } from "@/lib/wheelPool";
+import { isSkillAStretch, suggestEasierSkill, firstPathLevelForSkill } from "@/lib/levelPath";
+import { xpProgress } from "@/lib/xp";
 import { Modifier, pickRandomModifier, applyModifier, modifierXpMultiplier } from "@/lib/wheelModifiers";
 import { awardXp, Celebration } from "@/lib/sessionComplete";
 import { playBeep } from "@/lib/sound";
+import { Sparkles, X } from "lucide-react";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -42,11 +45,27 @@ const BASE_BONUS_XP = 10;
 type SpinPhase = "idle" | "wheelSpinning" | "wheelLanded" | "composed";
 
 export default function WheelPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>
+      }
+    >
+      <WheelContent />
+    </Suspense>
+  );
+}
+
+function WheelContent() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [track, setTrack] = useState<StagedSkillKey>("frontLever");
+  const requestedSkill = searchParams.get("skill") as StagedSkillKey | null;
+
+  const [track, setTrack] = useState<StagedSkillKey>(requestedSkill ?? "frontLever");
   const [difficulty, setDifficulty] = useState<-1 | 0 | 1>(0);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [spinPhase, setSpinPhase] = useState<SpinPhase>("idle");
   const [landedExercise, setLandedExercise] = useState<Exercise | null>(null);
@@ -79,6 +98,11 @@ export default function WheelPage() {
   if (loading || !userDoc) {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
+
+  const playerLevel = xpProgress(userDoc.xp).level;
+  const trackIsStretch = isSkillAStretch(track, playerLevel) && !suggestionDismissed;
+  const easierSuggestion = trackIsStretch ? suggestEasierSkill(playerLevel, userDoc.skills) : null;
+  const firstLevel = firstPathLevelForSkill(track);
 
   const currentPool = displayPool;
   const segCount = Math.max(1, currentPool.length);
@@ -171,7 +195,10 @@ export default function WheelPage() {
               <button
                 key={s}
                 disabled={spinning}
-                onClick={() => setTrack(s)}
+                onClick={() => {
+                  setTrack(s);
+                  setSuggestionDismissed(false);
+                }}
                 className={`shrink-0 px-3 py-2 rounded-lg text-sm border whitespace-nowrap disabled:opacity-50 ${
                   track === s ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-400"
                 }`}
@@ -196,6 +223,30 @@ export default function WheelPage() {
             </button>
           ))}
         </div>
+
+        {trackIsStretch && easierSuggestion?.skill && (
+          <div className="panel p-3 border-orange-500/40 flex items-start gap-2">
+            <Sparkles size={14} className="text-orange-400 mt-0.5 shrink-0" />
+            <div className="flex-1 text-xs text-zinc-300">
+              {SKILL_FIELD_LABEL[track]} is a bit of a stretch for level {playerLevel} — the road
+              doesn&apos;t suggest it until around level {firstLevel}.{" "}
+              <button
+                onClick={() => setTrack(easierSuggestion.skill!)}
+                className="text-orange-400 underline"
+              >
+                Try {SKILL_FIELD_LABEL[easierSuggestion.skill]} instead
+              </button>
+              , or keep going.
+            </div>
+            <button
+              onClick={() => setSuggestionDismissed(true)}
+              className="text-zinc-500 hover:text-zinc-300 shrink-0"
+              aria-label="Dismiss suggestion"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         <div className="panel p-4">
           <div className="flex flex-col items-center gap-4">

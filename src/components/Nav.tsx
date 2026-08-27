@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { xpProgress, rankTitle } from "@/lib/xp";
-import { Home, Dumbbell, Users, User, Timer, LogOut } from "lucide-react";
+import { Home, Dumbbell, Users, User, Layers, LogOut } from "lucide-react";
 
 const TABS = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/training", label: "Train", icon: Dumbbell },
+  { href: "/skills", label: "Skills", icon: Layers },
   { href: "/pair", label: "Pair", icon: Users },
   { href: "/profile", label: "Profile", icon: User },
-  { href: "/pomodoro", label: "Timer", icon: Timer },
 ];
 
 export default function Nav() {
@@ -29,9 +29,9 @@ export default function Nav() {
           </Link>
           <div className="flex items-center gap-3">
             {progress && (
-              <span className="text-xs text-zinc-400 stat-mono">
+              <Link href="/path" className="text-xs text-zinc-400 stat-mono hover:text-orange-400">
                 LV {progress.level} · {rankTitle(progress.level)}
-              </span>
+              </Link>
             )}
             <button
               onClick={() => signOut()}
