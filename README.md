@@ -12,7 +12,9 @@ mapping every skill across your level with its own calisthenics-flavored
 chapter titles — unified with a single XP/level number via a 1-5 mastery
 rating per skill, so a skill you've truly mastered raises your level
 immediately while one you've merely attempted stays honest without being
-blocked outright — live easier/harder adjustments, celebration animations, streaks that freeze
+blocked outright — live easier/harder adjustments (buttons or a press-and-drag
+swipe gesture), a full-screen guided training mode that steps through a
+session hands-free, celebration animations, streaks that freeze
 through rest days instead of breaking, weekly missions, skill/XP charts, a
 redesigned dashboard, a pomodoro-style focus timer, day/week/month plan
 generation with optional AI coach notes, a friends list with mutual add and
@@ -555,6 +557,53 @@ skill-stage progression (which you change deliberately in onboarding once
 you've actually improved). A small "adjusted" tag and reset button appear
 once you've changed it.
 
+**The same adjustment via a swipe gesture.** Every exercise row
+(`src/components/ExerciseRow.tsx`) can also be pressed and dragged left or
+right — drag right past a threshold to make it harder (+1), left to make it
+easier (−1), exactly the same underlying `adjustDetail` call the ±buttons
+make. A background hint ("Easier −" / "Harder +") fades in behind the card
+as you drag, and the card snaps back if you release before the threshold.
+The gesture is built on raw pointer events with an early axis-lock: the
+first ~8px of movement decides whether the gesture is horizontal (a swipe —
+locks in, suppresses the page's default touch scrolling for that gesture)
+or vertical (a scroll — releases control back to the browser immediately),
+so it coexists with normal vertical scrolling through a long exercise list
+rather than fighting it.
+
+## Full-screen guided training (`FocusTrainingMode.tsx`)
+
+"Start Training" at the top of a session (`SessionView.tsx`) launches a
+full-screen, one-exercise-at-a-time guided mode instead of the scrolling
+checklist — for actually training through a session hands-on rather than
+managing a list.
+
+- **A stepper across the top** shows one segment per exercise in the
+  session (color-coded: emerald = completed, orange = current, dim = still
+  ahead), plus "Next: <exercise name>" so you always know what's coming.
+- **Below that**, the current exercise's set category (Warm-Up / Main Focus
+  / Accessory / Finisher), its name, an **i** info icon opening exercise
+  details (sets/reps, cue, rest, and the AI tip button —
+  `ExerciseDetailModal.tsx`), and the same per-exercise timer used
+  elsewhere in the app (`ExerciseTimer.tsx` — countdown, hands-free
+  auto-continue through sets, distinct go/rest/complete sounds; see the
+  "Per-exercise timer" section above).
+- **Progresses automatically**: finishing an exercise's timer
+  (`onComplete`) marks it done on the stepper and advances straight to the
+  next one — no tap needed between exercises for timed holds. Manual
+  **Back** / **Next** buttons are also always available, for skipping ahead
+  or reviewing a previous exercise; **Next** marks the current exercise
+  done exactly like its timer finishing would, since you're the judge of
+  "done enough," not the timer.
+- Finishing the last exercise (by timer or by tapping Next) shows a
+  completion screen with **Finish & log session**, which reuses the exact
+  same `completeSession` XP/streak-awarding flow as the classic checklist's
+  "Complete Session" button — so it doesn't matter which mode you actually
+  finish a session in.
+- **Not currently wired into paired training** (`/pair`'s two side-by-side
+  `SessionView`s) — `onStartFocusMode` is an optional prop, so it's simply
+  omitted there rather than attempting to guide two simultaneous sessions
+  through one full-screen flow, which would need its own design.
+
 ## Celebration animations
 
 
@@ -802,3 +851,9 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   the sound vocabulary itself (`src/lib/sound.ts`) are both small and
   self-contained if you want to change the count, add a new event sound, or
   swap the actual tones/pitches used.
+- The swipe gesture's sensitivity (`SWIPE_THRESHOLD` / `SWIPE_MAX` in
+  `src/components/ExerciseRow.tsx`, currently 55px / 90px) and the
+  axis-lock decision (the `8px` movement / `1.3` ratio in `onPointerMove`
+  that decides "this drag is horizontal, not a page scroll") are both
+  tunable if the gesture feels too sensitive or not sensitive enough on a
+  given device.

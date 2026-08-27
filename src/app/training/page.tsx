@@ -8,6 +8,7 @@ import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
+import FocusTrainingMode from "@/components/FocusTrainingMode";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { SkillTrack } from "@/lib/types";
@@ -19,6 +20,7 @@ export default function TrainingPage() {
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [focusModeOpen, setFocusModeOpen] = useState(false);
   const [xpGained, setXpGained] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
 
@@ -47,6 +49,11 @@ export default function TrainingPage() {
     setCompleted(true);
     setCelebration(c);
     await refreshUserDoc();
+  };
+
+  const handleFocusModeFinish = async () => {
+    setFocusModeOpen(false);
+    if (!completed) await handleComplete();
   };
 
   return (
@@ -106,7 +113,12 @@ export default function TrainingPage() {
           </div>
         )}
 
-        <SessionView session={session} onComplete={handleComplete} completed={completed} />
+        <SessionView
+          session={session}
+          onComplete={handleComplete}
+          completed={completed}
+          onStartFocusMode={() => setFocusModeOpen(true)}
+        />
 
         <Link
           href="/wheel"
@@ -115,6 +127,10 @@ export default function TrainingPage() {
           <Dices size={16} className="text-orange-400" /> Spin the bonus wheel
         </Link>
       </main>
+
+      {focusModeOpen && (
+        <FocusTrainingMode session={session} onExit={() => setFocusModeOpen(false)} onFinish={handleFocusModeFinish} />
+      )}
     </>
   );
 }
