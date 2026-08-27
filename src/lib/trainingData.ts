@@ -66,8 +66,13 @@ export const BACK_LEVER_TABLE: Record<BackLeverStage, Exercise[]> = {
   ],
   advancedTuck: [
     { name: "Advanced tuck back lever holds", detail: "4 x max hold", restSeconds: 120 },
-    { name: "Tuck-to-straddle negatives", detail: "3 x 4 reps, slow", restSeconds: 120 },
+    { name: "Tuck-to-one-leg negatives", detail: "4 x 3-5 reps, slow", restSeconds: 120 },
     { name: "Advanced tuck back lever raises", detail: "3 x 5 reps", restSeconds: 120 },
+  ],
+  oneLeg: [
+    { name: "One-leg back lever holds", detail: "4 x max hold (target 8-12s)", restSeconds: 150 },
+    { name: "One-leg to straddle negatives", detail: "4 x 3 reps, slow", restSeconds: 150 },
+    { name: "One-leg back lever raises", detail: "3 x 4-5 reps", restSeconds: 150 },
   ],
   straddle: [
     { name: "Straddle back lever holds", detail: "4 x max hold", restSeconds: 150 },
@@ -203,6 +208,11 @@ export const HUMAN_FLAG_TABLE: Record<HumanFlagStage, Exercise[]> = {
     { name: "Tuck flag negatives", detail: "3 x 4 reps, slow", restSeconds: 120 },
     { name: "Oblique-focused side planks", detail: "3 x 30-40s per side", restSeconds: 75 },
   ],
+  advancedTuck: [
+    { name: "Advanced tuck (one-leg) human flag holds", detail: "4 x max hold per side", restSeconds: 135 },
+    { name: "Advanced tuck-to-straddle negatives", detail: "3 x 3-4 reps, slow", restSeconds: 135 },
+    { name: "Single-leg extended side planks", detail: "3 x 25-35s per side", restSeconds: 90 },
+  ],
   straddle: [
     { name: "Straddle human flag holds", detail: "4 x max hold per side", restSeconds: 150 },
     { name: "Straddle-to-full negatives", detail: "3 x 3 reps, slow", restSeconds: 150 },
@@ -221,8 +231,12 @@ export function legsStageTable(equipment: TrainingEquipment): Record<PistolSquat
     none: [
       { name: "Bodyweight squats", detail: "4 x 15-20 reps", restSeconds: 60 },
       { name: "Split squats", detail: "3 x 10 reps per side", restSeconds: 75 },
-      { name: "Box / bench pistol negatives", detail: "3 x 5 reps per side, slow lower", restSeconds: 90 },
       { name: "Calf raises", detail: "3 x 15-20 reps", restSeconds: 60 },
+    ],
+    negative: [
+      { name: "Box / bench pistol negatives", detail: "3 x 5 reps per side, slow lower", restSeconds: 90 },
+      { name: "Single-leg step-downs", detail: "3 x 8 reps per side", restSeconds: 75 },
+      { name: "Wall-assisted single-leg sits", detail: "3 x 20-30s per side", restSeconds: 75 },
     ],
     assisted: [
       { name: "Assisted pistol squats (rail/bar support)", detail: "4 x 5-6 reps per side", restSeconds: 90 },

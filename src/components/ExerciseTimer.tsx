@@ -8,13 +8,20 @@ import { Play, Pause, SkipForward, Check } from "lucide-react";
 
 type Phase = "idle" | "work" | "rest" | "done";
 
-export default function ExerciseTimer({ exercise }: { exercise: Exercise }) {
+export default function ExerciseTimer({
+  exercise,
+  onComplete,
+}: {
+  exercise: Exercise;
+  onComplete?: () => void;
+}) {
   const timing = parseTiming(exercise.detail);
   const [set, setSet] = useState(1);
   const [phase, setPhase] = useState<Phase>("idle");
   const [secondsLeft, setSecondsLeft] = useState<number | null>(timing.workSeconds);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const firedComplete = useRef(false);
 
   const isLastSet = set >= timing.sets;
 
@@ -83,7 +90,16 @@ export default function ExerciseTimer({ exercise }: { exercise: Exercise }) {
     setPhase("idle");
     setSecondsLeft(timing.workSeconds);
     setRunning(false);
+    firedComplete.current = false;
   };
+
+  useEffect(() => {
+    if (phase === "done" && !firedComplete.current) {
+      firedComplete.current = true;
+      onComplete?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   const mm = secondsLeft !== null ? String(Math.floor(secondsLeft / 60)).padStart(2, "0") : "--";
   const ss = secondsLeft !== null ? String(secondsLeft % 60).padStart(2, "0") : "--";

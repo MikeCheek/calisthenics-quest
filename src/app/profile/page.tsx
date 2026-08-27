@@ -8,8 +8,16 @@ import Nav from "@/components/Nav";
 import SkillRadarChart from "@/components/SkillRadarChart";
 import XPHistoryChart from "@/components/XPHistoryChart";
 import { xpProgress, rankTitle } from "@/lib/xp";
-import { TRACK_LABEL } from "@/lib/types";
+import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
+import { STAGE_LABEL } from "@/lib/stageOrder";
 import ReminderSettings from "@/components/ReminderSettings";
+
+const ALL_SKILL_KEYS: StagedSkillKey[] = [
+  "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
+  "oneArmPullUp", "oneArmPushUp", "oneArmHandstand", "handstandPushUp",
+  "dragonFlag", "elbowLever", "manna", "nordicCurl", "shrimpSquat",
+  "ironCross", "maltese", "impossibleDip",
+];
 
 export default function ProfilePage() {
   const { user, userDoc, loading } = useAuth();
@@ -73,6 +81,29 @@ export default function ProfilePage() {
         )}
 
         <div className="panel p-4">
+          <div className="heading text-base text-zinc-100 mb-2">All skills</div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+            {ALL_SKILL_KEYS.map((key) => {
+              const stage = userDoc.skills[key] as string;
+              const started = stage !== "none";
+              return (
+                <div
+                  key={key}
+                  className={`shrink-0 px-3 py-2 rounded-lg border text-center min-w-[92px] ${
+                    started ? "border-emerald-700 bg-emerald-600/5" : "border-zinc-700"
+                  }`}
+                >
+                  <div className="text-xs text-zinc-300 whitespace-nowrap">{SKILL_FIELD_LABEL[key]}</div>
+                  <div className={`stat-mono text-xs mt-0.5 ${started ? "text-emerald-400" : "text-zinc-600"}`}>
+                    {STAGE_LABEL[stage] ?? stage}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="panel p-4">
           <div className="heading text-base text-zinc-100 mb-2">Body</div>
           <div className="grid grid-cols-3 gap-2.5 text-sm">
             <Stat label="Age" value={`${userDoc.body.ageYears} yrs`} />
@@ -92,6 +123,7 @@ export default function ProfilePage() {
               ["Vertical pole", userDoc.equipment.verticalPole],
               ["Monkey bars", userDoc.equipment.monkeyBars],
               ["Weights (vest/belt/plates)", userDoc.equipment.weights],
+              ["Resistance bands", userDoc.equipment.resistanceBands],
             ].map(([label, has]) => (
               <span
                 key={label as string}

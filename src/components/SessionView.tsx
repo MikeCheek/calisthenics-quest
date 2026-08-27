@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TrainingSession } from "@/lib/types";
 import { adjustDetail } from "@/lib/exerciseTiming";
 import ExerciseTimer from "@/components/ExerciseTimer";
+import ExerciseTipButton from "@/components/ExerciseTipButton";
 import { Check, Clock, Play, Minus, Plus, RotateCcw } from "lucide-react";
 
 export default function SessionView({
@@ -116,13 +117,18 @@ export default function SessionView({
                         </div>
                         {ex.cue && <div className="text-xs text-orange-400/80 italic">{ex.cue}</div>}
 
-                        <div className="flex items-center gap-1.5 mt-2">
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                           <button
                             onClick={() => toggleTimer(key)}
                             className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
                           >
                             <Play size={11} /> {timerOpen ? "Hide timer" : "Start"}
                           </button>
+                          <ExerciseTipButton
+                            exerciseName={ex.name}
+                            exerciseDetail={ex.detail}
+                            trackLabel={session.focusLabel}
+                          />
                           <div className="flex items-center gap-1 ml-auto">
                             <button
                               onClick={() => bump(key, ex.detail, -1)}

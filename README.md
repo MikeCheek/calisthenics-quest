@@ -2,14 +2,16 @@
 
 A gamified, mobile-first calisthenics training app: complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
-skill stage, and the equipment you actually have at your park — with a
-per-exercise timer, a spin-the-wheel bonus-exercise picker, live
-easier/harder adjustments, XP and levels with celebration animations,
-streaks that freeze through rest days instead of breaking, weekly missions,
-skill/XP charts, a pomodoro-style focus timer, day/week/month plan
-generation with optional AI coach notes, a friends list with mutual add and
-nudges, daily training reminders with rotating fun punch-lines, and paired
-training via a share code. Installable as a PWA.
+skill stage — across 20 tracked skills, from Front Lever to Iron Cross and
+Manna — and the equipment you actually have at your park, including bands
+and weights — with a per-exercise timer, AI-powered technique tips, a
+casino-style bonus wheel with randomized modifiers, live easier/harder
+adjustments, XP and levels with celebration animations, streaks that freeze
+through rest days instead of breaking, weekly missions, skill/XP charts, a
+pomodoro-style focus timer, day/week/month plan generation with optional AI
+coach notes, a friends list with mutual add and nudges, daily training
+reminders with rotating fun punch-lines, and paired training via a share
+code. Installable as a PWA.
 
 ## Stack
 
@@ -117,14 +119,18 @@ real (non-dev) environment, you can install it as an app from the browser's
      days of the week you train (a Sun–Sat toggle row, not just a count),
      and typical session length.
   2. **Where you train** — pull-up bar, parallel bars/dip station, rings,
-     wall space, vertical pole/tree, monkey bars, and whether you have any
-     weight (a dip belt, weighted vest, plates, or a loaded backpack) —
-     exercises that would otherwise call for weight automatically swap to a
-     bodyweight-only alternative (tempo, deficit, or cluster-set variants)
-     when you don't have any.
-  3. **Your skills** — stage pickers for Front Lever, Back Lever, Planche,
-     Muscle-Up, Handstand, Human Flag (only if you have a pole), Pistol
-     Squat, and L-Sit, plus max pull-ups/dips and archer pull-up.
+     wall space, vertical pole/tree, monkey bars, resistance/elastic bands,
+     and whether you have any weight (a dip belt, weighted vest, plates, or
+     a loaded backpack) — exercises that would otherwise call for weight or
+     bands automatically swap to what you actually have.
+  3. **Your skills** — all 20 tracked skills, from the everyday (Front
+     Lever, Planche, Muscle-Up, Handstand) through the rarer/advanced ones
+     (Iron Cross, Maltese, One-Arm Pull-Up, One-Arm Handstand, Dragon Flag,
+     Elbow Lever, One-Arm Push-Up, Nordic Curl, Shrimp Squat, Handstand
+     Push-Up, Impossible Dip, Manna). A horizontal scroller picks which
+     skill you're setting (`src/components/SkillTabPicker.tsx`) instead of
+     stacking 20 pickers down the page, plus max pull-ups/dips and archer
+     pull-up.
   4. **Your goals** — pick up to 4 skills you most want to progress; those
      focuses show up more often in your training rotation.
 - **Training** (`/training`) generates a *complete* session for a rotating
@@ -175,7 +181,50 @@ real (non-dev) environment, you can install it as an app from the browser's
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`.
 
-## Exercise timer, the difficulty wheel, and live adjustments
+## The 20 skills, and how they fit together
+
+There are two layers, kept deliberately separate:
+
+- **10 macro tracks** (`SkillTrack` in `src/lib/types.ts`) — Front Lever,
+  Back Lever, Planche, Muscle-Up, Handstand, Human Flag, Pull Strength, Push
+  Strength, Legs, Core. These drive the daily session rotation and goals —
+  keeping the rotation at 10 (rather than 20) means each focus still comes
+  around every few days instead of once every three weeks.
+- **20 individually-progressed skills** (`StagedSkillKey`) — the 8 skills
+  behind those macro tracks (Front Lever, Back Lever, Planche, Muscle-Up,
+  Handstand, Human Flag, Pistol Squat, L-Sit), plus 12 rarer/advanced ones
+  that aren't part of the daily rotation but are fully tracked, staged, and
+  trainable: Iron Cross, Maltese, One-Arm Pull-Up, One-Arm Handstand,
+  Dragon Flag, Elbow Lever, One-Arm Push-Up, Nordic Curl, Shrimp Squat,
+  Handstand Push-Up, Impossible Dip, and Manna
+  (`src/lib/advancedSkills.ts`). If you're actively working on one of the 12
+  (stage past "none", and you have the equipment it needs — Iron Cross and
+  Maltese want rings, for instance, checked via `advancedSkillAvailable`),
+  a bonus block for it shows up in your regular sessions
+  (`advancedSkillBonusSet`), and all 20 are always spinnable on the bonus
+  wheel regardless of the daily rotation.
+
+**Progression audit.** A few of the original 8 skills' stage ladders were
+missing a rung — fixed now:
+- Back Lever was missing "one leg" (Front Lever always had it) — added
+  between advanced tuck and straddle.
+- Human Flag was missing "advanced tuck" (the single-leg-tuck stage) —
+  added between tuck and straddle.
+- Pistol Squat was missing an explicit "negative" stage between the basics
+  and assisted work — added, and the box/bench-negative exercises that used
+  to sit oddly in the "none" stage moved there.
+
+Every stage-keyed exercise table's keys are cross-checked against its
+skill's stage type at the source level — if you add a stage to a skill,
+TypeScript won't catch a table that's missing it (the tables are typed as
+`Record<Stage, Exercise[]>`, so a missing key is a compile error), but a
+*typo'd* stage name in the separate `STAGE_ORDER` map (`src/lib/stageOrder.ts`)
+would silently resolve to nothing at runtime since it's a plain string-keyed
+lookup — worth re-running a quick cross-check if you add or rename a stage
+there (a script for this isn't included, but the check is a few lines: diff
+each `XStage` union in `types.ts` against `STAGE_ORDER[x]`).
+
+## Exercise timer, the bonus wheel, AI tips, and live adjustments
 
 **Per-exercise timer.** Every exercise in a session has a **Start** button.
 Tapping it opens an inline timer parsed straight from that exercise's own
@@ -189,17 +238,30 @@ set" button — tapping it starts the rest countdown and hands control back to
 you for the next set. Either way, all the sets/rests for that one exercise
 are already wired up correctly from its own data — nothing to configure.
 
-**Difficulty wheel.** Below each session, "🎲 Spin for a bonus exercise"
-opens a spinning wheel (`src/components/DifficultyWheel.tsx`): pick a skill
-and a difficulty — Easier / Your level / Harder, relative to your current
-stage in that skill — and spin. It lands on a random exercise from that
-exact stage's table (one stage down/up from where you are, via
-`src/lib/stageOrder.ts` + `src/lib/wheelPool.ts`), already correctly matched
-sets/reps, with the same Start-timer button as any other exercise. Only the
-8 explicitly-staged skills are offered (front lever, back lever, planche,
-muscle-up, handstand, human flag, pistol squat, L-sit) — pull/push strength
-are rep-count-based rather than staged, so "easier/harder" doesn't map
-cleanly onto them.
+**Bonus wheel** (`/wheel`, its own screen — linked from the Training page).
+Casino-style: pick any of the 20 skills you have equipment for and a
+difficulty (Easier / Your level / Harder), then spin. The pool isn't just
+one stage's 3 exercises — it combines exercises from *every* stage of that
+skill, weighted so stages near your chosen difficulty come up more often
+without excluding the rest (`wheelPoolWeighted` in `src/lib/wheelPool.ts`),
+landing on 20+ possible segments. While the wheel spins, a second reel below
+it cycles through possible bonus/malus modifiers; the wheel lands first,
+and ~2 seconds later the modifier reel locks in on one — +1 Set, -1 Set,
+Bonus Effort, Easy Mode, Double XP, or the rare golden "🌟 Golden Exercise"
+(double XP, no downside) — combined into a final composed exercise
+(`src/lib/wheelModifiers.ts`). Finishing it via the same Start-timer button
+banks bonus XP (doubled for Double XP/Golden), completely separate from a
+regular session's XP/streak/missions (`awardXp` in `src/lib/sessionComplete.ts`).
+
+**AI exercise tips.** Every exercise (in a session or on the wheel) has an
+"AI tip" button. Tapping it lazily fetches — and caches, so it won't
+re-fetch — a specific technique cue and the most common mistake for that
+exact exercise from a small OpenRouter model (`/api/exercise-tip`). Same
+safety scoping as the plan-level coach notes: it's given the exercise and
+its prescription only for context and is explicitly told never to change or
+repeat back sets/reps — it only ever returns coaching text. Same
+`OPENROUTER_API_KEY` setup as below; without it, the button just says AI
+tips aren't configured, and everything else keeps working.
 
 **Live difficulty adjustment.** Each exercise also has small **−** / **+**
 buttons next to its sets/reps text. These bump the set count up or down for
@@ -210,6 +272,7 @@ you've actually improved). A small "adjusted" tag and reset button appear
 once you've changed it.
 
 ## Celebration animations
+
 
 Level-ups and streak milestones show a full-screen animated
 celebration (`src/components/CelebrationOverlay.tsx`) right after you
@@ -275,10 +338,14 @@ subcollection in one batch. From your friends list you can:
   your friend gets pinged with an invite instead of you having to message
   them the code separately.
 
-## AI coach notes (optional, via OpenRouter)
+## AI coach notes and tips (optional, via OpenRouter)
 
-The Plan page has an optional "Add AI coach notes" toggle. Here's the
-reasoning behind how it's scoped, and why:
+Two features share the same OpenRouter setup: the Plan page's optional "Add
+AI coach notes" toggle (a short intro + one line per day), and the per-exercise
+"AI tip" button available everywhere an exercise is shown (a specific
+technique cue + common mistake, fetched on demand — see the exercise timer
+section above for details on that one). Both follow the same reasoning
+below.
 
 **What the LLM does and doesn't do.** The actual training plan — which days
 you train, what focus each day gets, which exercises and how many sets/reps
@@ -354,7 +421,10 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   there and to `AXES` in `src/components/SkillRadarChart.tsx` to plot it.
 - Weighted-exercise fallbacks (used when `equipment.weights` is off) live
   alongside their weighted counterparts in `src/lib/trainingData.ts` — search
-  for `equipment.weights ?` to find and extend them.
+  for `equipment.weights ?` to find and extend them. Resistance-band bonus
+  exercises are separate — `src/lib/bandBonus.ts` — appended to a track's
+  primary exercise list rather than swapped in, and only while the relevant
+  skill is still in an early stage.
 - The plan generator's day selection (`isTrainingDay` in
   `src/lib/planGenerator.ts`) uses your exact chosen weekdays
   (`body.trainingDaysOfWeek`, a `WeekdayPicker` in onboarding) when set, and
@@ -380,12 +450,22 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   ("N x M reps", "N x max hold", "N x Xs", "N min, ...") if you want them to
   drive the timer correctly.
 - The difficulty wheel's exercise pools come straight from the same stage
-  tables as everything else — `src/lib/wheelPool.ts` just indexes them at an
-  offset stage via `stageAtOffset`. Extending a skill's table automatically
-  extends its wheel pool too.
+  tables as everything else — `src/lib/wheelPool.ts`'s `wheelPoolWeighted`
+  combines every stage's exercises (weighted toward your chosen difficulty)
+  for the casino wheel; the simpler single-stage `wheelPool` function is
+  still there if you want it elsewhere. Extending a skill's table
+  automatically extends its wheel pool too. Bonus/malus modifiers are in
+  `src/lib/wheelModifiers.ts` — add a new one to `MODIFIER_POOL` with a
+  weight (higher = more common) and a case in `applyModifier`.
 - Streak-freeze logic (rest days don't break a streak) and celebration
   event resolution are both in `resolveStreak` in
   `src/lib/sessionComplete.ts`. Celebration animations are pure CSS
   keyframes defined in `src/app/globals.css` (`pop-in`, `flame-pulse`,
-  `thaw`, `gentle-shake`, `confetti-fall`) and rendered by
-  `src/components/CelebrationOverlay.tsx`.
+  `thaw`, `gentle-shake`, `confetti-fall`, `reel-scroll`, `golden-glow`)
+  and rendered by `src/components/CelebrationOverlay.tsx` and
+  `src/components/ModifierReel.tsx`.
+- Per-exercise AI tips are cached in component state per exercise
+  (`src/components/ExerciseTipButton.tsx`) so navigating away and back
+  re-fetches, but repeat taps within one view don't. The prompt lives in
+  `src/app/api/exercise-tip/route.ts` and follows the same JSON-hardening
+  and always-log approach as `/api/plan-coach`.

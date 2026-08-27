@@ -77,6 +77,10 @@ export default function PlanPage() {
               weekday: d.weekday,
               isRestDay: d.isRestDay,
               focusLabel: d.session?.focusLabel,
+              mainExercises: d.session?.sets
+                .find((s) => s.title.startsWith("Main Focus"))
+                ?.exercises.map((e) => e.name)
+                .slice(0, 3),
             })),
             goals: (userDoc.goalTracks ?? []).map((t) => TRACK_LABEL[t]),
             skillsSummary,

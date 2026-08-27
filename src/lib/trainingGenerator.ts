@@ -21,6 +21,8 @@ import {
   pushStrengthTrack,
 } from "./trainingData";
 import { pickWarmup, pickFinisher } from "./warmupFinisher";
+import { bandAssistanceBonus } from "./bandBonus";
+import { advancedSkillBonusSet } from "./advancedSkills";
 
 const FOCUS_ORDER: SkillTrack[] = [
   "frontLever",
@@ -101,14 +103,20 @@ export function exercisesForTrack(
 
 const STAGE_WEIGHT: Record<string, number> = {
   none: 0,
+  negative: 2,
+  support: 3,
+  vSit: 3,
   tuck: 4,
   band: 4,
   wall: 4,
   assisted: 6,
   advancedTuck: 8,
   single: 8,
+  tuckCross: 10,
+  wallFull: 10,
   advanced: 10,
   oneLeg: 12,
+  freestandingAttempts: 12,
   straddle: 14,
   freestanding: 12,
   multiple: 16,
@@ -124,7 +132,19 @@ function stageXpBonus(skills: SkillProfile): number {
     (STAGE_WEIGHT[skills.handstand] ?? 0) +
     (STAGE_WEIGHT[skills.humanFlag] ?? 0) +
     (STAGE_WEIGHT[skills.pistolSquat] ?? 0) +
-    (STAGE_WEIGHT[skills.lSit] ?? 0)
+    (STAGE_WEIGHT[skills.lSit] ?? 0) +
+    (STAGE_WEIGHT[skills.ironCross] ?? 0) +
+    (STAGE_WEIGHT[skills.maltese] ?? 0) +
+    (STAGE_WEIGHT[skills.oneArmPullUp] ?? 0) +
+    (STAGE_WEIGHT[skills.oneArmHandstand] ?? 0) +
+    (STAGE_WEIGHT[skills.dragonFlag] ?? 0) +
+    (STAGE_WEIGHT[skills.elbowLever] ?? 0) +
+    (STAGE_WEIGHT[skills.oneArmPushUp] ?? 0) +
+    (STAGE_WEIGHT[skills.nordicCurl] ?? 0) +
+    (STAGE_WEIGHT[skills.shrimpSquat] ?? 0) +
+    (STAGE_WEIGHT[skills.handstandPushUp] ?? 0) +
+    (STAGE_WEIGHT[skills.impossibleDip] ?? 0) +
+    (STAGE_WEIGHT[skills.manna] ?? 0)
   );
 }
 
@@ -168,6 +188,9 @@ function buildSets(
     exercises: exercisesForTrack(focus, skills, equipment),
   };
 
+  const bandBonus = bandAssistanceBonus(focus, skills, equipment);
+  if (bandBonus) primary.exercises = [...primary.exercises, bandBonus];
+
   const sets: TrainingSet[] = [warmup, primary];
 
   const accessory = accessoryTrackFor(focus, equipment);
@@ -178,6 +201,9 @@ function buildSets(
       exercises: exercisesForTrack(accessory, skills, equipment).slice(0, 2),
     });
   }
+
+  const bonusSkillSet = advancedSkillBonusSet(skills, equipment, dateISO);
+  if (bonusSkillSet) sets.push(bonusSkillSet);
 
   sets.push({
     track: "finisher",

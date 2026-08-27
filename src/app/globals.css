@@ -73,6 +73,18 @@ html, body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes reel-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+@keyframes golden-glow {
+  0%, 100% { box-shadow: 0 0 12px 2px rgba(250, 204, 21, 0.35); }
+  50% { box-shadow: 0 0 28px 8px rgba(250, 204, 21, 0.55); }
+}
+@keyframes slide-up-in {
+  0% { transform: translateY(16px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
 
 .animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .animate-gentle-shake { animation: gentle-shake 0.55s ease-in-out; }
@@ -80,6 +92,9 @@ html, body {
 .animate-thaw { animation: thaw 1.4s ease-out; }
 .animate-confetti { animation: confetti-fall 1.4s ease-in forwards; }
 .animate-overlay-fade-in { animation: overlay-fade-in 0.25s ease-out; }
+.animate-reel-scroll { animation: reel-scroll 0.35s linear infinite; }
+.animate-golden-glow { animation: golden-glow 1.4s ease-in-out infinite; }
+.animate-slide-up-in { animation: slide-up-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 :focus-visible {
   outline: 2px solid #f97316; /* orange-500 */

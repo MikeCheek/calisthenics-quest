@@ -7,14 +7,11 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import PomodoroTimer from "@/components/PomodoroTimer";
-import DifficultyWheel from "@/components/DifficultyWheel";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { SkillTrack } from "@/lib/types";
-import { WheelTrack } from "@/lib/wheelPool";
-
-const WHEEL_TRACKS: SkillTrack[] = ["frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "legs", "core"];
+import { Dices } from "lucide-react";
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
@@ -22,7 +19,6 @@ export default function TrainingPage() {
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
-  const [showWheel, setShowWheel] = useState(false);
   const [xpGained, setXpGained] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
 
@@ -112,19 +108,12 @@ export default function TrainingPage() {
 
         <SessionView session={session} onComplete={handleComplete} completed={completed} />
 
-        <button
-          onClick={() => setShowWheel((s) => !s)}
-          className="w-full text-xs px-3 py-2 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
+        <Link
+          href="/wheel"
+          className="w-full flex items-center justify-center gap-2 text-sm px-3 py-3 rounded-lg border border-orange-500/40 bg-orange-500/5 text-zinc-100 hover:bg-orange-500/10"
         >
-          {showWheel ? "Hide bonus wheel" : "🎲 Spin for a bonus exercise"}
-        </button>
-        {showWheel && (
-          <DifficultyWheel
-            skills={userDoc.skills}
-            equipment={userDoc.equipment}
-            defaultTrack={(WHEEL_TRACKS.includes(focus!) ? focus : "frontLever") as WheelTrack}
-          />
-        )}
+          <Dices size={16} className="text-orange-400" /> Spin the bonus wheel
+        </Link>
       </main>
     </>
   );

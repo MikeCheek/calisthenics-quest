@@ -59,6 +59,24 @@ function resolveStreak(userDoc: UserDoc, alreadyLoggedToday: boolean): { streak:
   return { streak: 1, event: "restarted" };
 }
 
+export interface XpAwardResult {
+  newXp: number;
+  leveledUp: boolean;
+  newLevel: number;
+}
+
+// A smaller, standalone XP award for things outside a full session — e.g.
+// finishing a bonus wheel spin. Doesn't touch streak or missions.
+export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAwardResult> {
+  const newXp = userDoc.xp + amount;
+  const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: newXp }];
+  await updateProgress(userDoc.uid, { xp: newXp, xpHistory: history.slice(-30) });
+
+  const oldLevel = levelFromXp(userDoc.xp);
+  const newLevel = levelFromXp(newXp);
+  return { newXp, leveledUp: newLevel > oldLevel, newLevel };
+}
+
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,

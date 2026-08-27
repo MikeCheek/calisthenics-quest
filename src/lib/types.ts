@@ -4,7 +4,7 @@ export type FrontLeverStage =
   | "none" | "tuck" | "advancedTuck" | "oneLeg" | "straddle" | "full";
 
 export type BackLeverStage =
-  | "none" | "tuck" | "advancedTuck" | "straddle" | "full";
+  | "none" | "tuck" | "advancedTuck" | "oneLeg" | "straddle" | "full";
 
 export type PlancheStage =
   | "none" | "tuck" | "advancedTuck" | "straddle" | "full";
@@ -13,11 +13,25 @@ export type MuscleUpStage = "none" | "band" | "single" | "multiple";
 
 export type HandstandStage = "none" | "wall" | "freestanding";
 
-export type HumanFlagStage = "none" | "tuck" | "straddle" | "full";
+export type HumanFlagStage = "none" | "tuck" | "advancedTuck" | "straddle" | "full";
 
-export type PistolSquatStage = "none" | "assisted" | "full";
+export type PistolSquatStage = "none" | "negative" | "assisted" | "full";
 
 export type LSitStage = "none" | "tuck" | "advanced" | "full";
+
+// ---- Advanced / rarer skills ----
+export type IronCrossStage = "none" | "support" | "tuckCross" | "full";
+export type MalteseStage = "none" | "tuck" | "straddle" | "full";
+export type OneArmPullUpStage = "none" | "assisted" | "negative" | "full";
+export type OneArmHandstandStage = "none" | "wall" | "freestandingAttempts" | "full";
+export type DragonFlagStage = "none" | "tuck" | "straddle" | "full";
+export type ElbowLeverStage = "none" | "tuck" | "straddle" | "full";
+export type OneArmPushUpStage = "none" | "assisted" | "negative" | "full";
+export type NordicCurlStage = "none" | "assisted" | "negative" | "full";
+export type ShrimpSquatStage = "none" | "assisted" | "full";
+export type HandstandPushUpStage = "none" | "negative" | "wallFull" | "freestanding";
+export type ImpossibleDipStage = "none" | "band" | "negative" | "full";
+export type MannaStage = "none" | "vSit" | "straddle" | "full";
 
 export interface SkillProfile {
   frontLever: FrontLeverStage;
@@ -28,6 +42,18 @@ export interface SkillProfile {
   humanFlag: HumanFlagStage;
   pistolSquat: PistolSquatStage;
   lSit: LSitStage;
+  ironCross: IronCrossStage;
+  maltese: MalteseStage;
+  oneArmPullUp: OneArmPullUpStage;
+  oneArmHandstand: OneArmHandstandStage;
+  dragonFlag: DragonFlagStage;
+  elbowLever: ElbowLeverStage;
+  oneArmPushUp: OneArmPushUpStage;
+  nordicCurl: NordicCurlStage;
+  shrimpSquat: ShrimpSquatStage;
+  handstandPushUp: HandstandPushUpStage;
+  impossibleDip: ImpossibleDipStage;
+  manna: MannaStage;
   pullUpMaxReps: number;
   archerPullUp: boolean;
   dipMaxReps: number;
@@ -54,6 +80,7 @@ export interface TrainingEquipment {
   verticalPole: boolean; // pole or sturdy tree for human flag
   monkeyBars: boolean; // grip / traverse work
   weights: boolean; // dip belt, weight vest, plates, or a loaded backpack
+  resistanceBands: boolean; // elastic bands for assistance
 }
 
 export const DEFAULT_EQUIPMENT: TrainingEquipment = {
@@ -64,8 +91,10 @@ export const DEFAULT_EQUIPMENT: TrainingEquipment = {
   verticalPole: false,
   monkeyBars: false,
   weights: false,
+  resistanceBands: false,
 };
 
+// The 10 macro focuses used for the rotating daily session generator.
 export type SkillTrack =
   | "frontLever"
   | "backLever"
@@ -78,6 +107,24 @@ export type SkillTrack =
   | "legs"
   | "core";
 
+// All individually-tracked skills, including the 12 rarer/advanced ones —
+// used for self-assessment, the profile skill list, and the bonus wheel.
+export type AdvancedSkill =
+  | "ironCross"
+  | "maltese"
+  | "oneArmPullUp"
+  | "oneArmHandstand"
+  | "dragonFlag"
+  | "elbowLever"
+  | "oneArmPushUp"
+  | "nordicCurl"
+  | "shrimpSquat"
+  | "handstandPushUp"
+  | "impossibleDip"
+  | "manna";
+
+export type AnySkill = SkillTrack | AdvancedSkill;
+
 export interface Exercise {
   name: string;
   detail: string; // sets x reps/time, tempo etc.
@@ -85,7 +132,7 @@ export interface Exercise {
   cue?: string; // short coaching cue
 }
 
-export type TrainingSetKind = SkillTrack | "warmup" | "finisher";
+export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill";
 
 export interface TrainingSet {
   track: TrainingSetKind;
@@ -195,6 +242,18 @@ export const DEFAULT_SKILLS: SkillProfile = {
   humanFlag: "none",
   pistolSquat: "none",
   lSit: "none",
+  ironCross: "none",
+  maltese: "none",
+  oneArmPullUp: "none",
+  oneArmHandstand: "none",
+  dragonFlag: "none",
+  elbowLever: "none",
+  oneArmPushUp: "none",
+  nordicCurl: "none",
+  shrimpSquat: "none",
+  handstandPushUp: "none",
+  impossibleDip: "none",
+  manna: "none",
   pullUpMaxReps: 5,
   archerPullUp: false,
   dipMaxReps: 5,
@@ -223,4 +282,44 @@ export const TRACK_LABEL: Record<SkillTrack, string> = {
   pushStrength: "Push Strength",
   legs: "Legs",
   core: "Core",
+};
+
+export const ADVANCED_SKILL_LABEL: Record<AdvancedSkill, string> = {
+  ironCross: "Iron Cross",
+  maltese: "Maltese",
+  oneArmPullUp: "One-Arm Pull-Up",
+  oneArmHandstand: "One-Arm Handstand",
+  dragonFlag: "Dragon Flag",
+  elbowLever: "Elbow Lever",
+  oneArmPushUp: "One-Arm Push-Up",
+  nordicCurl: "Nordic Curl",
+  shrimpSquat: "Shrimp Squat",
+  handstandPushUp: "Handstand Push-Up",
+  impossibleDip: "Impossible Dip",
+  manna: "Manna",
+};
+
+export const ANY_SKILL_LABEL: Record<AnySkill, string> = {
+  ...TRACK_LABEL,
+  ...ADVANCED_SKILL_LABEL,
+};
+
+// All 20 individually-progressed skills (SkillProfile's staged fields),
+// labeled for display — distinct from TRACK_LABEL, since a couple of the
+// 10 macro rotation tracks ("Legs", "Core") don't share a name with the
+// specific skill they're built around (Pistol Squat, L-Sit).
+export type StagedSkillKey =
+  | "frontLever" | "backLever" | "planche" | "muscleUp" | "handstand"
+  | "humanFlag" | "pistolSquat" | "lSit" | AdvancedSkill;
+
+export const SKILL_FIELD_LABEL: Record<StagedSkillKey, string> = {
+  frontLever: "Front Lever",
+  backLever: "Back Lever",
+  planche: "Planche",
+  muscleUp: "Muscle-Up",
+  handstand: "Handstand",
+  humanFlag: "Human Flag",
+  pistolSquat: "Pistol Squat",
+  lSit: "L-Sit",
+  ...ADVANCED_SKILL_LABEL,
 };

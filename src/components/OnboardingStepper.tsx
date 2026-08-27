@@ -6,74 +6,15 @@ import {
   SkillProfile,
   TrainingEquipment,
   SkillTrack,
+  StagedSkillKey,
   TRACK_LABEL,
-  FrontLeverStage,
-  BackLeverStage,
-  PlancheStage,
-  MuscleUpStage,
-  HandstandStage,
-  HumanFlagStage,
-  PistolSquatStage,
-  LSitStage,
 } from "@/lib/types";
 import ScrollPicker from "@/components/ScrollPicker";
 import SegmentedControl from "@/components/SegmentedControl";
 import WeekdayPicker from "@/components/WeekdayPicker";
+import SkillTabPicker from "@/components/SkillTabPicker";
 import CalisthenicsFigure from "@/components/CalisthenicsFigure";
 import { ChevronLeft } from "lucide-react";
-
-const STAGE_OPTIONS = {
-  frontLever: [
-    { value: "none", label: "Not started" },
-    { value: "tuck", label: "Tuck" },
-    { value: "advancedTuck", label: "Adv. tuck" },
-    { value: "oneLeg", label: "One leg" },
-    { value: "straddle", label: "Straddle" },
-    { value: "full", label: "Full" },
-  ] as { value: FrontLeverStage; label: string }[],
-  backLever: [
-    { value: "none", label: "Not started" },
-    { value: "tuck", label: "Tuck" },
-    { value: "advancedTuck", label: "Adv. tuck" },
-    { value: "straddle", label: "Straddle" },
-    { value: "full", label: "Full" },
-  ] as { value: BackLeverStage; label: string }[],
-  planche: [
-    { value: "none", label: "Not started" },
-    { value: "tuck", label: "Tuck" },
-    { value: "advancedTuck", label: "Adv. tuck" },
-    { value: "straddle", label: "Straddle" },
-    { value: "full", label: "Full" },
-  ] as { value: PlancheStage; label: string }[],
-  muscleUp: [
-    { value: "none", label: "Not yet" },
-    { value: "band", label: "Band-assisted" },
-    { value: "single", label: "A few strict" },
-    { value: "multiple", label: "Multiple" },
-  ] as { value: MuscleUpStage; label: string }[],
-  handstand: [
-    { value: "none", label: "Not started" },
-    { value: "wall", label: "Wall-assisted" },
-    { value: "freestanding", label: "Freestanding" },
-  ] as { value: HandstandStage; label: string }[],
-  humanFlag: [
-    { value: "none", label: "Not started" },
-    { value: "tuck", label: "Tuck" },
-    { value: "straddle", label: "Straddle" },
-    { value: "full", label: "Full" },
-  ] as { value: HumanFlagStage; label: string }[],
-  pistolSquat: [
-    { value: "none", label: "Not started" },
-    { value: "assisted", label: "Assisted" },
-    { value: "full", label: "Full" },
-  ] as { value: PistolSquatStage; label: string }[],
-  lSit: [
-    { value: "none", label: "Not started" },
-    { value: "tuck", label: "Tuck" },
-    { value: "advanced", label: "One-leg ext." },
-    { value: "full", label: "Full" },
-  ] as { value: LSitStage; label: string }[],
-};
 
 const GOAL_TRACKS: SkillTrack[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand",
@@ -105,6 +46,10 @@ export default function OnboardingStepper({
 
   const toggleGoal = (t: SkillTrack) => {
     setGoals((g) => (g.includes(t) ? g.filter((x) => x !== t) : g.length < 4 ? [...g, t] : g));
+  };
+
+  const setSkillStage = (skill: StagedSkillKey, stage: string) => {
+    setSkills({ ...skills, [skill]: stage } as SkillProfile);
   };
 
   const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : onSave(body, skills, equipment, goals));
@@ -191,31 +136,20 @@ export default function OnboardingStepper({
               onChange={(v) => setEquipment({ ...equipment, monkeyBars: v })} />
             <EquipmentToggle label="Weights (vest, belt, plates, backpack)" checked={equipment.weights}
               onChange={(v) => setEquipment({ ...equipment, weights: v })} />
+            <EquipmentToggle label="Elastic / resistance bands" checked={equipment.resistanceBands}
+              onChange={(v) => setEquipment({ ...equipment, resistanceBands: v })} />
           </div>
         </div>
       )}
 
       {step === 2 && (
-        <div className="space-y-5">
-          <SegmentedControl label="Front lever" value={skills.frontLever} options={STAGE_OPTIONS.frontLever}
-            onChange={(v) => setSkills({ ...skills, frontLever: v })} />
-          <SegmentedControl label="Back lever" value={skills.backLever} options={STAGE_OPTIONS.backLever}
-            onChange={(v) => setSkills({ ...skills, backLever: v })} />
-          <SegmentedControl label="Planche" value={skills.planche} options={STAGE_OPTIONS.planche}
-            onChange={(v) => setSkills({ ...skills, planche: v })} />
-          <SegmentedControl label="Muscle-up" value={skills.muscleUp} options={STAGE_OPTIONS.muscleUp}
-            onChange={(v) => setSkills({ ...skills, muscleUp: v })} />
-          <SegmentedControl label="Handstand" value={skills.handstand} options={STAGE_OPTIONS.handstand}
-            onChange={(v) => setSkills({ ...skills, handstand: v })} />
-          <SegmentedControl
-            label={`Human flag${!equipment.verticalPole ? " (needs a pole — set in previous step)" : ""}`}
-            value={skills.humanFlag} options={STAGE_OPTIONS.humanFlag} disabled={!equipment.verticalPole}
-            onChange={(v) => setSkills({ ...skills, humanFlag: v })}
-          />
-          <SegmentedControl label="Pistol squat" value={skills.pistolSquat} options={STAGE_OPTIONS.pistolSquat}
-            onChange={(v) => setSkills({ ...skills, pistolSquat: v })} />
-          <SegmentedControl label="L-sit" value={skills.lSit} options={STAGE_OPTIONS.lSit}
-            onChange={(v) => setSkills({ ...skills, lSit: v })} />
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-400">
+            Scroll through and set your stage for each skill — front lever
+            to the strange and advanced ones. Anything you haven&apos;t
+            touched can stay at &quot;Not started&quot;.
+          </p>
+          <SkillTabPicker skills={skills} onChange={setSkillStage} />
 
           <div className="grid grid-cols-2 gap-3">
             <ScrollPicker label="Max pull-ups" value={skills.pullUpMaxReps} min={0} max={40} variant="wheel"
