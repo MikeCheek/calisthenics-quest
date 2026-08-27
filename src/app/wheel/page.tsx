@@ -27,6 +27,8 @@ import {
 import { awardXp, Celebration } from "@/lib/sessionComplete";
 import { playBeep } from "@/lib/sound";
 import { Sparkles, X, Shuffle } from "lucide-react";
+import SkillInfoModal from "@/components/SkillInfoModal";
+import InfoIconButton from "@/components/InfoIconButton";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -88,6 +90,7 @@ function WheelContent() {
   const [track, setTrack] = useState<StagedSkillKey>(requestedSkill ?? "frontLever");
   const [difficulty, setDifficulty] = useState<-1 | 0 | 1>(0);
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  const [infoSkill, setInfoSkill] = useState<StagedSkillKey | null>(null);
   const [rotation, setRotation] = useState(0);
   const [spinPhase, setSpinPhase] = useState<SpinPhase>("idle");
   const [landedExercise, setLandedExercise] = useState<Exercise | null>(null);
@@ -257,7 +260,11 @@ function WheelContent() {
         </div>
 
         <div>
-          <div className="text-xs text-zinc-400 mb-1.5">Skill ({availableSkills.length} available)</div>
+          <div className="text-xs text-zinc-400 mb-1.5 flex items-center gap-1.5">
+            Skill: <span className="text-zinc-200">{SKILL_FIELD_LABEL[track]}</span>
+            <InfoIconButton onClick={() => setInfoSkill(track)} label={`About ${SKILL_FIELD_LABEL[track]}`} />
+            <span className="ml-auto">{availableSkills.length} available</span>
+          </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
             {availableSkills.map((s) => (
               <button
@@ -433,6 +440,14 @@ function WheelContent() {
           </div>
         )}
       </main>
+
+      <SkillInfoModal
+        skill={infoSkill}
+        onClose={() => setInfoSkill(null)}
+        playerLevel={playerLevel}
+        skills={userDoc.skills}
+        skillMastery={userDoc.skillMastery}
+      />
     </>
   );
 }

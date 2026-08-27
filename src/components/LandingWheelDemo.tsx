@@ -6,6 +6,8 @@ import { wheelPoolWeighted } from "@/lib/wheelPool";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
 import { playBeep } from "@/lib/sound";
+import SkillInfoModal from "@/components/SkillInfoModal";
+import InfoIconButton from "@/components/InfoIconButton";
 import { Dices } from "lucide-react";
 
 // A curated slice of the full 50-skill roster — enough variety to show
@@ -25,6 +27,7 @@ export default function LandingWheelDemo() {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<Exercise | null>(null);
+  const [infoSkill, setInfoSkill] = useState<StagedSkillKey | null>(null);
 
   // No account yet, so there's no real stage/equipment to weight by — this
   // spins at a beginner-appropriate difficulty using the same pool logic
@@ -66,19 +69,24 @@ export default function LandingWheelDemo() {
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {DEMO_SKILLS.map((s) => (
-          <button
+          <div
             key={s}
-            disabled={spinning}
-            onClick={() => {
-              setSkill(s);
-              setResult(null);
-            }}
-            className={`text-xs px-2.5 py-1.5 rounded-lg border disabled:opacity-50 ${
+            className={`flex items-center gap-1 pl-2.5 pr-1.5 py-1.5 rounded-lg border text-xs ${
               skill === s ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-400"
             }`}
           >
-            {SKILL_FIELD_LABEL[s]}
-          </button>
+            <button
+              disabled={spinning}
+              onClick={() => {
+                setSkill(s);
+                setResult(null);
+              }}
+              className="disabled:opacity-50"
+            >
+              {SKILL_FIELD_LABEL[s]}
+            </button>
+            <InfoIconButton onClick={() => setInfoSkill(s)} label={`About ${SKILL_FIELD_LABEL[s]}`} size={11} />
+          </div>
         ))}
       </div>
 
@@ -129,6 +137,8 @@ export default function LandingWheelDemo() {
           </div>
         </div>
       )}
+
+      <SkillInfoModal skill={infoSkill} onClose={() => setInfoSkill(null)} showTrainCta={false} />
     </div>
   );
 }

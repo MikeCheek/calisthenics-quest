@@ -4,13 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
-import Modal from "@/components/Modal";
+import SkillInfoModal from "@/components/SkillInfoModal";
+import InfoIconButton from "@/components/InfoIconButton";
 import { SKILL_CATEGORIES } from "@/lib/skillCategories";
-import { SKILL_DESCRIPTIONS } from "@/lib/skillDescriptions";
-import { SKILL_FIELD_LABEL, StagedSkillKey, SkillProfile, SkillMastery, MASTERY_LABEL, DEFAULT_MASTERY } from "@/lib/types";
+import { SKILL_FIELD_LABEL, StagedSkillKey, MASTERY_LABEL } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
-import { pathNodesForSkill, isSkillAStretch, suggestEasierSkill, effectiveLevel } from "@/lib/levelPath";
-import { Info, Sparkles } from "lucide-react";
+import { effectiveLevel } from "@/lib/levelPath";
 
 export default function SkillsPage() {
   const { user, userDoc, loading } = useAuth();
@@ -62,13 +61,11 @@ export default function SkillsPage() {
                         {started && m && ` · ${MASTERY_LABEL[m]}`}
                       </span>
                     </button>
-                    <button
+                    <InfoIconButton
                       onClick={() => setActiveSkill(skill)}
-                      className="p-1.5 text-zinc-500 hover:text-orange-400 shrink-0"
-                      aria-label={`About ${SKILL_FIELD_LABEL[skill]}`}
-                    >
-                      <Info size={16} />
-                    </button>
+                      label={`About ${SKILL_FIELD_LABEL[skill]}`}
+                      size={16}
+                    />
                   </div>
                 );
               })}
@@ -85,105 +82,5 @@ export default function SkillsPage() {
         skillMastery={userDoc.skillMastery}
       />
     </>
-  );
-}
-
-function SkillInfoModal({
-  skill,
-  onClose,
-  playerLevel,
-  skills,
-  skillMastery,
-}: {
-  skill: StagedSkillKey | null;
-  onClose: () => void;
-  playerLevel: number;
-  skills: SkillProfile;
-  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>;
-}) {
-  const router = useRouter();
-
-  if (!skill) {
-    return null;
-  }
-
-  const stage = skills[skill] as string;
-  const mastery = skillMastery[skill] ?? DEFAULT_MASTERY;
-  const arc = pathNodesForSkill(skill);
-  const stretch = isSkillAStretch(skill, playerLevel);
-  const suggestion = stretch ? suggestEasierSkill(playerLevel, skills) : null;
-
-  const goTrain = (target: StagedSkillKey) => {
-    onClose();
-    router.push(`/wheel?skill=${target}`);
-  };
-
-  return (
-    <Modal open={!!skill} onClose={onClose} title={SKILL_FIELD_LABEL[skill]}>
-      <p className="text-sm text-zinc-300 mb-3">{SKILL_DESCRIPTIONS[skill]}</p>
-
-      <div className="text-xs text-zinc-500 mb-3">
-        Your stage: <span className="text-zinc-200">{STAGE_LABEL[stage] ?? stage}</span>
-        {stage !== "none" && (
-          <>
-            {" "}· <span className="text-zinc-200">{MASTERY_LABEL[mastery]}</span>{" "}
-            <span className="text-zinc-600">({"●".repeat(mastery)}{"○".repeat(5 - mastery)})</span>
-          </>
-        )}
-      </div>
-
-      {arc.length > 0 && (
-        <div className="mb-4">
-          <div className="text-xs text-zinc-500 mb-1.5">Suggested arc on the trophy road</div>
-          <div className="flex flex-wrap gap-1.5">
-            {arc.map((n) => (
-              <span
-                key={n.level}
-                className={`text-xs px-2 py-1 rounded-full border ${
-                  playerLevel >= n.level ? "border-emerald-700 text-emerald-400" : "border-zinc-700 text-zinc-500"
-                }`}
-              >
-                Lv {n.level} · {STAGE_LABEL[n.stage ?? ""] ?? n.stage}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {stretch && suggestion?.skill && suggestion.skill !== skill ? (
-        <div className="panel p-3 border-orange-500/40 mb-1">
-          <div className="flex items-start gap-2">
-            <Sparkles size={14} className="text-orange-400 mt-0.5 shrink-0" />
-            <div className="text-xs text-zinc-300">
-              This one&apos;s a stretch for level {playerLevel} — the road doesn&apos;t suggest it until
-              around level {arc[0]?.level}.{" "}
-              <span className="text-zinc-100">{SKILL_FIELD_LABEL[suggestion.skill]}</span> might be a
-              better fit right now.
-            </div>
-          </div>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => goTrain(suggestion.skill!)}
-              className="flex-1 py-2 rounded-lg text-xs bg-orange-500 hover:bg-orange-400 text-zinc-950"
-            >
-              Train {SKILL_FIELD_LABEL[suggestion.skill]} instead
-            </button>
-            <button
-              onClick={() => goTrain(skill)}
-              className="flex-1 py-2 rounded-lg text-xs border border-zinc-700 text-zinc-300 hover:border-orange-500"
-            >
-              Train this anyway
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => goTrain(skill)}
-          className="w-full py-2.5 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
-        >
-          Train this skill →
-        </button>
-      )}
-    </Modal>
   );
 }

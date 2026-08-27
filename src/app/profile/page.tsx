@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SkillRadarChart from "@/components/SkillRadarChart";
 import XPHistoryChart from "@/components/XPHistoryChart";
+import SkillInfoModal from "@/components/SkillInfoModal";
+import InfoIconButton from "@/components/InfoIconButton";
 import { rankTitle } from "@/lib/xp";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { effectiveXpProgress, effectiveLevel } from "@/lib/levelPath";
 import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import ReminderSettings from "@/components/ReminderSettings";
@@ -29,6 +31,7 @@ const ALL_SKILL_KEYS: StagedSkillKey[] = [
 
 export default function ProfilePage() {
   const { user, userDoc, loading } = useAuth();
+  const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -98,11 +101,14 @@ export default function ProfilePage() {
               return (
                 <div
                   key={key}
-                  className={`shrink-0 px-3 py-2 rounded-lg border text-center min-w-[92px] ${
+                  className={`shrink-0 px-3 py-2 rounded-lg border text-center min-w-[92px] relative ${
                     started ? "border-emerald-700 bg-emerald-600/5" : "border-zinc-700"
                   }`}
                 >
-                  <div className="text-xs text-zinc-300 whitespace-nowrap">{SKILL_FIELD_LABEL[key]}</div>
+                  <div className="absolute top-1 right-1">
+                    <InfoIconButton onClick={() => setActiveSkill(key)} label={`About ${SKILL_FIELD_LABEL[key]}`} size={11} />
+                  </div>
+                  <div className="text-xs text-zinc-300 whitespace-nowrap pr-2">{SKILL_FIELD_LABEL[key]}</div>
                   <div className={`stat-mono text-xs mt-0.5 ${started ? "text-emerald-400" : "text-zinc-600"}`}>
                     {STAGE_LABEL[stage] ?? stage}
                   </div>
@@ -149,6 +155,14 @@ export default function ProfilePage() {
 
         <ReminderSettings />
       </main>
+
+      <SkillInfoModal
+        skill={activeSkill}
+        onClose={() => setActiveSkill(null)}
+        playerLevel={progress.level}
+        skills={userDoc.skills}
+        skillMastery={userDoc.skillMastery}
+      />
     </>
   );
 }

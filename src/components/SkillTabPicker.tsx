@@ -4,6 +4,8 @@ import { useState } from "react";
 import { SkillProfile, StagedSkillKey, SkillMastery, MASTERY_LABEL, MASTERY_HINT, DEFAULT_MASTERY, SKILL_FIELD_LABEL } from "@/lib/types";
 import { STAGE_ORDER, STAGE_LABEL } from "@/lib/stageOrder";
 import { levelForSkillStage, requiredLevelForMastery, canClaimMastery } from "@/lib/levelPath";
+import SkillInfoModal from "@/components/SkillInfoModal";
+import InfoIconButton from "@/components/InfoIconButton";
 import { Lock } from "lucide-react";
 
 const SKILL_ORDER: StagedSkillKey[] = [
@@ -36,6 +38,7 @@ export default function SkillTabPicker({
   onMasteryChange: (skill: StagedSkillKey, mastery: SkillMastery) => void;
 }) {
   const [active, setActive] = useState<StagedSkillKey>("frontLever");
+  const [infoSkill, setInfoSkill] = useState<StagedSkillKey | null>(null);
   const stages = STAGE_ORDER[active] ?? ["none"];
   const currentStage = skills[active] as string;
   const currentMastery = mastery[active] ?? DEFAULT_MASTERY;
@@ -68,7 +71,10 @@ export default function SkillTabPicker({
 
       <div className="panel p-3 mt-1">
         <div className="flex items-center justify-between mb-2">
-          <div className="heading text-sm text-zinc-100">{SKILL_FIELD_LABEL[active]}</div>
+          <div className="flex items-center gap-1.5">
+            <div className="heading text-sm text-zinc-100">{SKILL_FIELD_LABEL[active]}</div>
+            <InfoIconButton onClick={() => setInfoSkill(active)} label={`About ${SKILL_FIELD_LABEL[active]}`} />
+          </div>
           <div className="stat-mono text-xs text-orange-400">{STAGE_LABEL[currentStage] ?? currentStage}</div>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
@@ -133,6 +139,15 @@ export default function SkillTabPicker({
           </div>
         )}
       </div>
+
+      <SkillInfoModal
+        skill={infoSkill}
+        onClose={() => setInfoSkill(null)}
+        playerLevel={liveLevel}
+        skills={skills}
+        skillMastery={mastery}
+        showTrainCta={false}
+      />
     </div>
   );
 }

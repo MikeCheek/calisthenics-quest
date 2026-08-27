@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
+import SkillInfoModal from "@/components/SkillInfoModal";
+import InfoIconButton from "@/components/InfoIconButton";
 import { pathChapters, nodeUnlocked, PathNode, effectiveLevel } from "@/lib/levelPath";
-import { SKILL_FIELD_LABEL } from "@/lib/types";
+import { SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import { Sparkle, Check, MapPin, Dumbbell, Hash } from "lucide-react";
 
@@ -14,6 +16,7 @@ export default function PathPage() {
   const router = useRouter();
   const currentNodeRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [infoSkill, setInfoSkill] = useState<StagedSkillKey | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -72,6 +75,7 @@ export default function PathPage() {
                     unlocked={nodeUnlocked(node, level)}
                     isCurrent={node.level === level}
                     refProp={node.level === level ? currentNodeRef : undefined}
+                    onInfoClick={setInfoSkill}
                   />
                 ))}
                 {chapter.nodes.length === 0 && (
@@ -82,6 +86,14 @@ export default function PathPage() {
           ))}
         </div>
       </main>
+
+      <SkillInfoModal
+        skill={infoSkill}
+        onClose={() => setInfoSkill(null)}
+        playerLevel={level}
+        skills={userDoc.skills}
+        skillMastery={userDoc.skillMastery}
+      />
     </>
   );
 }
@@ -91,11 +103,13 @@ function PathNodeCard({
   unlocked,
   isCurrent,
   refProp,
+  onInfoClick,
 }: {
   node: PathNode;
   unlocked: boolean;
   isCurrent: boolean;
   refProp?: React.RefObject<HTMLDivElement>;
+  onInfoClick: (skill: StagedSkillKey) => void;
 }) {
   const stageLabel = node.stage ? STAGE_LABEL[node.stage] ?? node.stage : null;
   const skillLabel = node.skill ? SKILL_FIELD_LABEL[node.skill] : null;
@@ -138,8 +152,9 @@ function PathNodeCard({
           {node.title}
         </div>
         {skillLabel && stageLabel && (
-          <div className="text-xs text-zinc-500 mt-0.5">
+          <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
             {skillLabel} — {stageLabel}
+            {node.skill && <InfoIconButton onClick={() => onInfoClick(node.skill!)} label={`About ${skillLabel}`} />}
           </div>
         )}
       </div>

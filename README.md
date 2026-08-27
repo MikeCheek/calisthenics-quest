@@ -393,14 +393,46 @@ A dedicated browsing screen for all 50 skills, grouped into six categories
 Legs, Dynamic & Flashy — `src/lib/skillCategories.ts`, cross-checked to
 cover exactly the 50 skills with no gaps or overlaps). Every skill has:
 
-- An **i** info icon that opens a modal (`src/components/Modal.tsx`) with a
-  plain-English description of what the skill actually is
-  (`src/lib/skillDescriptions.ts` — one written for each of the 50), your
-  current self-reported stage, and its suggested arc on the trophy road
-  (e.g. front lever: tuck around level 16, straddle around 40, full around
-  61).
+- An **i** info icon that opens a modal
+  (`src/components/SkillInfoModal.tsx`) with a plain-English description of
+  what the skill actually is (`src/lib/skillDescriptions.ts` — one written
+  for each of the 50), your current self-reported stage, and its suggested
+  arc on the trophy road (e.g. front lever: tuck around level 16, straddle
+  around 40, full around 61).
 - Tapping the skill itself (or "Train this skill" in the modal) sends you
   to the bonus wheel pre-loaded with that skill via `/wheel?skill=<skill>`.
+
+**The same info icon appears everywhere else a skill name is shown, not
+just here.** `SkillInfoModal` and a small shared `InfoIconButton`
+(`src/components/InfoIconButton.tsx`) are used consistently across:
+- The skills catalog above (per-row icon).
+- Onboarding's skill picker (`SkillTabPicker.tsx`) — icon next to the
+  currently-selected skill's name in the detail panel; the modal there hides
+  the "train this" CTA (`showTrainCta={false}`) since navigating away
+  mid-setup doesn't make sense.
+- The Profile page's "All skills" strip — a small icon in the corner of
+  each of the 50 tiles.
+- The bonus wheel (`/wheel`) — icon next to the currently-selected skill,
+  above the picker row.
+- The trophy road (`/path`) — icon next to each milestone's skill+stage line.
+- The landing page's wheel demo (`LandingWheelDemo.tsx`) — icon on each of
+  its 12 demo-picker chips, with no player level/mastery context (there's no
+  account yet) and the train CTA hidden.
+
+`SkillInfoModal` is built to degrade gracefully for exactly this reason —
+`playerLevel`, `skills`, and `skillMastery` are all optional props, so the
+same component renders sensibly whether it's called with a full real
+account (stage, mastery, and the stretch-suggestion logic all show) or with
+none of that (just the plain description, as on the landing page).
+
+**One deliberate scoping choice:** the two large horizontal skill-chip
+scrollers (onboarding's 50-skill picker and the wheel's ~45-skill picker)
+do *not* get an icon on every individual chip — cramming a second small tap
+target into that many already-compact mobile chips would make them
+error-prone to hit accurately. Each of those screens instead has one
+larger, prominent display of whichever skill is currently selected, and
+that's where the info icon lives; every skill is still reachable, just via
+selecting it first rather than an icon on every chip in a fast scroll.
 
 **Suggesting an easier skill.** If the skill you pick is well beyond where
 the trophy road says you typically are — `isSkillAStretch` in
