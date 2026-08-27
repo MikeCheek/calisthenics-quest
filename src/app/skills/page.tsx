@@ -7,10 +7,9 @@ import Nav from "@/components/Nav";
 import Modal from "@/components/Modal";
 import { SKILL_CATEGORIES } from "@/lib/skillCategories";
 import { SKILL_DESCRIPTIONS } from "@/lib/skillDescriptions";
-import { SKILL_FIELD_LABEL, StagedSkillKey, SkillProfile } from "@/lib/types";
+import { SKILL_FIELD_LABEL, StagedSkillKey, SkillProfile, SkillMastery, MASTERY_LABEL, DEFAULT_MASTERY } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
-import { pathNodesForSkill, isSkillAStretch, suggestEasierSkill } from "@/lib/levelPath";
-import { xpProgress } from "@/lib/xp";
+import { pathNodesForSkill, isSkillAStretch, suggestEasierSkill, effectiveLevel } from "@/lib/levelPath";
 import { Info, Sparkles } from "lucide-react";
 
 export default function SkillsPage() {
@@ -28,7 +27,7 @@ export default function SkillsPage() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const level = xpProgress(userDoc.xp).level;
+  const level = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
 
   return (
     <>
@@ -49,6 +48,7 @@ export default function SkillsPage() {
               {cat.skills.map((skill) => {
                 const stage = userDoc.skills[skill] as string;
                 const started = stage !== "none";
+                const m = userDoc.skillMastery?.[skill];
                 return (
                   <div key={skill} className="panel px-3 py-2.5 flex items-center justify-between gap-2">
                     <button
@@ -59,6 +59,7 @@ export default function SkillsPage() {
                       <span className="text-sm text-zinc-100 truncate">{SKILL_FIELD_LABEL[skill]}</span>
                       <span className="text-xs text-zinc-500 shrink-0 ml-auto">
                         {STAGE_LABEL[stage] ?? stage}
+                        {started && m && ` · ${MASTERY_LABEL[m]}`}
                       </span>
                     </button>
                     <button
@@ -76,7 +77,13 @@ export default function SkillsPage() {
         ))}
       </main>
 
-      <SkillInfoModal skill={activeSkill} onClose={() => setActiveSkill(null)} playerLevel={level} skills={userDoc.skills} />
+      <SkillInfoModal
+        skill={activeSkill}
+        onClose={() => setActiveSkill(null)}
+        playerLevel={level}
+        skills={userDoc.skills}
+        skillMastery={userDoc.skillMastery}
+      />
     </>
   );
 }
@@ -86,11 +93,13 @@ function SkillInfoModal({
   onClose,
   playerLevel,
   skills,
+  skillMastery,
 }: {
   skill: StagedSkillKey | null;
   onClose: () => void;
   playerLevel: number;
   skills: SkillProfile;
+  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>;
 }) {
   const router = useRouter();
 
@@ -99,6 +108,7 @@ function SkillInfoModal({
   }
 
   const stage = skills[skill] as string;
+  const mastery = skillMastery[skill] ?? DEFAULT_MASTERY;
   const arc = pathNodesForSkill(skill);
   const stretch = isSkillAStretch(skill, playerLevel);
   const suggestion = stretch ? suggestEasierSkill(playerLevel, skills) : null;
@@ -114,6 +124,12 @@ function SkillInfoModal({
 
       <div className="text-xs text-zinc-500 mb-3">
         Your stage: <span className="text-zinc-200">{STAGE_LABEL[stage] ?? stage}</span>
+        {stage !== "none" && (
+          <>
+            {" "}· <span className="text-zinc-200">{MASTERY_LABEL[mastery]}</span>{" "}
+            <span className="text-zinc-600">({"●".repeat(mastery)}{"○".repeat(5 - mastery)})</span>
+          </>
+        )}
       </div>
 
       {arc.length > 0 && (

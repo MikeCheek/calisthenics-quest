@@ -20,6 +20,8 @@ import {
   PublicProfile,
   SkillProfile,
   SkillTrack,
+  SkillMastery,
+  StagedSkillKey,
   TrainingEquipment,
   UserDoc,
 } from "./types";
@@ -39,9 +41,10 @@ export async function saveProfile(
   body: BodyProfile,
   skills: SkillProfile,
   equipment: TrainingEquipment,
-  goalTracks: SkillTrack[]
+  goalTracks: SkillTrack[],
+  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>
 ): Promise<void> {
-  await updateDoc(doc(db, "users", uid), { body, skills, equipment, goalTracks, onboarded: true });
+  await updateDoc(doc(db, "users", uid), { body, skills, equipment, goalTracks, skillMastery, onboarded: true });
 }
 
 export async function updateProgress(

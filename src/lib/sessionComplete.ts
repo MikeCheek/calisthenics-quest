@@ -1,7 +1,7 @@
 import { TrainingSession, UserDoc } from "./types";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile } from "./store";
-import { levelFromXp } from "./xp";
+import { effectiveLevel } from "./levelPath";
 
 export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
 
@@ -72,8 +72,8 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
   const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: newXp }];
   await updateProgress(userDoc.uid, { xp: newXp, xpHistory: history.slice(-30) });
 
-  const oldLevel = levelFromXp(userDoc.xp);
-  const newLevel = levelFromXp(newXp);
+  const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const newLevel = effectiveLevel(newXp, userDoc.skills, userDoc.skillMastery);
   return { newXp, leveledUp: newLevel > oldLevel, newLevel };
 }
 
@@ -116,15 +116,15 @@ export async function completeSession(
       displayName: userDoc.displayName,
       photoURL: userDoc.photoURL,
       friendCode: userDoc.friendCode,
-      level: levelFromXp(totalXp),
+      level: effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery),
       streak: newStreak,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });
   }
 
-  const oldLevel = levelFromXp(userDoc.xp);
-  const newLevel = levelFromXp(totalXp);
+  const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const newLevel = effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery);
 
   return {
     patch,

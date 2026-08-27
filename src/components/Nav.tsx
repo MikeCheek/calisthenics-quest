@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { xpProgress, rankTitle } from "@/lib/xp";
+import { rankTitle } from "@/lib/xp";
+import { effectiveXpProgress } from "@/lib/levelPath";
 import { Home, Dumbbell, Users, User, Layers, LogOut } from "lucide-react";
 
 const TABS = [
@@ -17,7 +18,7 @@ const TABS = [
 export default function Nav() {
   const { userDoc, signOut } = useAuth();
   const pathname = usePathname();
-  const progress = userDoc ? xpProgress(userDoc.xp) : null;
+  const progress = userDoc ? effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery) : null;
 
   return (
     <>

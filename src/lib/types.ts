@@ -253,6 +253,26 @@ export const DEFAULT_NOTIFICATIONS: NotificationPrefs = {
   time: "18:00",
 };
 
+export type SkillMastery = 1 | 2 | 3 | 4 | 5;
+
+export const MASTERY_LABEL: Record<SkillMastery, string> = {
+  1: "Attempted",
+  2: "Touched it",
+  3: "Getting there",
+  4: "Consistent",
+  5: "Mastered",
+};
+
+export const MASTERY_HINT: Record<SkillMastery, string> = {
+  1: "Tried it, not really landing it yet",
+  2: "Hit it once or twice — brief, rough form",
+  3: "Can do it, but inconsistent or not clean",
+  4: "Reliable, decent form most of the time",
+  5: "Clean, full target reps or hold, controlled",
+};
+
+export const DEFAULT_MASTERY: SkillMastery = 3;
+
 export interface UserDoc {
   uid: string;
   displayName: string;
@@ -260,6 +280,7 @@ export interface UserDoc {
   photoURL?: string;
   body: BodyProfile;
   skills: SkillProfile;
+  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>;
   equipment: TrainingEquipment;
   goalTracks: SkillTrack[];
   onboarded: boolean;

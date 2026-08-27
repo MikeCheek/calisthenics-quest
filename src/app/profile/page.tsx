@@ -7,7 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SkillRadarChart from "@/components/SkillRadarChart";
 import XPHistoryChart from "@/components/XPHistoryChart";
-import { xpProgress, rankTitle } from "@/lib/xp";
+import { rankTitle } from "@/lib/xp";
+import { effectiveXpProgress } from "@/lib/levelPath";
 import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import ReminderSettings from "@/components/ReminderSettings";
@@ -40,7 +41,7 @@ export default function ProfilePage() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const progress = xpProgress(userDoc.xp);
+  const progress = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery);
 
   return (
     <>
@@ -93,6 +94,7 @@ export default function ProfilePage() {
             {ALL_SKILL_KEYS.map((key) => {
               const stage = userDoc.skills[key] as string;
               const started = stage !== "none";
+              const m = userDoc.skillMastery?.[key];
               return (
                 <div
                   key={key}
@@ -104,6 +106,7 @@ export default function ProfilePage() {
                   <div className={`stat-mono text-xs mt-0.5 ${started ? "text-emerald-400" : "text-zinc-600"}`}>
                     {STAGE_LABEL[stage] ?? stage}
                   </div>
+                  {started && m && <div className="text-[10px] text-zinc-500 mt-0.5">{"●".repeat(m)}{"○".repeat(5 - m)}</div>}
                 </div>
               );
             })}

@@ -10,8 +10,7 @@ import ModifierReel from "@/components/ModifierReel";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { Exercise, StagedSkillKey, SKILL_FIELD_LABEL } from "@/lib/types";
 import { wheelPoolWeighted, wheelTrackAvailable } from "@/lib/wheelPool";
-import { isSkillAStretch, suggestEasierSkill, firstPathLevelForSkill } from "@/lib/levelPath";
-import { xpProgress } from "@/lib/xp";
+import { isSkillAStretch, suggestEasierSkill, firstPathLevelForSkill, effectiveLevel } from "@/lib/levelPath";
 import { Modifier, pickRandomModifier, applyModifier, modifierXpMultiplier } from "@/lib/wheelModifiers";
 import { awardXp, Celebration } from "@/lib/sessionComplete";
 import { playBeep } from "@/lib/sound";
@@ -99,7 +98,7 @@ function WheelContent() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const playerLevel = xpProgress(userDoc.xp).level;
+  const playerLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
   const trackIsStretch = isSkillAStretch(track, playerLevel) && !suggestionDismissed;
   const easierSuggestion = trackIsStretch ? suggestEasierSkill(playerLevel, userDoc.skills) : null;
   const firstLevel = firstPathLevelForSkill(track);

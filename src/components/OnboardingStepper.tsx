@@ -7,8 +7,10 @@ import {
   TrainingEquipment,
   SkillTrack,
   StagedSkillKey,
+  SkillMastery,
   TRACK_LABEL,
 } from "@/lib/types";
+import { effectiveLevel } from "@/lib/levelPath";
 import ScrollPicker from "@/components/ScrollPicker";
 import SegmentedControl from "@/components/SegmentedControl";
 import WeekdayPicker from "@/components/WeekdayPicker";
@@ -28,6 +30,8 @@ export default function OnboardingStepper({
   initialSkills,
   initialEquipment,
   initialGoals,
+  initialMastery,
+  currentXp,
   onSave,
   saving,
 }: {
@@ -35,7 +39,15 @@ export default function OnboardingStepper({
   initialSkills: SkillProfile;
   initialEquipment: TrainingEquipment;
   initialGoals: SkillTrack[];
-  onSave: (body: BodyProfile, skills: SkillProfile, equipment: TrainingEquipment, goals: SkillTrack[]) => void;
+  initialMastery: Partial<Record<StagedSkillKey, SkillMastery>>;
+  currentXp: number;
+  onSave: (
+    body: BodyProfile,
+    skills: SkillProfile,
+    equipment: TrainingEquipment,
+    goals: SkillTrack[],
+    mastery: Partial<Record<StagedSkillKey, SkillMastery>>
+  ) => void;
   saving?: boolean;
 }) {
   const [step, setStep] = useState(0);
@@ -43,6 +55,9 @@ export default function OnboardingStepper({
   const [skills, setSkills] = useState<SkillProfile>(initialSkills);
   const [equipment, setEquipment] = useState<TrainingEquipment>(initialEquipment);
   const [goals, setGoals] = useState<SkillTrack[]>(initialGoals);
+  const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(initialMastery);
+
+  const liveLevel = effectiveLevel(currentXp, skills, mastery);
 
   const toggleGoal = (t: SkillTrack) => {
     setGoals((g) => (g.includes(t) ? g.filter((x) => x !== t) : g.length < 4 ? [...g, t] : g));
@@ -50,9 +65,19 @@ export default function OnboardingStepper({
 
   const setSkillStage = (skill: StagedSkillKey, stage: string) => {
     setSkills({ ...skills, [skill]: stage } as SkillProfile);
+    // a brand-new claim starts conservative — the athlete raises mastery
+    // deliberately rather than it defaulting to something they haven't earned
+    if (stage !== "none" && mastery[skill] === undefined) {
+      setMastery((m) => ({ ...m, [skill]: 1 }));
+    }
   };
 
-  const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : onSave(body, skills, equipment, goals));
+  const setSkillMastery = (skill: StagedSkillKey, m: SkillMastery) => {
+    setMastery((prev) => ({ ...prev, [skill]: m }));
+  };
+
+  const next = () =>
+    step < STEPS.length - 1 ? setStep(step + 1) : onSave(body, skills, equipment, goals, mastery);
   const back = () => step > 0 && setStep(step - 1);
 
   return (
@@ -145,11 +170,23 @@ export default function OnboardingStepper({
       {step === 2 && (
         <div className="space-y-4">
           <p className="text-sm text-zinc-400">
-            Scroll through and set your stage for each skill — front lever
-            to the strange and advanced ones. Anything you haven&apos;t
-            touched can stay at &quot;Not started&quot;.
+            Scroll through and set your stage for each skill. For whatever
+            your highest stage is, also rate how solid it really is — you
+            can always log &quot;Attempted&quot; or &quot;Touched it&quot; on
+            anything, even something way above your level; the higher
+            ratings unlock as your level catches up.
           </p>
-          <SkillTabPicker skills={skills} onChange={setSkillStage} />
+          <div className="panel px-3 py-2 flex items-center justify-between">
+            <span className="text-xs text-zinc-400">Level so far, from what you&apos;ve set</span>
+            <span className="stat-mono text-sm text-orange-400">Lv {liveLevel}</span>
+          </div>
+          <SkillTabPicker
+            skills={skills}
+            mastery={mastery}
+            liveLevel={liveLevel}
+            onStageChange={setSkillStage}
+            onMasteryChange={setSkillMastery}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <ScrollPicker label="Max pull-ups" value={skills.pullUpMaxReps} min={0} max={40} variant="wheel"

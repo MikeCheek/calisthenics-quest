@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { SkillProfile, StagedSkillKey, SKILL_FIELD_LABEL } from "@/lib/types";
+import { SkillProfile, StagedSkillKey, SkillMastery, MASTERY_LABEL, MASTERY_HINT, DEFAULT_MASTERY, SKILL_FIELD_LABEL } from "@/lib/types";
 import { STAGE_ORDER, STAGE_LABEL } from "@/lib/stageOrder";
+import { levelForSkillStage, requiredLevelForMastery, canClaimMastery } from "@/lib/levelPath";
+import { Lock } from "lucide-react";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -18,20 +20,30 @@ const SKILL_ORDER: StagedSkillKey[] = [
   "invertedCross", "victorianCross",
 ];
 
+const MASTERY_VALUES: SkillMastery[] = [1, 2, 3, 4, 5];
+
 export default function SkillTabPicker({
   skills,
-  onChange,
+  mastery,
+  liveLevel,
+  onStageChange,
+  onMasteryChange,
 }: {
   skills: SkillProfile;
-  onChange: (skill: StagedSkillKey, stage: string) => void;
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>>;
+  liveLevel: number;
+  onStageChange: (skill: StagedSkillKey, stage: string) => void;
+  onMasteryChange: (skill: StagedSkillKey, mastery: SkillMastery) => void;
 }) {
   const [active, setActive] = useState<StagedSkillKey>("frontLever");
   const stages = STAGE_ORDER[active] ?? ["none"];
   const currentStage = skills[active] as string;
+  const currentMastery = mastery[active] ?? DEFAULT_MASTERY;
+  const nodeLevel = levelForSkillStage(active, currentStage);
 
   return (
     <div>
-      {/* horizontal scroller — the fix for a 20-skill list on mobile */}
+      {/* horizontal scroller — the fix for a 50-skill list on mobile */}
       <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar">
         {SKILL_ORDER.map((s) => {
           const isSet = skills[s] !== "none";
@@ -64,7 +76,7 @@ export default function SkillTabPicker({
             <button
               key={stage}
               type="button"
-              onClick={() => onChange(active, stage)}
+              onClick={() => onStageChange(active, stage)}
               className={`shrink-0 px-3 py-2 rounded-lg text-sm border whitespace-nowrap ${
                 currentStage === stage
                   ? "border-orange-500 bg-orange-500/10 text-zinc-100"
@@ -75,6 +87,51 @@ export default function SkillTabPicker({
             </button>
           ))}
         </div>
+
+        {currentStage !== "none" && (
+          <div className="mt-3 pt-3 border-t border-zinc-800">
+            <div className="text-xs text-zinc-400 mb-1.5">
+              How solid is your {STAGE_LABEL[currentStage] ?? currentStage}?
+            </div>
+            <div className="flex gap-1.5">
+              {MASTERY_VALUES.map((m) => {
+                const allowed = canClaimMastery(nodeLevel, m, liveLevel);
+                const selected = currentMastery === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={!allowed}
+                    onClick={() => onMasteryChange(active, m)}
+                    className={`flex-1 py-2 rounded-lg text-xs border flex flex-col items-center gap-0.5 ${
+                      selected
+                        ? "border-orange-500 bg-orange-500/10 text-zinc-100"
+                        : allowed
+                        ? "border-zinc-700 text-zinc-400"
+                        : "border-zinc-800 text-zinc-700 cursor-not-allowed"
+                    }`}
+                  >
+                    {!allowed && <Lock size={10} />}
+                    <span>{m}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-xs text-zinc-500 mt-1.5">
+              {MASTERY_LABEL[currentMastery]} — {MASTERY_HINT[currentMastery]}
+            </div>
+            {(() => {
+              const nextLocked = MASTERY_VALUES.find((m) => !canClaimMastery(nodeLevel, m, liveLevel));
+              if (!nextLocked) return null;
+              const req = requiredLevelForMastery(nodeLevel, nextLocked);
+              return (
+                <div className="text-xs text-zinc-600 mt-1">
+                  {MASTERY_LABEL[nextLocked]} and above unlock around level {req}.
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );

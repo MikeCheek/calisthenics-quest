@@ -1,5 +1,6 @@
-import { StagedSkillKey } from "./types";
-import { RANK_TITLES } from "./xp";
+import { SkillProfile, StagedSkillKey, SkillMastery, DEFAULT_MASTERY } from "./types";
+import { RANK_TITLES, levelFromXp, xpForLevel, xpProgress as rawXpProgress } from "./xp";
+import { stageIndex } from "./stageOrder";
 
 export interface PathNode {
   level: number;
@@ -114,6 +115,21 @@ export function nodeUnlocked(node: PathNode, currentLevel: number): boolean {
   return currentLevel >= node.level;
 }
 
+// Approximate trophy-road level for an arbitrary (skill, stage) pair, even
+// when that exact stage isn't itself a path node — used to gate mastery
+// selection in onboarding. Finds the easiest tracked milestone that's at
+// or beyond the requested stage's difficulty; falls back to the hardest
+// tracked milestone if the stage exceeds everything on the road.
+export function levelForSkillStage(skill: StagedSkillKey, stage: string): number {
+  const nodes = pathNodesForSkill(skill);
+  if (nodes.length === 0) return 1;
+  const targetIdx = stageIndex(skill, stage);
+  for (const n of nodes) {
+    if (n.stage && stageIndex(skill, n.stage) >= targetIdx) return n.level;
+  }
+  return nodes[nodes.length - 1].level;
+}
+
 // The level at which a skill first shows up anywhere on the road — its
 // "suggested starting point," not a hard requirement.
 export function firstPathLevelForSkill(skill: StagedSkillKey): number | null {
@@ -152,4 +168,102 @@ export function suggestEasierSkill(
   const notStarted = reachable.find((n) => n.skill && (skills[n.skill] ?? "none") === "none");
   if (notStarted) return notStarted;
   return reachable[0] ?? LEVEL_PATH.find((n) => n.skill) ?? null;
+}
+
+// ---- Unifying XP/level with skills already possessed, via mastery ----
+//
+// A player's level is never allowed to sit below what their self-reported
+// skills already justify — but "possessing" a skill isn't binary. Every
+// skill claim carries a 1-5 mastery rating (SkillMastery in types.ts):
+// 1-2 ("Attempted" / "Touched it") are always self-reportable regardless
+// of level — that's the deliberate exception for having hit a skill once,
+// briefly, or with rough form. 3-5 require being within reach of that
+// stage's trophy-road level, progressively stricter, and only 3+
+// contributes to the level floor at all (scaled by how solid the claim
+// is) — so claiming "Attempted" on an advanced skill at level 1 doesn't
+// inflate your level, but claiming real competency does.
+const MASTERY_LEVEL_MARGIN: Record<SkillMastery, number> = {
+  1: Infinity, // no gate at all
+  2: Infinity, // no gate at all
+  3: 15,
+  4: 5,
+  5: 0,
+};
+
+const MASTERY_FLOOR_DISCOUNT: Record<SkillMastery, number> = {
+  1: Infinity, // contributes nothing
+  2: Infinity, // contributes nothing
+  3: 15,
+  4: 5,
+  5: 0,
+};
+
+// The minimum effective level required to claim a given mastery on a node
+// at this trophy-road level. Mastery 1-2 are always allowed (returns 1).
+export function requiredLevelForMastery(nodeLevel: number, mastery: SkillMastery): number {
+  const margin = MASTERY_LEVEL_MARGIN[mastery];
+  if (!Number.isFinite(margin)) return 1;
+  return Math.max(1, nodeLevel - margin);
+}
+
+export function canClaimMastery(nodeLevel: number, mastery: SkillMastery, currentLevel: number): boolean {
+  return currentLevel >= requiredLevelForMastery(nodeLevel, mastery);
+}
+
+// A player's level is never allowed to sit below what their self-reported
+// skills already justify: for every trophy-road node whose skill+stage
+// they've already reached or surpassed AND whose claimed mastery is solid
+// enough (3+), that node's discounted level is a candidate, and the
+// highest candidate becomes a "floor." A brand-new account that marks
+// Full Front Lever at "Mastered" is floored at whatever level Full Front
+// Lever sits at on the road (around 61) immediately — not level 1 — and
+// every session's XP keeps building normally from there afterward. This
+// is the single source of truth: the floor is derived directly from
+// LEVEL_PATH, so the trophy road and the level shown everywhere else in
+// the app can never disagree with each other.
+export function skillFloorLevel(
+  skills: SkillProfile,
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
+): number {
+  let floor = 1;
+  for (const node of LEVEL_PATH) {
+    if (!node.skill || !node.stage) continue;
+    const userStage = skills[node.skill] as string;
+    if (stageIndex(node.skill, userStage) < stageIndex(node.skill, node.stage)) continue;
+
+    const claimedMastery = mastery[node.skill] ?? DEFAULT_MASTERY;
+    const discount = MASTERY_FLOOR_DISCOUNT[claimedMastery];
+    if (!Number.isFinite(discount)) continue; // mastery 1-2: no floor credit
+
+    floor = Math.max(floor, Math.max(1, node.level - discount));
+  }
+  return floor;
+}
+
+// The "effective" xp used for all display/leveling purposes: whichever is
+// higher between what's actually been earned and what the skill floor
+// implies. Session-earned XP is never reduced or hidden — it's just that
+// the displayed level can't drop below the floor.
+export function effectiveXp(
+  rawXp: number,
+  skills: SkillProfile,
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
+): number {
+  return Math.max(rawXp, xpForLevel(skillFloorLevel(skills, mastery)));
+}
+
+export function effectiveLevel(
+  rawXp: number,
+  skills: SkillProfile,
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
+): number {
+  return levelFromXp(effectiveXp(rawXp, skills, mastery));
+}
+
+export function effectiveXpProgress(
+  rawXp: number,
+  skills: SkillProfile,
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
+) {
+  return rawXpProgress(effectiveXp(rawXp, skills, mastery));
 }

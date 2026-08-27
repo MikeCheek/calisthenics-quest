@@ -23,6 +23,7 @@ import {
 import { pickWarmup, pickFinisher } from "./warmupFinisher";
 import { bandAssistanceBonus } from "./bandBonus";
 import { advancedSkillBonusSet } from "./advancedSkills";
+import { STAGE_ORDER } from "./stageOrder";
 
 const FOCUS_ORDER: SkillTrack[] = [
   "frontLever",
@@ -110,6 +111,7 @@ const STAGE_WEIGHT: Record<string, number> = {
   band: 4,
   wall: 4,
   assisted: 6,
+  developing: 9,
   advancedTuck: 8,
   single: 8,
   tuckCross: 10,
@@ -123,29 +125,19 @@ const STAGE_WEIGHT: Record<string, number> = {
   full: 18,
 };
 
+// Sums a small mastery bonus across every one of the 50 tracked skills
+// (iterating STAGE_ORDER's keys rather than hardcoding each field keeps
+// this in sync automatically as skills are added). This is separate from
+// — and smaller than — the level-floor mechanism in levelPath.ts; this one
+// just nudges per-session XP rewards up a bit for more broadly skilled
+// athletes, on top of the floor that guarantees their level itself.
 function stageXpBonus(skills: SkillProfile): number {
-  return (
-    (STAGE_WEIGHT[skills.frontLever] ?? 0) +
-    (STAGE_WEIGHT[skills.backLever] ?? 0) +
-    (STAGE_WEIGHT[skills.planche] ?? 0) +
-    (STAGE_WEIGHT[skills.muscleUp] ?? 0) +
-    (STAGE_WEIGHT[skills.handstand] ?? 0) +
-    (STAGE_WEIGHT[skills.humanFlag] ?? 0) +
-    (STAGE_WEIGHT[skills.pistolSquat] ?? 0) +
-    (STAGE_WEIGHT[skills.lSit] ?? 0) +
-    (STAGE_WEIGHT[skills.ironCross] ?? 0) +
-    (STAGE_WEIGHT[skills.maltese] ?? 0) +
-    (STAGE_WEIGHT[skills.oneArmPullUp] ?? 0) +
-    (STAGE_WEIGHT[skills.oneArmHandstand] ?? 0) +
-    (STAGE_WEIGHT[skills.dragonFlag] ?? 0) +
-    (STAGE_WEIGHT[skills.elbowLever] ?? 0) +
-    (STAGE_WEIGHT[skills.oneArmPushUp] ?? 0) +
-    (STAGE_WEIGHT[skills.nordicCurl] ?? 0) +
-    (STAGE_WEIGHT[skills.shrimpSquat] ?? 0) +
-    (STAGE_WEIGHT[skills.handstandPushUp] ?? 0) +
-    (STAGE_WEIGHT[skills.impossibleDip] ?? 0) +
-    (STAGE_WEIGHT[skills.manna] ?? 0)
-  );
+  let total = 0;
+  for (const key of Object.keys(STAGE_ORDER) as (keyof SkillProfile)[]) {
+    const stage = skills[key] as string;
+    total += STAGE_WEIGHT[stage] ?? 0;
+  }
+  return total;
 }
 
 export function pickFocus(

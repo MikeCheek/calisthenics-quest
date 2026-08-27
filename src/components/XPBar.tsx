@@ -2,10 +2,22 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { xpProgress, rankTitle } from "@/lib/xp";
+import { rankTitle } from "@/lib/xp";
+import { effectiveXpProgress } from "@/lib/levelPath";
+import { SkillProfile, StagedSkillKey, SkillMastery } from "@/lib/types";
 
-export default function XPBar({ xp, streak }: { xp: number; streak: number }) {
-  const p = xpProgress(xp);
+export default function XPBar({
+  xp,
+  streak,
+  skills,
+  mastery,
+}: {
+  xp: number;
+  streak: number;
+  skills: SkillProfile;
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>>;
+}) {
+  const p = effectiveXpProgress(xp, skills, mastery);
   return (
     <Link href="/path" className="panel rounded-lg p-4 block hover:border-orange-500/50 transition-colors">
       <div className="flex items-baseline justify-between mb-2">

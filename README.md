@@ -9,11 +9,14 @@ with a per-exercise timer, AI-powered technique tips, a casino-style bonus
 wheel with randomized modifiers (and a nudge toward an easier skill if you
 pick one that's a stretch for your level), a Clash Royale-style trophy road
 mapping every skill across your level with its own calisthenics-flavored
-chapter titles, live easier/harder adjustments, XP and levels with
-celebration animations, streaks that freeze through rest days instead of
-breaking, weekly missions, skill/XP charts, a pomodoro-style focus timer,
-day/week/month plan generation with optional AI coach notes, a friends list
-with mutual add and nudges, daily training reminders with rotating fun
+chapter titles — unified with a single XP/level number via a 1-5 mastery
+rating per skill, so a skill you've truly mastered raises your level
+immediately while one you've merely attempted stays honest without being
+blocked outright — live easier/harder adjustments, celebration animations, streaks that freeze
+through rest days instead of breaking, weekly missions, skill/XP charts, a
+redesigned dashboard, a pomodoro-style focus timer, day/week/month plan
+generation with optional AI coach notes, a friends list with mutual add and
+nudges, daily training reminders with rotating fun
 punch-lines, and paired training via a share
 code. Installable as a PWA.
 
@@ -133,7 +136,10 @@ real (non-dev) environment, you can install it as an app from the browser's
      Cross, Manna, and 38 more — see "The 50 skills" below for the full
      list). A horizontal scroller picks which skill you're setting
      (`src/components/SkillTabPicker.tsx`) instead of stacking 50 pickers
-     down the page, plus max pull-ups/dips and archer pull-up.
+     down the page. For whatever stage you set, you also rate how solid it
+     is on a 1-5 mastery scale — see "Unified with XP and leveling" below
+     for what that actually gates — plus max pull-ups/dips and archer
+     pull-up.
   4. **Your goals** — pick up to 4 skills you most want to progress; those
      focuses show up more often in your training rotation.
 - **Training** (`/training`) generates a *complete* session for a rotating
@@ -156,8 +162,11 @@ real (non-dev) environment, you can install it as an app from the browser's
   Completing a session awards XP, updates your streak, logs an XP history
   point, progresses weekly missions, and shows a celebration animation for
   level-ups and streak milestones.
-- **Dashboard** (`/dashboard`) is a focused home screen: XP bar, streak,
-  today's suggested focus, quick actions, and this week's missions.
+- **Dashboard** (`/dashboard`) — a hero "today's session" card as the
+  primary call to action, a stat row (streak, skills started out of 50,
+  total sessions — each tapping through to where it's explained further),
+  the XP bar, this week's missions, and a 6-tile quick-action grid (bonus
+  wheel, plan ahead, pair up, skills catalog, focus timer, trophy road).
 - **Profile** (`/profile`) — your detailed stats: an SVG skill radar chart
   across the 8 foundational skills, a full scrollable list of all 50
   skills and your stage in each, an XP-over-time line chart, your goal
@@ -282,21 +291,74 @@ and auto-scrolls to center your current level on open, so you land right
 where you are rather than at the very bottom every time. Passed milestones
 show a checkmark; your current level gets a pulsing highlight.
 
-**A scoping decision worth being upfront about:** the trophy road is an
-informational/motivational layer, not an enforcement mechanism. It shows
-what a given level *typically* corresponds to, but it does not gate what
-you can self-report in onboarding, and self-reported skills (not your
-level) are still what the training generator, the bonus wheel, and the
-radar chart actually use to tailor your sessions. Making the trophy road
-the literal source of truth — where you *can't* mark a skill as unlocked
-until you hit the required level, and reps/hold targets on the exercise
-tables actually scale with level rather than being fixed per stage — would
-be a substantial rework touching nearly every existing feature (onboarding,
-the training generator, the wheel, the radar chart, the AI tips) and was
-judged too risky to retrofit safely in one pass. If you want that
-enforcement, the natural next step is: read `LEVEL_PATH` in the onboarding
-save handler to clamp any stage a level hasn't reached yet, and parameterize
-`Exercise.detail` in the stage tables by level rather than hardcoding it.
+**Unified with XP and leveling, via a 1-5 mastery rating.** Skills feed
+directly into your level rather than sitting next to it as a separate
+display — but "possessing" a skill isn't binary. Every skill claim carries
+a mastery rating (`SkillMastery` in `src/lib/types.ts`):
+
+| Mastery | Label | Meaning |
+|---|---|---|
+| 1 | Attempted | Tried it, not really landing it yet |
+| 2 | Touched it | Hit it once or twice — brief, rough form |
+| 3 | Getting there | Can do it, but inconsistent or not clean |
+| 4 | Consistent | Reliable, decent form most of the time |
+| 5 | Mastered | Clean, full target reps or hold, controlled |
+
+**Mastery 1-2 are always self-reportable, at any level, no gate at all** —
+that's the explicit exception for having hit a skill once, briefly, or
+badly: log it as "Attempted" or "Touched it" regardless of where your level
+actually is, and it's honest, not a workaround. Mastery 3-5 require being
+within reach of that stage's trophy-road level, progressively stricter:
+
+```
+required level for mastery 3  =  node's road level − 15
+required level for mastery 4  =  node's road level − 5
+required level for mastery 5  =  exactly the node's road level
+```
+
+(`requiredLevelForMastery` / `canClaimMastery` in `src/lib/levelPath.ts`.)
+Onboarding's skill picker (`SkillTabPicker.tsx`) enforces this directly —
+mastery options you haven't reached show a lock icon and a "unlocks around
+level N" hint, live-recalculated as you edit other skills in the same
+session, with a running "level so far" indicator at the top of the step so
+you can watch it build. A brand-new claim always starts at mastery 1 by
+default; you raise it deliberately, not automatically.
+
+Only mastery 3+ counts toward your level floor at all, and even then it's
+discounted by the same margin as its gate — mastery 3 credits `node − 15`,
+mastery 4 credits `node − 5`, mastery 5 credits the full node level. So
+claiming "Attempted" on Victorian Cross at level 1 is honest and free, but
+doesn't inflate your level; claiming real competency does, and can only
+happen once you're actually in range. `skillFloorLevel` /
+`effectiveLevel` in `src/lib/levelPath.ts` do this computation; a
+pre-existing account with a stage set but no recorded mastery (from before
+this system existed) defaults to mastery 3 rather than being penalized to 1.
+
+This was a deliberate design choice over the alternative (a second, separate
+"skill level" alongside the XP level): two numbers competing for "which one
+is my real level" would undercut having one coherent trophy road in the
+first place. The floor mechanism reuses the trophy road's own data as the
+single source of truth, so the road and your displayed level literally
+cannot disagree — no separate weighting table to keep in sync. Every
+consumer of level/XP in the app (`Nav`, `XPBar`, `/profile`, `/skills`,
+`/wheel`, `/path`, `/onboarding`, and `sessionComplete.ts`'s
+celebration/friend-profile sync) goes through
+`effectiveLevel`/`effectiveXpProgress` — now all taking `skillMastery` as a
+parameter — rather than the raw XP curve, so this is consistent everywhere,
+not just on the dashboard.
+
+**What's actually enforced now, versus what remains advisory:** the level
+*floor* is a real, load-bearing gate — you cannot claim high mastery on a
+skill without the level to back it, full stop. What's still *not* gated is
+the underlying stage itself (front lever's tuck/straddle/full progression,
+etc.) — you can mark any stage for any skill at low mastery regardless of
+level, and self-reported stage (not mastery, not level) is still what the
+training generator, the bonus wheel, and the radar chart use to tailor
+actual session content. Going further — e.g. having the exercise
+prescriptions themselves (reps/hold targets in `Exercise.detail`) scale
+with level rather than being fixed per stage — would be a further step
+touching the training generator directly and remains out of scope for this
+pass.
 
 ## Skills catalog (`/skills`) and "too hard for your level" suggestions
 
@@ -595,3 +657,20 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
 - The "too hard for your level" threshold (`STRETCH_MARGIN` in
   `src/lib/levelPath.ts`) is a flat 6-level margin applied uniformly; make
   it configurable per-chapter if some tiers should be more/less forgiving.
+- Any new code that needs a user's level should call
+  `effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery)` or
+  `effectiveXpProgress(...)` from `src/lib/levelPath.ts` — never
+  `levelFromXp`/`xpProgress` from `src/lib/xp.ts` directly against
+  `userDoc.xp` alone, or it'll silently ignore the skill floor and can show
+  a lower level than the trophy road says is already earned.
+- The dashboard's quick-action grid and stat row are plain arrays of
+  `{ href, icon, label }` in `src/app/dashboard/page.tsx` — add a tile by
+  adding an entry, no layout changes needed for up to a few more.
+- The mastery gate's margins (`MASTERY_LEVEL_MARGIN` /
+  `MASTERY_FLOOR_DISCOUNT` in `src/lib/levelPath.ts`, currently 15/5/0 for
+  mastery 3/4/5) are a flat offset from a node's road level, same for every
+  skill — make them per-chapter or per-skill if some should be more/less
+  forgiving. `levelForSkillStage` approximates a road level for stages that
+  aren't themselves exact `LEVEL_PATH` nodes (interpolating from the
+  nearest tracked milestone at or above that difficulty) — used to gate
+  mastery on stages the road doesn't explicitly list.

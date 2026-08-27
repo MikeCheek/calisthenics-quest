@@ -41,6 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUserDoc = async (u: User) => {
     let doc = await fetchUserDoc(u.uid);
+    if (doc && !doc.skillMastery) {
+      doc = { ...doc, skillMastery: {} };
+    }
     if (!doc) {
       doc = {
         uid: u.uid,
@@ -49,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         photoURL: u.photoURL ?? undefined,
         body: DEFAULT_BODY,
         skills: DEFAULT_SKILLS,
+        skillMastery: {},
         equipment: DEFAULT_EQUIPMENT,
         goalTracks: [],
         xpHistory: [],

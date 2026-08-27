@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
-import { pathChapters, nodeUnlocked, PathNode } from "@/lib/levelPath";
+import { pathChapters, nodeUnlocked, PathNode, effectiveLevel } from "@/lib/levelPath";
 import { SKILL_FIELD_LABEL } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
-import { xpProgress } from "@/lib/xp";
 import { Sparkle, Check, MapPin, Dumbbell, Hash } from "lucide-react";
 
 export default function PathPage() {
@@ -32,7 +31,7 @@ export default function PathPage() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const level = xpProgress(userDoc.xp).level;
+  const level = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
   const chapters = [...pathChapters()].reverse(); // highest chapter first -> level 1 ends up at the bottom
 
   return (
