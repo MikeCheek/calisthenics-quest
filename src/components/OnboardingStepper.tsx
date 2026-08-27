@@ -10,11 +10,10 @@ import {
   SkillMastery,
   TRACK_LABEL,
 } from "@/lib/types";
-import { effectiveLevel } from "@/lib/levelPath";
 import ScrollPicker from "@/components/ScrollPicker";
 import SegmentedControl from "@/components/SegmentedControl";
 import WeekdayPicker from "@/components/WeekdayPicker";
-import SkillTabPicker from "@/components/SkillTabPicker";
+import SkillAssessmentStep from "@/components/SkillAssessmentStep";
 import CalisthenicsFigure from "@/components/CalisthenicsFigure";
 import { ChevronLeft } from "lucide-react";
 
@@ -23,7 +22,7 @@ const GOAL_TRACKS: SkillTrack[] = [
   "humanFlag", "pullStrength", "pushStrength", "legs", "core",
 ];
 
-const STEPS = ["About you", "Where you train", "Your skills", "Your goals"];
+const STEPS = ["About you", "Where you train", "Your level", "Your goals"];
 
 export default function OnboardingStepper({
   initialBody,
@@ -57,23 +56,8 @@ export default function OnboardingStepper({
   const [goals, setGoals] = useState<SkillTrack[]>(initialGoals);
   const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(initialMastery);
 
-  const liveLevel = effectiveLevel(currentXp, skills, mastery);
-
   const toggleGoal = (t: SkillTrack) => {
     setGoals((g) => (g.includes(t) ? g.filter((x) => x !== t) : g.length < 4 ? [...g, t] : g));
-  };
-
-  const setSkillStage = (skill: StagedSkillKey, stage: string) => {
-    setSkills({ ...skills, [skill]: stage } as SkillProfile);
-    // a brand-new claim starts conservative — the athlete raises mastery
-    // deliberately rather than it defaulting to something they haven't earned
-    if (stage !== "none" && mastery[skill] === undefined) {
-      setMastery((m) => ({ ...m, [skill]: 1 }));
-    }
-  };
-
-  const setSkillMastery = (skill: StagedSkillKey, m: SkillMastery) => {
-    setMastery((prev) => ({ ...prev, [skill]: m }));
   };
 
   const next = () =>
@@ -169,26 +153,17 @@ export default function OnboardingStepper({
 
       {step === 2 && (
         <div className="space-y-4">
-          <p className="text-sm text-zinc-400">
-            Scroll through and set your stage for each skill. For whatever
-            your highest stage is, also rate how solid it really is — you
-            can always log &quot;Attempted&quot; or &quot;Touched it&quot; on
-            anything, even something way above your level; the higher
-            ratings unlock as your level catches up.
-          </p>
-          <div className="panel px-3 py-2 flex items-center justify-between">
-            <span className="text-xs text-zinc-400">Level so far, from what you&apos;ve set</span>
-            <span className="stat-mono text-sm text-orange-400">Lv {liveLevel}</span>
-          </div>
-          <SkillTabPicker
+          <SkillAssessmentStep
             skills={skills}
             mastery={mastery}
-            liveLevel={liveLevel}
-            onStageChange={setSkillStage}
-            onMasteryChange={setSkillMastery}
+            currentXp={currentXp}
+            onChange={(nextSkills, nextMastery) => {
+              setSkills(nextSkills);
+              setMastery(nextMastery);
+            }}
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
             <ScrollPicker label="Max pull-ups" value={skills.pullUpMaxReps} min={0} max={40} variant="wheel"
               onChange={(v) => setSkills({ ...skills, pullUpMaxReps: v })} />
             <ScrollPicker label="Max dips / push-ups" value={skills.dipMaxReps} min={0} max={50} variant="wheel"

@@ -9,6 +9,7 @@ import SkillRadarChart from "@/components/SkillRadarChart";
 import XPHistoryChart from "@/components/XPHistoryChart";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
+import DeclareSkillModal from "@/components/DeclareSkillModal";
 import { rankTitle } from "@/lib/xp";
 import { effectiveXpProgress, effectiveLevel } from "@/lib/levelPath";
 import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
@@ -30,8 +31,9 @@ const ALL_SKILL_KEYS: StagedSkillKey[] = [
 ];
 
 export default function ProfilePage() {
-  const { user, userDoc, loading } = useAuth();
+  const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
+  const [declareOpen, setDeclareOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -90,6 +92,28 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        <div className="panel p-4">
+          <div className="heading text-base text-zinc-100 mb-2">Update your skills</div>
+          <p className="text-xs text-zinc-500 mb-3">
+            Hit something new? Declare it directly. Feeling like a lot has changed? Retake the
+            full assessment.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDeclareOpen(true)}
+              className="flex-1 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
+            >
+              I hit a new skill
+            </button>
+            <Link
+              href="/onboarding"
+              className="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 text-sm text-center"
+            >
+              Retake assessment
+            </Link>
+          </div>
+        </div>
 
         <div className="panel p-4">
           <div className="heading text-base text-zinc-100 mb-2">All skills</div>
@@ -162,6 +186,12 @@ export default function ProfilePage() {
         playerLevel={progress.level}
         skills={userDoc.skills}
         skillMastery={userDoc.skillMastery}
+      />
+      <DeclareSkillModal
+        open={declareOpen}
+        onClose={() => setDeclareOpen(false)}
+        userDoc={userDoc}
+        onSaved={refreshUserDoc}
       />
     </>
   );

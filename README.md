@@ -1,6 +1,8 @@
 # BarQuests
 
-A gamified, mobile-first calisthenics training app: complete sessions
+A gamified, mobile-first calisthenics training app: an adaptive placement
+quiz gets new athletes to roughly the right level in under a minute instead
+of manually setting 50 skills, then complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
 skill stage — across 50 tracked skills, from Front Lever to Iron Cross, Victorian Cross, and
 Manna, each with its own description in a full skills catalog — and the
@@ -145,16 +147,15 @@ real (non-dev) environment, you can install it as an app from the browser's
      and whether you have any weight (a dip belt, weighted vest, plates, or
      a loaded backpack) — exercises that would otherwise call for weight or
      bands automatically swap to what you actually have.
-  3. **Your skills** — all 50 tracked skills, from the everyday (Front
-     Lever, Planche, Muscle-Up, Handstand) through the rarer/advanced ones
-     (Iron Cross, Maltese, One-Arm Pull-Up, One-Arm Handstand, Victorian
-     Cross, Manna, and 38 more — see "The 50 skills" below for the full
-     list). A horizontal scroller picks which skill you're setting
-     (`src/components/SkillTabPicker.tsx`) instead of stacking 50 pickers
-     down the page. For whatever stage you set, you also rate how solid it
-     is on a 1-5 mastery scale — see "Unified with XP and leveling" below
-     for what that actually gates — plus max pull-ups/dips and archer
-     pull-up.
+  3. **Your level** — an adaptive placement quiz rather than manually
+     setting all 50 skills: pick a self-described tier (Just starting out /
+     Can do a few things / Can do some solid things / Expert), answer up to
+     8 concrete yes/no questions calibrated to that tier ("can you hold a
+     tuck front lever for 5+ seconds?"), and land on a computed level and
+     rank. See "The placement quiz" below for the full design — including
+     the always-available manual escape hatch for people who'd rather set
+     every skill by hand, which is exactly the old flow this replaced. Also
+     collects max pull-ups/dips and archer pull-up.
   4. **Your goals** — pick up to 4 skills you most want to progress; those
      focuses show up more often in your training rotation.
 - **Training** (`/training`) generates a *complete* session for a rotating
@@ -318,6 +319,51 @@ level 1 ends up at the bottom of the page, higher levels toward the top —
 and auto-scrolls to center your current level on open, so you land right
 where you are rather than at the very bottom every time. Passed milestones
 show a checkmark; your current level gets a pulsing highlight.
+
+## The placement quiz (`SkillAssessmentStep.tsx`)
+
+Onboarding's old "set all 50 skills manually" step is now a quick adaptive
+quiz by default — manually setting every skill is still fully available,
+just no longer the first thing you see.
+
+1. **Pick a tier.** Four self-described options — "Just starting out,"
+   "Can do a few things," "Can do some solid things," "Expert / very
+   experienced" — each with a one-line hint, not a rigid definition.
+2. **Answer up to 8 concrete questions**, one at a time with its own mini
+   progress bar. Every question is calibrated to that tier and is a real
+   yes/no with a checkable bar — never "are you flexible?", always "can you
+   hold a tuck front lever for 5+ seconds?" (`src/lib/diagnosticQuestions.ts`
+   — 32 questions total, 8 per tier, each mapped to one exact `(skill,
+   stage)` pair; every single one is cross-checked at dev time against the
+   real stage tables the same way the trophy road's milestones are, so a
+   typo'd stage name can't silently no-op). A "yes" records that skill at
+   mastery 4 (Consistent) — specific enough to trust, short of claiming
+   outright mastery; a "no" leaves that skill exactly where it already was,
+   never a downgrade.
+3. **See the result.** The computed level isn't a separate formula — the
+   quiz-derived skills are fed straight through the same `effectiveLevel`
+   floor system the trophy road already uses, so the number you land on and
+   the trophy road can never disagree. The result screen states plainly
+   that this is a starting point, not a strict lock-in.
+
+**The manual picker never went away.** "Prefer to set every skill
+yourself?" on the tier screen, and "Fine-tune" on the result screen, both
+drop straight into the original full 50-skill `SkillTabPicker` — the same
+component, same gated mastery selector, same live level indicator it always
+had. The quiz is the new default path, not a replacement for precision.
+
+**Editing later, two ways** (both on `/profile`, in a dedicated "Update
+your skills" panel):
+- **"Retake assessment"** links back to `/onboarding`, which already
+  re-initializes every field from the currently-saved profile — so retaking
+  the quiz builds additively on top of existing progress (per the same
+  never-downgrade rule above) rather than wiping it out.
+- **"I hit a new skill"** opens a lightweight standalone modal
+  (`DeclareSkillModal.tsx`) with just the manual picker and a Save button —
+  for the common case of "one specific thing changed," without re-running
+  the whole quiz. It shows the same level-up celebration as everywhere else
+  in the app if the change pushes your level up, and persists via the same
+  `saveProfile` call onboarding uses.
 
 **Unified with XP and leveling, via a 1-5 mastery rating.** Skills feed
 directly into your level rather than sitting next to it as a separate
@@ -857,3 +903,13 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   that decides "this drag is horizontal, not a page scroll") are both
   tunable if the gesture feels too sensitive or not sensitive enough on a
   given device.
+- To add or change a placement-quiz question, edit `DIAGNOSTIC_QUESTIONS`
+  in `src/lib/diagnosticQuestions.ts` — each entry is just `{ tier, text,
+  skill, stage }`; there's no separate registration step. The mastery a
+  "yes" records (`QUIZ_MASTERY`, currently 4) and the number of questions
+  per tier (currently 8, capped by how many entries exist for that tier)
+  are both adjustable there too. Same cross-check discipline as everywhere
+  else in the skill system applies: a typo'd stage name won't be caught by
+  TypeScript (the field is a plain string), so re-run a check like the ones
+  used elsewhere in this codebase against `STAGE_ORDER` if you add
+  questions.
