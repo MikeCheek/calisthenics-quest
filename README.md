@@ -201,7 +201,9 @@ real (non-dev) environment, you can install it as an app from the browser's
   person gets exercises matched to their own stage, gated by the shared
   location's equipment, with synced set/rest structure.
 - **Focus Timer** (`/pomodoro`, also toggleable inside a training session) is
-  a configurable work/rest interval timer with an audio cue at each transition.
+  a configurable work/rest interval timer with a 3-2-1 countdown before it
+  starts and a distinct audio cue for each transition (see the "Per-exercise
+  timer" section below for the full sound design, shared with this timer).
 - **Bottom tab bar** is the primary navigation on phones (Home / Train /
   Skills / Pair / Profile); a slim top bar with a secondary nav row appears
   on wider screens. The Pomodoro timer and Trophy road moved off the tab
@@ -427,17 +429,39 @@ advisory, never a hard block — "train this anyway" is always right there.
 
 ## Exercise timer, the bonus wheel, AI tips, and live adjustments
 
-**Per-exercise timer.** Every exercise in a session has a **Start** button.
-Tapping it opens an inline timer parsed straight from that exercise's own
-sets/reps text (`src/lib/exerciseTiming.ts`) — no separate configuration
-step. For timed holds (front lever holds, planche leans, anything with an
-explicit or implied duration) it runs a countdown per set and auto-advances
-through rest into the next set, playing a short tone at each transition; you
-just get back into position and it keeps going. For rep-based exercises
-(where "reps" are inherently self-paced) it instead shows a "Done with this
-set" button — tapping it starts the rest countdown and hands control back to
-you for the next set. Either way, all the sets/rests for that one exercise
-are already wired up correctly from its own data — nothing to configure.
+**Per-exercise timer, built for eyes-free use with earphones.** Every
+exercise has a **Start** button. Tapping it opens an inline timer parsed
+straight from that exercise's own sets/reps text
+(`src/lib/exerciseTiming.ts`) — no separate configuration step. Every set —
+whether it's the first tap of Start or an automatic continuation — begins
+with an on-screen **3-2-1 countdown** so you have a moment to get in
+position before anything actually starts.
+
+For timed holds (front lever holds, planche leans, anything with an
+explicit or implied duration), the whole exercise runs hands-free once you
+tap Start once: countdown → work countdown → rest countdown → countdown for
+the next set → work → ... straight through to the last set, with no further
+taps needed (`src/components/ExerciseTimer.tsx`). For rep-based exercises
+(where "reps" are inherently self-paced) it shows a "Done with this set"
+button once the countdown ends — tapping it kicks off the rest countdown
+and then automatically counts down into the next set, so only the "I've
+done my reps" moment itself needs a tap.
+
+**A deliberately distinct sound for each event**, so you can tell what's
+happening by ear alone with earphones in, never needing to look at the
+screen (`src/lib/sound.ts`):
+- `playCountdownTick` — short, neutral, mid-pitch: each second of the 3-2-1.
+- `playGoSound` — a bright ascending double-beep, high register: work starts.
+- `playRestSound` — a single low, sustained tone: rest starts, ease off.
+- `playCompleteSound` — a rising three-note chime: the whole exercise is done.
+
+The same sound set drives the standalone **Pomodoro/focus timer**
+(`src/components/PomodoroTimer.tsx`) too — its first Start press (or any
+press after Reset) gets the same 3-2-1 countdown, and each automatic
+work↔rest phase transition plays the matching go/rest sound. Pausing and
+resuming mid-phase does *not* re-trigger the countdown — that's reserved
+for genuinely fresh starts — so a quick pause to check something doesn't
+force you to wait through 3 seconds again.
 
 **Bonus wheel** (`/wheel`, its own screen — linked from the Training page).
 Casino-style: pick any of the 50 skills you have equipment for and a
@@ -741,3 +765,8 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   `LandingProgressPreview.tsx`) is hardcoded and intentionally static —
   it's a marketing preview, not a simulation, so it never needs to match
   any real leveling math.
+- The 3-2-1 countdown length (`COUNTDOWN_FROM` — a separate constant in
+  both `ExerciseTimer.tsx` and `PomodoroTimer.tsx`, currently 3 in each) and
+  the sound vocabulary itself (`src/lib/sound.ts`) are both small and
+  self-contained if you want to change the count, add a new event sound, or
+  swap the actual tones/pitches used.
