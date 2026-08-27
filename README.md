@@ -417,18 +417,36 @@ are already wired up correctly from its own data — nothing to configure.
 
 **Bonus wheel** (`/wheel`, its own screen — linked from the Training page).
 Casino-style: pick any of the 50 skills you have equipment for and a
-difficulty (Easier / Your level / Harder), then spin. The pool isn't just
-one stage's 3 exercises — it combines exercises from *every* stage of that
-skill, weighted so stages near your chosen difficulty come up more often
-without excluding the rest (`wheelPoolWeighted` in `src/lib/wheelPool.ts`),
-landing on 20+ possible segments. While the wheel spins, a second reel below
-it cycles through possible bonus/malus modifiers; the wheel lands first,
-and ~2 seconds later the modifier reel locks in on one — +1 Set, -1 Set,
-Bonus Effort, Easy Mode, Double XP, or the rare golden "🌟 Golden Exercise"
-(double XP, no downside) — combined into a final composed exercise
-(`src/lib/wheelModifiers.ts`). Finishing it via the same Start-timer button
-banks bonus XP (doubled for Double XP/Golden), completely separate from a
-regular session's XP/streak/missions (`awardXp` in `src/lib/sessionComplete.ts`).
+difficulty (Easier / Your level / Harder), then spin. The exercise pool
+isn't just one stage's 3 exercises — it combines exercises from *every*
+stage of that skill, weighted so stages near your chosen difficulty come up
+more often without excluding the rest (`wheelPoolWeighted` in
+`src/lib/wheelPool.ts`), landing on 20+ possible segments.
+
+The bonus/malus system sits **above** the wheel as two side-by-side
+vertical reels — a modifier *type* on the left, its *quantity* on the
+right — and both spin the moment you hit Spin, alongside the wheel itself.
+They resolve in sequence: the type reel locks in first (2s), then the
+quantity reel locks in on a magnitude specific to that type (another
+1.2s) — e.g. type "More Sets" pairs with a quantity like "+1"/"+2"/"+3";
+type "Multiplied XP" pairs with "x2"/"x3"/"x5"; type "Easy Mode" pairs with
+"-2 reps"/"1/2 time"/"-5s hold" — and only *then*, another second later,
+does the wheel itself land and reveal the exercise. All three reveals are
+pre-decided the instant you hit Spin (`spin()` in `src/app/wheel/page.tsx`)
+and just disclosed on a timer, so the sequence is always type → quantity →
+exercise, never out of order. There are 10 modifier types spanning 25
+distinct type+quantity combinations (`src/lib/wheelModifiers.ts`) — More
+Sets, Fewer Sets, More Rest, Less Rest, Bonus Effort, Easy Mode, Bonus XP
+(flat), Multiplied XP, the rare golden "🌟 Golden Exercise" (big multiplier,
+no downside), and a weighted "No Bonus" that stays the most common outcome.
+Modifiers that touch numbers do it precisely (sets via the same parser the
+difficulty ±buttons use, rest via the exercise's actual `restSeconds`
+field); the effort-based ones append a descriptive cue instead, since reps
+vs. hold-time isn't a single mutable number across every exercise format.
+Finishing the composed exercise via the same Start-timer button banks bonus
+XP (multiplied and/or flat-bonused per the modifier), completely separate
+from a regular session's XP/streak/missions (`awardXp` in
+`src/lib/sessionComplete.ts`).
 
 **AI exercise tips.** Every exercise (in a session or on the wheel) has an
 "AI tip" button. Tapping it lazily fetches — and caches, so it won't
@@ -632,8 +650,17 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   for the casino wheel; the simpler single-stage `wheelPool` function is
   still there if you want it elsewhere. Extending a skill's table
   automatically extends its wheel pool too. Bonus/malus modifiers are in
-  `src/lib/wheelModifiers.ts` — add a new one to `MODIFIER_POOL` with a
-  weight (higher = more common) and a case in `applyModifier`.
+  `src/lib/wheelModifiers.ts` — add a new type to `MODIFIER_TYPES` with a
+  weight (higher = more common), its own `quantities` list, a case in
+  `applyModifier`, and (if it should affect XP) a case in
+  `modifierXpMultiplier` or `modifierFlatXpBonus`. The two reels' cycling
+  visuals (`TYPE_LABELS`/`ALL_QUANTITY_LABELS`) update automatically since
+  they're derived from `MODIFIER_TYPES` rather than hardcoded. The reveal
+  timing (type → quantity → wheel) is three constants at the top of
+  `src/app/wheel/page.tsx` (`TYPE_SPIN_MS`, `QTY_SPIN_MS`,
+  `WHEEL_REVEAL_DELAY_MS`) — the wheel's own CSS spin duration is derived
+  from their sum, so it always finishes exactly when the schedule says to
+  reveal it.
 - Streak-freeze logic (rest days don't break a streak) and celebration
   event resolution are both in `resolveStreak` in
   `src/lib/sessionComplete.ts`. Celebration animations are pure CSS

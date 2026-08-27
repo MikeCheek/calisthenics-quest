@@ -6,12 +6,24 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
-import ModifierReel from "@/components/ModifierReel";
+import ModifierReel, { ReelPhase } from "@/components/ModifierReel";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { Exercise, StagedSkillKey, SKILL_FIELD_LABEL } from "@/lib/types";
 import { wheelPoolWeighted, wheelTrackAvailable } from "@/lib/wheelPool";
 import { isSkillAStretch, suggestEasierSkill, firstPathLevelForSkill, effectiveLevel } from "@/lib/levelPath";
-import { Modifier, pickRandomModifier, applyModifier, modifierXpMultiplier } from "@/lib/wheelModifiers";
+import {
+  Modifier,
+  ModifierType,
+  QuantityOption,
+  pickRandomModifierType,
+  pickRandomQuantity,
+  composeModifier,
+  applyModifier,
+  modifierXpMultiplier,
+  modifierFlatXpBonus,
+  ALL_MODIFIER_TYPES,
+  ALL_QUANTITY_LABELS,
+} from "@/lib/wheelModifiers";
 import { awardXp, Celebration } from "@/lib/sessionComplete";
 import { playBeep } from "@/lib/sound";
 import { Sparkles, X } from "lucide-react";
@@ -37,11 +49,22 @@ const DIFFICULTIES: { value: -1 | 0 | 1; label: string }[] = [
 ];
 
 const WEDGE_COLORS = ["#f97316", "#18181b", "#ea580c", "#27272a", "#fb923c", "#3f3f46", "#c2410c", "#52525b"];
-const WHEEL_SPIN_MS = 3000;
-const MODIFIER_REVEAL_DELAY_MS = 2000;
+
+// Sequencing per the requested reveal order: modifier TYPE stops first,
+// then its QUANTITY, and only then does the wheel itself land on the
+// exercise — the wheel keeps spinning underneath the whole time and its
+// CSS transition duration is set to finish exactly when this schedule says
+// it should.
+const TYPE_SPIN_MS = 2000;
+const QTY_SPIN_MS = 1200;
+const WHEEL_REVEAL_DELAY_MS = 1000;
+const WHEEL_SPIN_MS = TYPE_SPIN_MS + QTY_SPIN_MS + WHEEL_REVEAL_DELAY_MS;
+
 const BASE_BONUS_XP = 10;
 
-type SpinPhase = "idle" | "wheelSpinning" | "wheelLanded" | "composed";
+type SpinPhase = "idle" | "spinning" | "composed";
+
+const TYPE_LABELS = ALL_MODIFIER_TYPES.map((t) => t.label);
 
 export default function WheelPage() {
   return (
@@ -68,8 +91,13 @@ function WheelContent() {
   const [rotation, setRotation] = useState(0);
   const [spinPhase, setSpinPhase] = useState<SpinPhase>("idle");
   const [landedExercise, setLandedExercise] = useState<Exercise | null>(null);
-  const [modifierPhase, setModifierPhase] = useState<"idle" | "cycling" | "revealed">("idle");
+
+  const [typePhase, setTypePhase] = useState<ReelPhase>("idle");
+  const [qtyPhase, setQtyPhase] = useState<ReelPhase>("idle");
+  const [revealedType, setRevealedType] = useState<ModifierType | null>(null);
+  const [revealedQuantity, setRevealedQuantity] = useState<QuantityOption | null>(null);
   const [modifier, setModifier] = useState<Modifier | null>(null);
+
   const [composed, setComposed] = useState<Exercise | null>(null);
   const [xpAwarded, setXpAwarded] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
@@ -117,35 +145,50 @@ function WheelContent() {
 
     spinPoolRef.current = currentPool;
     setLandedExercise(null);
+    setRevealedType(null);
+    setRevealedQuantity(null);
     setModifier(null);
     setComposed(null);
     setXpAwarded(null);
-    setSpinPhase("wheelSpinning");
-    setModifierPhase("cycling");
+    setSpinPhase("spinning");
+    setTypePhase("cycling");
+    setQtyPhase("cycling");
 
-    const winner = Math.floor(Math.random() * currentPool.length);
-    const winnerCenter = winner * anglePer + anglePer / 2;
+    // Pre-select every winner up front so each reel's reveal is just a
+    // scheduled disclosure of an already-decided outcome.
+    const winnerExerciseIdx = Math.floor(Math.random() * currentPool.length);
+    const winnerType = pickRandomModifierType();
+    const winnerQuantity = pickRandomQuantity(winnerType);
+
+    const winnerCenter = winnerExerciseIdx * anglePer + anglePer / 2;
     const target = (360 - winnerCenter) % 360;
     const base = rotation - (rotation % 360);
     setRotation(base + 360 * 6 + target);
 
     const t1 = setTimeout(() => {
-      setSpinPhase("wheelLanded");
-      setLandedExercise(spinPoolRef.current[winner]);
-      playBeep(700, 250);
-    }, WHEEL_SPIN_MS);
+      setTypePhase("revealed");
+      setRevealedType(winnerType);
+      playBeep(700, 220);
+    }, TYPE_SPIN_MS);
 
     const t2 = setTimeout(() => {
-      const m = pickRandomModifier();
+      setQtyPhase("revealed");
+      setRevealedQuantity(winnerQuantity);
+      const m = composeModifier(winnerType, winnerQuantity);
       setModifier(m);
-      setModifierPhase("revealed");
-      const finalExercise = applyModifier(spinPoolRef.current[winner], m);
-      setComposed(finalExercise);
-      setSpinPhase("composed");
-      playBeep(m.kind === "golden" || m.kind === "doubleXp" ? 1046 : 880, m.kind === "golden" ? 500 : 300);
-    }, WHEEL_SPIN_MS + MODIFIER_REVEAL_DELAY_MS);
+      playBeep(winnerType.kind === "golden" ? 950 : 850, 260);
+    }, TYPE_SPIN_MS + QTY_SPIN_MS);
 
-    timers.current = [t1, t2];
+    const t3 = setTimeout(() => {
+      const finalModifier = composeModifier(winnerType, winnerQuantity);
+      const exercise = spinPoolRef.current[winnerExerciseIdx];
+      setLandedExercise(exercise);
+      setComposed(applyModifier(exercise, finalModifier));
+      setSpinPhase("composed");
+      playBeep(winnerType.kind === "golden" ? 1200 : 1046, winnerType.kind === "golden" ? 500 : 350);
+    }, WHEEL_SPIN_MS);
+
+    timers.current = [t1, t2, t3];
   };
 
   const resetSpin = () => {
@@ -153,16 +196,20 @@ function WheelContent() {
     timers.current = [];
     setSpinPhase("idle");
     setLandedExercise(null);
+    setTypePhase("idle");
+    setQtyPhase("idle");
+    setRevealedType(null);
+    setRevealedQuantity(null);
     setModifier(null);
     setComposed(null);
-    setModifierPhase("idle");
     setXpAwarded(null);
   };
 
   const handleExerciseComplete = async () => {
     if (xpAwarded !== null) return; // already awarded for this spin
     const multiplier = modifier ? modifierXpMultiplier(modifier) : 1;
-    const amount = BASE_BONUS_XP * multiplier;
+    const flatBonus = modifier ? modifierFlatXpBonus(modifier) : 0;
+    const amount = BASE_BONUS_XP * multiplier + flatBonus;
     const result = await awardXp(userDoc, amount);
     setXpAwarded(amount);
     if (result.leveledUp) {
@@ -172,7 +219,8 @@ function WheelContent() {
   };
 
   const availableSkills = SKILL_ORDER.filter((s) => wheelTrackAvailable(s, userDoc.equipment));
-  const spinning = spinPhase === "wheelSpinning";
+  const spinning = spinPhase === "spinning";
+  const isGolden = revealedType?.kind === "golden";
 
   return (
     <>
@@ -248,6 +296,27 @@ function WheelContent() {
         )}
 
         <div className="panel p-4">
+          {/* modifier reels sit above the wheel — type resolves first, then quantity */}
+          <div className="mb-4">
+            <div className="text-xs text-zinc-500 mb-1.5 text-center uppercase tracking-wide">Bonus / malus</div>
+            <div className="grid grid-cols-2 gap-2">
+              <ModifierReel
+                phase={typePhase}
+                cyclingLabels={TYPE_LABELS}
+                resultLabel={revealedType?.label ?? null}
+                golden={isGolden}
+                idleLabel="Modifier"
+              />
+              <ModifierReel
+                phase={qtyPhase}
+                cyclingLabels={ALL_QUANTITY_LABELS}
+                resultLabel={revealedQuantity?.label ?? null}
+                golden={isGolden}
+                idleLabel="Amount"
+              />
+            </div>
+          </div>
+
           <div className="flex flex-col items-center gap-4">
             <div className="relative w-64 h-64">
               <div
@@ -273,10 +342,6 @@ function WheelContent() {
               />
             </div>
 
-            <div className="w-full">
-              <ModifierReel phase={modifierPhase} result={modifier} />
-            </div>
-
             {spinPhase === "idle" && (
               <button
                 onClick={spin}
@@ -286,14 +351,13 @@ function WheelContent() {
                 🎰 Spin
               </button>
             )}
-            {spinPhase === "wheelSpinning" && (
+            {spinPhase === "spinning" && (
               <div className="text-sm text-zinc-400 animate-pulse">Spinning...</div>
             )}
-            {landedExercise && spinPhase !== "composed" && (
+            {landedExercise && spinPhase === "composed" && (
               <div className="text-center animate-pop-in">
                 <div className="text-xs text-zinc-500 uppercase tracking-wide">Landed on</div>
                 <div className="text-lg text-zinc-100 heading">{landedExercise.name}</div>
-                <div className="text-xs text-zinc-500 mt-1">waiting on the bonus roll...</div>
               </div>
             )}
           </div>
@@ -311,7 +375,7 @@ function WheelContent() {
                       : "border-orange-500 text-orange-400 bg-orange-500/10"
                   }`}
                 >
-                  {modifier.label}
+                  {modifier.typeLabel} · {modifier.quantity.label}
                 </span>
               )}
             </div>
@@ -320,7 +384,10 @@ function WheelContent() {
             <div className="flex items-center gap-2 mb-2">
               <ExerciseTipButton exerciseName={composed.name} exerciseDetail={composed.detail} trackLabel={SKILL_FIELD_LABEL[track]} />
               <span className="text-xs text-zinc-500 ml-auto">
-                Worth +{BASE_BONUS_XP * (modifier ? modifierXpMultiplier(modifier) : 1)} XP
+                Worth +
+                {BASE_BONUS_XP * (modifier ? modifierXpMultiplier(modifier) : 1) +
+                  (modifier ? modifierFlatXpBonus(modifier) : 0)}{" "}
+                XP
               </span>
             </div>
             <ExerciseTimer exercise={composed} onComplete={handleExerciseComplete} />

@@ -1,32 +1,40 @@
 "use client";
 
-import { Modifier, weightedModifierList } from "@/lib/wheelModifiers";
+export type ReelPhase = "idle" | "cycling" | "revealed";
 
-const DISPLAY_LIST = weightedModifierList();
-
+// A generic slot-machine style vertical reel: cycles through a list of
+// short labels, then locks in on one. Used twice on the wheel screen — once
+// for the modifier type, once for its quantity — so the visuals (and the
+// golden glow for a golden result) live in one place.
 export default function ModifierReel({
   phase,
-  result,
+  cyclingLabels,
+  resultLabel,
+  golden,
+  idleLabel,
 }: {
-  phase: "idle" | "cycling" | "revealed";
-  result: Modifier | null;
+  phase: ReelPhase;
+  cyclingLabels: string[];
+  resultLabel: string | null;
+  golden?: boolean;
+  idleLabel: string;
 }) {
   if (phase === "idle") {
     return (
-      <div className="h-14 flex items-center justify-center text-xs text-zinc-500 border border-zinc-700 rounded-lg">
-        Bonus / malus reveals after the wheel lands
+      <div className="h-14 flex items-center justify-center text-center text-xs text-zinc-500 border border-zinc-700 rounded-lg px-2">
+        {idleLabel}
       </div>
     );
   }
 
   if (phase === "cycling") {
-    const loop = [...DISPLAY_LIST, ...DISPLAY_LIST];
+    const loop = cyclingLabels.length > 0 ? [...cyclingLabels, ...cyclingLabels] : ["..."];
     return (
       <div className="h-14 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800/50 relative">
         <div className="animate-reel-scroll">
-          {loop.map((m, i) => (
-            <div key={i} className="h-14 flex items-center justify-center text-sm text-zinc-300">
-              {m.label}
+          {loop.map((label, i) => (
+            <div key={i} className="h-14 flex items-center justify-center text-sm text-zinc-300 px-2 text-center">
+              {label}
             </div>
           ))}
         </div>
@@ -36,18 +44,17 @@ export default function ModifierReel({
     );
   }
 
-  const golden = result?.kind === "golden";
   return (
     <div
-      className={`h-14 flex flex-col items-center justify-center rounded-lg border animate-pop-in ${
+      className={`h-14 flex flex-col items-center justify-center rounded-lg border animate-pop-in px-2 text-center ${
         golden
           ? "border-yellow-400 bg-yellow-400/10 animate-golden-glow"
-          : result?.kind === "none"
+          : resultLabel === "No Bonus" || resultLabel === "as prescribed"
           ? "border-zinc-700 bg-zinc-800/50"
           : "border-orange-500 bg-orange-500/10"
       }`}
     >
-      <div className={`text-sm font-medium ${golden ? "text-yellow-300" : "text-zinc-100"}`}>{result?.label}</div>
+      <div className={`text-sm font-medium ${golden ? "text-yellow-300" : "text-zinc-100"}`}>{resultLabel}</div>
     </div>
   );
 }
