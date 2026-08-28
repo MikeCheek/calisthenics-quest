@@ -726,6 +726,34 @@ underlying session data but doesn't (yet) expose either control. Adjust
 before starting focus mode, or exit back to the checklist to make a change
 mid-session.
 
+## The skill wall (`SkillWall.tsx`)
+
+On `/profile`, alongside the skill radar chart and XP-over-time chart, a
+GitHub-contribution-graph-style grid: all 50 skills as one square each, in
+a dense 10-column grid, shaded from empty (untouched) through four
+increasingly bright levels — same visual language as a commit heatmap, but
+the "activity" being shaded is skill progress rather than daily commits.
+
+**Brightness is stage progress discounted by mastery, not just stage
+alone.** A skill sits at `stageIndex / (totalStages - 1)` — how far along
+its own ladder it is, normalized so a 3-stage skill and a 6-stage skill
+both reach "fully lit" at their own respective top stage — then that
+fraction is scaled by `mastery / 5`. The result: claiming "Attempted" on
+an advanced stage lights the square dimly, while a stage you've actually
+consolidated at mastery 5 lights it at full brightness, even if it's an
+earlier stage than something else you've only attempted. I verified this
+scales sensibly across skills with very different stage-ladder lengths
+before wiring it in (a 3-stage skill and a 6-stage skill both correctly
+reach the brightest bucket at their own top stage, not skewed by ladder
+length).
+
+Every square is tappable and opens the same `SkillInfoModal` used
+everywhere else skill details are shown (the skills catalog, onboarding,
+the wheel, the trophy road) — no new detail UI to maintain, just another
+entry point into the existing one. A "Less → More" legend underneath
+matches the convention directly, and a running "N/50 lit" count sits next
+to the section title.
+
 ## Focus-targeted warm-ups (`warmupFinisher.ts`)
 
 The Warm-Up block isn't drawn from one generic mobility pool regardless of

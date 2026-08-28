@@ -417,6 +417,7 @@ function WheelContent() {
               )}
             </div>
             <div className="text-sm text-zinc-400 mb-1">{composed.detail}</div>
+            {composed.description && <p className="text-sm text-zinc-300 mb-2">{composed.description}</p>}
             {composed.cue && <div className="text-xs text-orange-400/80 italic mb-2">{composed.cue}</div>}
             <div className="flex items-center gap-2 mb-2">
               <ExerciseTipButton exerciseName={composed.name} exerciseDetail={composed.detail} trackLabel={SKILL_FIELD_LABEL[track]} />

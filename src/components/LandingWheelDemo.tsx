@@ -128,6 +128,7 @@ export default function LandingWheelDemo() {
         <div className="mt-4 p-3 rounded-lg bg-zinc-800/60 border border-orange-500/40 animate-pop-in">
           <div className="text-sm font-medium text-zinc-100">{result.name}</div>
           <div className="text-xs text-zinc-400 mb-2">{result.detail}</div>
+          {result.description && <p className="text-xs text-zinc-300 mb-2">{result.description}</p>}
           <div className="mb-2">
             <ExerciseTipButton exerciseName={result.name} exerciseDetail={result.detail} trackLabel={SKILL_FIELD_LABEL[skill]} />
           </div>

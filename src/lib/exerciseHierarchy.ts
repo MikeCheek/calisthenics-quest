@@ -64,24 +64,24 @@ function skillHierarchy(skill: StagedSkillKey, equipment: TrainingEquipment): Ex
 
 function pullStrengthHierarchy(equipment: TrainingEquipment): Exercise[] {
   const list: Exercise[] = [
-    { name: "Dead hangs", detail: "3 x max hold", restSeconds: 90 },
-    { name: "Australian / inverted rows", detail: "3 x 10-12 reps", restSeconds: 90 },
-    { name: "Negative pull-ups", detail: "3 x 4-5 reps, 4-5s descent", restSeconds: 90 },
-    { name: "Pull-ups", detail: "5 x max reps", restSeconds: 120 },
+    { name: "Dead hangs", detail: "3 x max hold", restSeconds: 90, description: "Hang from a pull-up bar with straight arms and an active grip, holding for as long as you can without your shoulders fully collapsing." },
+    { name: "Australian / inverted rows", detail: "3 x 10-12 reps", restSeconds: 90, description: "Lie under a low bar with your body straight and heels on the ground, then pull your chest up to the bar by driving your elbows back, and lower with control." },
+    { name: "Negative pull-ups", detail: "3 x 4-5 reps, 4-5s descent", restSeconds: 90, description: "Jump or step up to the top pull-up position (chin over the bar), then lower yourself down as slowly as you can, aiming for a full 4-5 second descent." },
+    { name: "Pull-ups", detail: "5 x max reps", restSeconds: 120, description: "From a dead hang, pull yourself up until your chin clears the bar, then lower back to a full hang with control." },
   ];
-  if (equipment.rings) list.push({ name: "Ring rows (false grip)", detail: "3 x 8-10 reps", restSeconds: 90 });
+  if (equipment.rings) list.push({ name: "Ring rows (false grip)", detail: "3 x 8-10 reps", restSeconds: 90, description: "Set rings low, take a false grip (wrist over the top of the ring), and row your chest up toward the rings while keeping your body straight, then lower with control." });
   list.push(
-    { name: "L-sit pull-ups", detail: "3 x 5 reps", restSeconds: 150 },
-    { name: "Archer pull-ups", detail: "4 x 3-4 reps per side", restSeconds: 120 },
-    { name: "Typewriter pull-ups", detail: "3 x 4-5 reps per side", restSeconds: 150 },
-    { name: "Tempo pull-ups (5s up, 3s hold, 5s down)", detail: "3 x 5 reps", restSeconds: 180 }
+    { name: "L-sit pull-ups", detail: "3 x 5 reps", restSeconds: 150, description: "Hold your legs out straight in front of you in an L-sit position and perform pull-ups without letting your legs drop, keeping your core engaged throughout." },
+    { name: "Archer pull-ups", detail: "4 x 3-4 reps per side", restSeconds: 120, description: "Using a wide grip, pull yourself up toward one hand while keeping the other arm nearly straight out to the side, then alternate sides between reps." },
+    { name: "Typewriter pull-ups", detail: "3 x 4-5 reps per side", restSeconds: 150, description: "Pull yourself up to the top of a wide-grip pull-up, then shift your whole body sideways from one hand to the other while staying at the top, like sliding along a typewriter carriage." },
+    { name: "Tempo pull-ups (5s up, 3s hold, 5s down)", detail: "3 x 5 reps", restSeconds: 180, description: "Perform a pull-up taking a full 5 seconds to rise, pause and hold for 3 seconds at the top with your chin over the bar, then take 5 seconds to lower back down." }
   );
   if (equipment.weights) {
-    list.push({ name: "Weighted pull-ups", detail: "4 x 4-5 reps (+15-20% bodyweight)", restSeconds: 180 });
+    list.push({ name: "Weighted pull-ups", detail: "4 x 4-5 reps (+15-20% bodyweight)", restSeconds: 180, description: "Attach extra weight via a dip belt, weighted vest, or held dumbbell, then perform standard pull-ups through a full range of motion." });
   }
   list.push(
-    { name: "One-arm chin negatives (assisted)", detail: "4 x 2-3 reps per side", restSeconds: 150 },
-    { name: "Front lever pulls", detail: "3 x 4-5 reps", restSeconds: 150 }
+    { name: "One-arm chin negatives (assisted)", detail: "4 x 2-3 reps per side", restSeconds: 150, description: "Starting at the top of a chin-up using mostly one arm (the other lightly assisting on a towel or the wrist), lower yourself down as slowly as possible under control." },
+    { name: "Front lever pulls", detail: "3 x 4-5 reps", restSeconds: 150, description: "From a hanging front lever position (or the closest tuck/straddle variation you can hold), pull your chest toward the bar while keeping your body horizontal, then lower back to the hang." }
   );
   if (equipment.monkeyBars) {
     list.push({
@@ -89,6 +89,7 @@ function pullStrengthHierarchy(equipment: TrainingEquipment): Exercise[] {
       detail: "3 x 1-2 laps",
       restSeconds: 90,
       cue: "Keep it continuous, don't rest mid-bar",
+      description: "Swing hand over hand across a row of monkey bars without touching the ground, keeping a steady rhythm and letting your hips help drive momentum.",
     });
   }
   return list;
@@ -98,31 +99,31 @@ function pushStrengthHierarchy(equipment: TrainingEquipment): Exercise[] {
   if (equipment.parallelBars || equipment.rings) {
     const apparatus = equipment.rings && !equipment.parallelBars ? "Ring" : "Parallel bar";
     const list: Exercise[] = [
-      { name: "Pike push-ups", detail: "3 x 8-10 reps", restSeconds: 75 },
-      { name: "Negative dips", detail: "3 x 5 reps, 4s descent", restSeconds: 90 },
-      { name: `${apparatus} dips`, detail: "4 x max reps", restSeconds: 90 },
-      { name: "Deficit dips (parallettes for extra ROM)", detail: "4 x 6-8 reps", restSeconds: 120 },
-      { name: "Slow-tempo dips", detail: "3 x 6 reps, 3s down / 3s up", restSeconds: 90 },
-      { name: "Pseudo planche push-ups", detail: "3 x 8-10 reps", restSeconds: 90 },
+      { name: "Pike push-ups", detail: "3 x 8-10 reps", restSeconds: 75, description: "Start in a pike position with hips high and hands on the ground, then bend your elbows to lower your head toward the floor, and press back up." },
+      { name: "Negative dips", detail: "3 x 5 reps, 4s descent", restSeconds: 90, description: "Support yourself at the top of a dip on bars or rings, then lower yourself as slowly as possible until your shoulders reach elbow height, taking about 4 seconds." },
+      { name: `${apparatus} dips`, detail: "4 x max reps", restSeconds: 90, description: "Support yourself above parallel bars or rings with arms straight, then lower your body by bending your elbows until your shoulders are roughly level with them, and press back up." },
+      { name: "Deficit dips (parallettes for extra ROM)", detail: "4 x 6-8 reps", restSeconds: 120, description: "Perform dips on raised parallettes or blocks so your hands start higher than a normal bar, allowing you to descend further than your shoulders for extra range of motion." },
+      { name: "Slow-tempo dips", detail: "3 x 6 reps, 3s down / 3s up", restSeconds: 90, description: "Perform a standard dip but count a full 3 seconds on the way down and another 3 seconds pressing back up, staying controlled throughout." },
+      { name: "Pseudo planche push-ups", detail: "3 x 8-10 reps", restSeconds: 90, description: "In a push-up position, lean your shoulders forward past your hands (fingers pointing toward your feet if comfortable) and perform push-ups from that forward-leaning position." },
     ];
     if (equipment.weights) {
-      list.push({ name: "Weighted dips", detail: "4 x 5-6 reps (+15-20% bodyweight)", restSeconds: 150 });
+      list.push({ name: "Weighted dips", detail: "4 x 5-6 reps (+15-20% bodyweight)", restSeconds: 150, description: "Attach extra weight via a dip belt or weighted vest, then perform standard dips through a full range of motion." });
     } else {
-      list.push({ name: "Tempo dips (4s down, 2s up)", detail: "4 x 5-6 reps", restSeconds: 150 });
+      list.push({ name: "Tempo dips (4s down, 2s up)", detail: "4 x 5-6 reps", restSeconds: 150, description: "Perform a dip taking 4 full seconds to lower and 2 seconds to press back up, keeping the movement smooth and controlled the whole way." });
     }
     list.push(
-      { name: "Ring / bar support hold", detail: "3 x max hold", restSeconds: 90 },
-      { name: "Planche push-ups", detail: "3 x 5 reps", restSeconds: 150 }
+      { name: "Ring / bar support hold", detail: "3 x max hold", restSeconds: 90, description: "Support your body above rings or parallel bars with arms fully locked and shoulders depressed, holding the position as long as you can maintain good posture." },
+      { name: "Planche push-ups", detail: "3 x 5 reps", restSeconds: 150, description: "Starting in a planche lean or tuck planche position (feet off the ground, shoulders well past your hands), bend your elbows to lower your chest and press back up without your feet touching down." }
     );
     return list;
   }
   return [
-    { name: "Decline push-ups", detail: "3 x 8-10 reps", restSeconds: 90 },
-    { name: "Push-ups", detail: "4 x max reps", restSeconds: 90 },
-    { name: "Pike push-ups", detail: "3 x 8-10 reps", restSeconds: 75 },
-    { name: "Diamond push-ups", detail: "3 x 10-12 reps", restSeconds: 90 },
-    { name: "Archer push-ups", detail: "4 x 5-6 reps per side", restSeconds: 90 },
-    { name: "Pseudo planche push-ups", detail: "3 x 8-10 reps", restSeconds: 90 },
+    { name: "Decline push-ups", detail: "3 x 8-10 reps", restSeconds: 90, description: "With your feet elevated on a step or bench, perform a push-up by bending your elbows to lower your chest toward the ground and pressing back up." },
+    { name: "Push-ups", detail: "4 x max reps", restSeconds: 90, description: "Starting in a plank with hands under your shoulders, lower your chest toward the ground by bending your elbows, keeping your body in a straight line, then press back up." },
+    { name: "Pike push-ups", detail: "3 x 8-10 reps", restSeconds: 75, description: "Start in a pike position with hips high and hands on the ground, then bend your elbows to lower your head toward the floor, and press back up." },
+    { name: "Diamond push-ups", detail: "3 x 10-12 reps", restSeconds: 90, description: "Place your hands close together under your chest with thumbs and index fingers touching to form a diamond shape, then perform a push-up, keeping your elbows closer to your body." },
+    { name: "Archer push-ups", detail: "4 x 5-6 reps per side", restSeconds: 90, description: "With hands set wide, lower your chest toward one hand while keeping the other arm nearly straight out to the side, then press back up and alternate sides." },
+    { name: "Pseudo planche push-ups", detail: "3 x 8-10 reps", restSeconds: 90, description: "In a push-up position, lean your shoulders forward past your hands (fingers pointing toward your feet if comfortable) and perform push-ups from that forward-leaning position." },
   ];
 }
 

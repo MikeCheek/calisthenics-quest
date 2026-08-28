@@ -20,7 +20,13 @@ export default function ExerciseDetailModal({
 
   return (
     <Modal open={open} onClose={onClose} title={exercise.name}>
-      <div className="text-sm text-zinc-200 mb-2">{exercise.detail}</div>
+      <div className="text-sm text-zinc-200 mb-2 stat-mono">{exercise.detail}</div>
+      {exercise.description && (
+        <div className="mb-3">
+          <div className="text-xs uppercase tracking-wide text-emerald-400 mb-1">How to</div>
+          <p className="text-sm text-zinc-300">{exercise.description}</p>
+        </div>
+      )}
       {exercise.restSeconds > 0 && (
         <div className="text-xs text-zinc-500 flex items-center gap-1 mb-2">
           <Clock size={12} /> {exercise.restSeconds}s rest between sets

@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
-import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle } from "lucide-react";
+import ExerciseDetailModal from "@/components/ExerciseDetailModal";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info } from "lucide-react";
 
 const SWIPE_THRESHOLD = 55;
 const SWIPE_MAX = 90;
@@ -38,6 +39,7 @@ export default function ExerciseRow({
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const lockedAxis = useRef<"h" | "v" | null>(null);
   const displayedExercise = { ...exercise, detail: displayedDetail };
@@ -127,11 +129,20 @@ export default function ExerciseRow({
                 {exercise.name}
                 {isSwapped && <span className="text-xs text-orange-400 font-normal"> (swapped, easier)</span>}
               </div>
-              {exercise.restSeconds > 0 && (
-                <div className="text-xs text-zinc-500 flex items-center gap-1 shrink-0">
-                  <Clock size={12} /> {exercise.restSeconds}s
-                </div>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setInfoOpen(true)}
+                  className="text-zinc-500 hover:text-orange-400"
+                  aria-label={`How to do ${exercise.name}`}
+                >
+                  <Info size={14} />
+                </button>
+                {exercise.restSeconds > 0 && (
+                  <div className="text-xs text-zinc-500 flex items-center gap-1">
+                    <Clock size={12} /> {exercise.restSeconds}s
+                  </div>
+                )}
+              </div>
             </div>
             <div className="text-xs text-zinc-400">
               {displayedDetail}
@@ -186,6 +197,8 @@ export default function ExerciseRow({
           </div>
         </div>
       </div>
+
+      <ExerciseDetailModal exercise={exercise} trackLabel={trackLabel} open={infoOpen} onClose={() => setInfoOpen(false)} />
     </li>
   );
 }

@@ -198,7 +198,8 @@ export interface Exercise {
   name: string;
   detail: string; // sets x reps/time, tempo etc.
   restSeconds: number;
-  cue?: string; // short coaching cue
+  cue?: string; // short coaching cue, shown during training
+  description?: string; // how to actually perform the movement
 }
 
 export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill";

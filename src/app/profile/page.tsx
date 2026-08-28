@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SkillRadarChart from "@/components/SkillRadarChart";
+import SkillWall from "@/components/SkillWall";
 import XPHistoryChart from "@/components/XPHistoryChart";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
@@ -71,6 +72,8 @@ export default function ProfilePage() {
           <div className="heading text-base text-zinc-100 mb-2">Skill radar</div>
           <SkillRadarChart skills={userDoc.skills} />
         </div>
+
+        <SkillWall skills={userDoc.skills} mastery={userDoc.skillMastery} playerLevel={progress.level} />
 
         <div className="panel p-4">
           <div className="heading text-base text-zinc-100 mb-3">XP over time</div>
