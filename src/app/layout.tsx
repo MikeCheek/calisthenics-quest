@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/context/ToastContext";
 import PWARegister from "@/components/PWARegister";
 import ReminderScheduler from "@/components/ReminderScheduler";
 import PingsListener from "@/components/PingsListener";
@@ -53,11 +54,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="font-sans min-h-screen antialiased" suppressHydrationWarning>
-        <AuthProvider>
-          {children}
-          <ReminderScheduler />
-          <PingsListener />
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            {children}
+            <ReminderScheduler />
+            <PingsListener />
+          </AuthProvider>
+        </ToastProvider>
         <PWARegister />
       </body>
     </html>

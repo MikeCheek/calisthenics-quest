@@ -11,13 +11,14 @@ import {
 } from "@/lib/store";
 import { Friend } from "@/lib/types";
 import { pickReminderLine } from "@/lib/reminderMessages";
+import { useToast } from "@/context/ToastContext";
 import { Copy, UserPlus, Zap, Users2 } from "lucide-react";
 
 export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (friend: Friend) => void }) {
   const { userDoc } = useAuth();
+  const toast = useToast();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [codeInput, setCodeInput] = useState("");
-  const [status, setStatus] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [adding, setAdding] = useState(false);
   const [nudged, setNudged] = useState<string | null>(null);
 
@@ -29,40 +30,39 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
   if (!userDoc) return null;
 
   const handleAddFriend = async () => {
-    setStatus(null);
     const code = codeInput.trim().toUpperCase();
     if (code.length !== 6) {
-      setStatus({ type: "error", text: "Enter the 6-character friend code." });
+      toast.error("Enter the 6-character friend code.");
       return;
     }
     if (code === userDoc.friendCode) {
-      setStatus({ type: "error", text: "That's your own code!" });
+      toast.error("That's your own code!");
       return;
     }
     setAdding(true);
     try {
       const theirUid = await lookupUidByFriendCode(code);
       if (!theirUid) {
-        setStatus({ type: "error", text: "No one has that code." });
+        toast.error("No one has that code.");
         return;
       }
       if (friends.some((f) => f.uid === theirUid)) {
-        setStatus({ type: "error", text: "You're already friends." });
+        toast.error("You're already friends.");
         return;
       }
       const theirProfile = await fetchPublicProfile(theirUid);
       if (!theirProfile) {
-        setStatus({ type: "error", text: "Couldn't find that athlete's profile." });
+        toast.error("Couldn't find that athlete's profile.");
         return;
       }
       await addFriend(
         { uid: userDoc.uid, displayName: userDoc.displayName, photoURL: userDoc.photoURL },
         { uid: theirUid, displayName: theirProfile.displayName, photoURL: theirProfile.photoURL }
       );
-      setStatus({ type: "success", text: `Added ${theirProfile.displayName}!` });
+      toast.success(`Added ${theirProfile.displayName}!`);
       setCodeInput("");
     } catch {
-      setStatus({ type: "error", text: "Something went wrong — try again." });
+      toast.error("Something went wrong — try again.");
     } finally {
       setAdding(false);
     }
@@ -84,7 +84,11 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
             {userDoc.friendCode || "······"}
           </div>
           <button
-            onClick={() => userDoc.friendCode && navigator.clipboard.writeText(userDoc.friendCode)}
+            onClick={() => {
+              if (!userDoc.friendCode) return;
+              navigator.clipboard.writeText(userDoc.friendCode);
+              toast.success("Friend code copied!");
+            }}
             className="p-2.5 border border-zinc-600 rounded-lg text-zinc-300 hover:text-zinc-100"
             aria-label="Copy your code"
             disabled={!userDoc.friendCode}
@@ -114,11 +118,6 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
             Add
           </button>
         </div>
-        {status && (
-          <p className={`text-xs mt-2 ${status.type === "error" ? "text-orange-400" : "text-emerald-400"}`}>
-            {status.text}
-          </p>
-        )}
       </div>
 
       <div className="panel p-4">

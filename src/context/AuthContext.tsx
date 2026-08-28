@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { fetchUserDoc, createUserDoc, ensureFriendCode } from "@/lib/store";
+import { useToast } from "@/context/ToastContext";
 import {
   DEFAULT_BODY,
   DEFAULT_EQUIPMENT,
@@ -35,6 +36,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const toast = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,11 +99,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async () => {
-    await signInWithPopup(auth, googleProvider);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err) {
+      // a cancelled/closed popup isn't worth alarming someone about —
+      // only surface genuine failures (blocked popup, network, etc.)
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+      toast.error("Couldn't sign in — check your connection and try again.");
+    }
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    try {
+      await firebaseSignOut(auth);
+    } catch {
+      toast.error("Couldn't sign out — try again.");
+    }
   };
 
   return (

@@ -3,14 +3,22 @@
 import { useState } from "react";
 import { TrainingSession, TrainingEquipment, Exercise } from "@/lib/types";
 import { adjustDetail } from "@/lib/exerciseTiming";
-import { findEasierExercise } from "@/lib/exerciseLookup";
+import { findEasierExercise, findHarderExercise } from "@/lib/exerciseHierarchy";
+import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
 import { Play } from "lucide-react";
 
-const SESSION_DELTA_OPTIONS: { value: -1 | 0 | 1; label: string }[] = [
-  { value: -1, label: "Too advanced" },
-  { value: 0, label: "Feels right" },
-  { value: 1, label: "Too easy" },
+// Warm-up and finisher exercises are generic conditioning, not part of any
+// skill's difficulty hierarchy — everyone can do those regardless of level,
+// so neither the whole-session feedback nor "can't do this" touches them.
+const HIERARCHY_EXEMPT_SETS = new Set(["Warm-Up", "Final Hits"]);
+
+type SessionLevel = "easier" | "default" | "harder";
+
+const SESSION_LEVEL_OPTIONS: { value: SessionLevel; label: string }[] = [
+  { value: "easier", label: "Too advanced" },
+  { value: "default", label: "Feels right" },
+  { value: "harder", label: "Too easy" },
 ];
 
 export default function SessionView({
@@ -30,9 +38,10 @@ export default function SessionView({
   const [done, setDone] = useState<Set<string>>(new Set());
   const [openTimers, setOpenTimers] = useState<Set<string>>(new Set());
   const [individualDelta, setIndividualDelta] = useState<Record<string, number>>({});
-  const [sessionDelta, setSessionDelta] = useState<-1 | 0 | 1>(0);
-  const [overrides, setOverrides] = useState<Record<string, Exercise>>({});
-  const [swapNotice, setSwapNotice] = useState<string | null>(null);
+  const [sessionLevel, setSessionLevel] = useState<SessionLevel>("default");
+  const [individualOverrides, setIndividualOverrides] = useState<Record<string, Exercise>>({});
+  const toast = useToast();
+  const eq = equipment ?? DEFAULT_LOOKUP_EQUIPMENT;
 
   const toggleDone = (key: string) => {
     setDone((prev) => {
@@ -63,14 +72,14 @@ export default function SessionView({
   };
 
   const swapForEasier = (key: string, currentExercise: Exercise) => {
-    const easier = findEasierExercise(currentExercise.name, equipment ?? DEFAULT_LOOKUP_EQUIPMENT);
+    const easier = findEasierExercise(currentExercise.name, eq);
     if (!easier) {
-      setSwapNotice(`No easier variation found for ${currentExercise.name} — try adjusting reps instead.`);
-      setTimeout(() => setSwapNotice(null), 3500);
+      toast.warning(`No easier variation found for ${currentExercise.name} — try adjusting reps instead.`);
       return;
     }
-    setOverrides((prev) => ({ ...prev, [key]: easier }));
-    // the old exercise's per-row adjustment doesn't carry over to a
+    setIndividualOverrides((prev) => ({ ...prev, [key]: easier }));
+    toast.success(`Swapped in ${easier.name} — one step easier.`);
+    // the old exercise's per-row reps adjustment doesn't carry over to a
     // different exercise's own baseline
     resetAdjust(key);
   };
@@ -104,12 +113,12 @@ export default function SessionView({
       <div className="mt-3">
         <div className="text-xs text-zinc-500 mb-1.5">How does today&apos;s session feel overall?</div>
         <div className="flex gap-1.5">
-          {SESSION_DELTA_OPTIONS.map((opt) => (
+          {SESSION_LEVEL_OPTIONS.map((opt) => (
             <button
               key={opt.value}
-              onClick={() => setSessionDelta(opt.value)}
+              onClick={() => setSessionLevel(opt.value)}
               className={`flex-1 py-1.5 rounded-lg text-xs border ${
-                sessionDelta === opt.value
+                sessionLevel === opt.value
                   ? "border-orange-500 bg-orange-500/10 text-zinc-100"
                   : "border-zinc-700 text-zinc-400"
               }`}
@@ -118,50 +127,64 @@ export default function SessionView({
             </button>
           ))}
         </div>
-        {sessionDelta !== 0 && (
+        {sessionLevel !== "default" && (
           <p className="text-xs text-zinc-500 mt-1.5">
-            Every exercise below is adjusted {sessionDelta > 0 ? "up" : "down"} a set — nudge any
-            single one further with its own +/- or a swipe.
+            Every skill exercise below is swapped for the {sessionLevel === "easier" ? "easier" : "harder"}{" "}
+            one right next to it in that skill&apos;s progression — reps stay as prescribed for whichever
+            exercise ends up in place. Warm-up and finisher exercises don&apos;t change; everyone can do those.
           </p>
         )}
       </div>
 
       <p className="text-xs text-zinc-500 mt-2">
-        Drag an exercise left or right for a quick easier/harder adjustment, or use the buttons.
+        Drag an exercise left or right for a quick easier/harder reps adjustment, or use the buttons.
       </p>
-      {swapNotice && <div className="text-xs text-orange-400 mt-2 panel px-3 py-2">{swapNotice}</div>}
 
       <div className="space-y-5 mt-4">
-        {session.sets.map((set) => (
-          <div key={set.title}>
-            <div className="text-sm uppercase tracking-wide text-emerald-400 mb-2">{set.title}</div>
-            <ul className="space-y-2">
-              {set.exercises.map((originalEx, i) => {
-                const key = `${set.title}-${i}`;
-                const effectiveExercise = overrides[key] ?? originalEx;
-                const totalDelta = sessionDelta + (individualDelta[key] ?? 0);
-                const displayedDetail = adjustDetail(effectiveExercise.detail, totalDelta);
-                return (
-                  <ExerciseRow
-                    key={key}
-                    exercise={effectiveExercise}
-                    displayedDetail={displayedDetail}
-                    isAdjusted={totalDelta !== 0}
-                    isSwapped={key in overrides}
-                    isDone={done.has(key)}
-                    timerOpen={openTimers.has(key)}
-                    trackLabel={session.focusLabel}
-                    onToggleDone={() => toggleDone(key)}
-                    onToggleTimer={() => toggleTimer(key)}
-                    onBump={(delta) => bump(key, delta)}
-                    onResetAdjust={() => resetAdjust(key)}
-                    onCantDo={() => swapForEasier(key, effectiveExercise)}
-                  />
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+        {session.sets.map((set) => {
+          const exempt = HIERARCHY_EXEMPT_SETS.has(set.title);
+          return (
+            <div key={set.title}>
+              <div className="text-sm uppercase tracking-wide text-emerald-400 mb-2">{set.title}</div>
+              <ul className="space-y-2">
+                {set.exercises.map((originalEx, i) => {
+                  const key = `${set.title}-${i}`;
+                  let effectiveExercise = individualOverrides[key] ?? originalEx;
+
+                  if (!exempt && sessionLevel !== "default" && !(key in individualOverrides)) {
+                    const stepped =
+                      sessionLevel === "easier"
+                        ? findEasierExercise(effectiveExercise.name, eq)
+                        : findHarderExercise(effectiveExercise.name, eq);
+                    if (stepped) effectiveExercise = stepped;
+                  }
+
+                  const totalDelta = individualDelta[key] ?? 0;
+                  const displayedDetail = adjustDetail(effectiveExercise.detail, totalDelta);
+                  const isSwapped = effectiveExercise.name !== originalEx.name;
+
+                  return (
+                    <ExerciseRow
+                      key={key}
+                      exercise={effectiveExercise}
+                      displayedDetail={displayedDetail}
+                      isAdjusted={totalDelta !== 0}
+                      isSwapped={isSwapped}
+                      isDone={done.has(key)}
+                      timerOpen={openTimers.has(key)}
+                      trackLabel={session.focusLabel}
+                      onToggleDone={() => toggleDone(key)}
+                      onToggleTimer={() => toggleTimer(key)}
+                      onBump={(delta) => bump(key, delta)}
+                      onResetAdjust={() => resetAdjust(key)}
+                      onCantDo={exempt ? undefined : () => swapForEasier(key, effectiveExercise)}
+                    />
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
       </div>
 
       {onComplete && (

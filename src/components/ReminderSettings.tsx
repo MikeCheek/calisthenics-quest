@@ -9,9 +9,11 @@ import {
   fireTrainingReminder,
 } from "@/lib/notifications";
 import { Bell, BellOff } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 export default function ReminderSettings() {
   const { userDoc, refreshUserDoc } = useAuth();
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
@@ -24,6 +26,7 @@ export default function ReminderSettings() {
       const perm = await requestNotificationPermission();
       if (perm !== "granted") {
         setPermissionDenied(true);
+        toast.warning("Notification permission was denied — enable it in your browser/site settings to turn this on.");
         return;
       }
     }
@@ -90,7 +93,10 @@ export default function ReminderSettings() {
             />
           </label>
           <button
-            onClick={() => fireTrainingReminder()}
+            onClick={() => {
+              fireTrainingReminder();
+              toast.info("Test reminder sent — check your notifications.");
+            }}
             disabled={typeof window !== "undefined" && Notification.permission !== "granted"}
             className="w-full py-2 rounded-lg text-sm border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 disabled:opacity-50"
           >

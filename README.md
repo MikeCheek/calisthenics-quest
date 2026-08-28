@@ -18,7 +18,8 @@ blocked outright — live easier/harder adjustments (buttons, a press-and-drag
 swipe gesture, or whole-session feedback that composes with both) with a
 "swap for something easier" option on any exercise, a full-screen guided
 training mode that steps through a
-session hands-free, celebration animations, streaks that freeze
+session hands-free, a unified top-center toast system for every
+info/success/warning/error message, celebration animations, streaks that freeze
 through rest days instead of breaking, weekly missions, skill/XP charts, a
 redesigned dashboard, a pomodoro-style focus timer, day/week/month plan
 generation with optional AI coach notes, a friends list with mutual add and
@@ -636,41 +637,57 @@ or vertical (a scroll — releases control back to the browser immediately),
 so it coexists with normal vertical scrolling through a long exercise list
 rather than fighting it.
 
-**Whole-session feedback, composed with the same per-exercise adjustment.**
-Above the exercise list, a "How does today's session feel overall?"
-control ("Too advanced" / "Feels right" / "Too easy") applies a session-wide
-delta to every exercise at once — through the exact same `adjustDetail`
-function as the ± buttons and the swipe gesture, not a separate mechanism.
-This is deliberately *additive*, not a hard reset: the displayed detail for
-any exercise is `adjustDetail(baseDetail, sessionDelta +
-individualDelta[exercise])`, so choosing "Too easy" bumps everything up by
-one set, and you can still swipe or tap ± on any single exercise on top of
-that for a further nudge — the two levers compose rather than fight each
-other (`SessionView.tsx`).
+**Whole-session feedback now swaps exercises, not reps.** Above the
+exercise list, a "How does today's session feel overall?" control ("Too
+advanced" / "Feels right" / "Too easy") replaces every skill exercise in
+the session with the one right next to it in that skill's difficulty
+hierarchy — easier for "Too advanced," harder for "Too easy" — leaving set
+counts exactly as prescribed for whichever exercise ends up in place,
+rather than adjusting reps on the original exercise. **Warm-up and finisher
+exercises are exempt and never change** — they're generic conditioning
+that isn't part of any skill's difficulty hierarchy to begin with, and
+everyone can do those regardless of level (`HIERARCHY_EXEMPT_SETS` in
+`SessionView.tsx`, matched against the set titles "Warm-Up" and "Final
+Hits"). This is separate from, and composes with, the per-exercise ± /
+swipe reps adjustment — that one still works on whichever exercise
+currently occupies a row (original or swapped), the same `adjustDetail`
+call as always.
 
-**"Can't do this" — swap for something easier, on the exercise itself.**
-Every exercise also has a "Can't do this" button. Unlike the ± adjustment
-(which just changes the set count of the *same* exercise), this replaces
-the exercise entirely with an easier one that still trains the same skill —
-stepping down one stage at a time until it finds a genuinely different
-option (`findEasierExercise` in `src/lib/exerciseLookup.ts`). This works
-without touching the session generator at all: a reverse index is built
-once from the exact same stage tables everything else in the app already
-uses, mapping every exercise name back to the `(skill, stage)` it came
-from, so "swap for easier" is really "look up where this came from, then
-pull from the next stage down." **This is a best-effort match, not a
-guarantee** — a small number of generic drill names (like "Scapula pulls")
-legitimately appear in more than one skill's table, and the reverse index
-just takes the first match it finds; it's built for the common case of
-gracefully sidestepping something you genuinely can't do yet, not for
-perfect precision. If no easier variant is found (already at the easiest
-tracked stage, or the exercise isn't a stage-tracked skill exercise at all
-— this includes the rep-count-based Pull Strength and Push Strength
-tracks, which aren't stage-tracked to begin with), a brief inline message
-says so rather than silently failing. A swapped exercise is tagged
-"(swapped, easier)" and its own ± / swipe adjustment resets to zero, since
-an adjustment relative to the old exercise's baseline wouldn't mean
-anything applied to a different one.
+**"Can't do this" — and the difficulty hierarchy behind both features.**
+Every non-exempt exercise has a "Can't do this" button that steps it down
+one rung, same mechanism as the whole-session control but scoped to a
+single row. Both are powered by `src/lib/exerciseHierarchy.ts`: for each of
+the 50 skills, every exercise across every one of that skill's stages is
+flattened into **one continuous easy-to-hard list** — not just "jump down
+a whole stage," which is what used to make "no easier found" so common
+even when a genuinely gentler option existed one rung away. The two
+"general purpose" tracks that were previously invisible to this
+system entirely — Pull Strength and Push Strength, which aren't
+stage-tracked skills at all — now get their own hand-ordered hierarchies
+built from the same real exercises the generator already uses (dead hang →
+rows → negatives → pull-ups → weighted/archer/typewriter variants, and the
+equivalent dip/push-up progression). A reverse index maps every exercise
+name back to which hierarchy it belongs to and where, built once from
+**two equipment extremes** (everything enabled, nothing enabled) rather
+than one — some hierarchies (push strength, chiefly) branch into a
+completely different list depending on equipment rather than just adding
+one item, so indexing only the "everything on" case was silently dropping
+every exercise that only exists in the bodyweight-only branch. I measured
+the fix directly across all 481 exercises in the 50 skill tables before
+shipping it: 0% missing from the index (the exact bug being reported), 90%
+now find a genuinely easier variant, and the remaining 10% are correctly
+sitting at the true floor of their hierarchy — the one easiest exercise
+each skill has to have somewhere.
+
+**Still a best-effort match, not a guarantee** — a small number of generic
+drill names (like "Scapula pulls") legitimately appear in more than one
+skill's hierarchy, and the index just takes the first match it finds. If
+no easier (or harder) variant exists at all, a toast says so rather than
+silently failing. A swapped exercise is tagged "(swapped, easier)" (this
+now also lights up correctly when the whole-session control is what did
+the swapping, not just an individual "Can't do this") and its own ± / swipe
+reps adjustment resets to zero, since an adjustment relative to the old
+exercise's baseline wouldn't mean anything applied to a different one.
 
 **Not currently supported inside the full-screen guided mode** — swapping
 and the whole-session feedback control both live in the checklist view
@@ -712,6 +729,66 @@ managing a list.
   `SessionView`s) — `onStartFocusMode` is an optional prop, so it's simply
   omitted there rather than attempting to guide two simultaneous sessions
   through one full-screen flow, which would need its own design.
+
+## Toast notifications (`context/ToastContext.tsx`)
+
+Every info/success/warning/error message in the app funnels through one
+shared system rather than each screen inventing its own inline banner: a
+`ToastProvider` (mounted once, at the very top of `layout.tsx`) and a
+`useToast()` hook exposing `.info(message)` / `.success(message)` /
+`.warning(message)` / `.error(message)`. Toasts stack in a fixed
+**top-center** viewport (`z-[200]`, above modals), each with a type-specific
+icon and color, safe-area-aware positioning so they never collide with the
+status bar on an installed PWA, and auto-dismiss (3.5s for info/success,
+5.5–6.5s for warning/error — errors need a beat longer to actually read)
+alongside a manual dismiss button. `ToastProvider` wraps `AuthProvider` in
+the layout specifically so `AuthContext` itself can surface a toast on a
+failed sign-in, not just components further down the tree.
+
+**What's already wired onto it**, replacing what used to be one-off inline
+banners or — in a few cases — silent failures with no feedback at all:
+- `PingsListener.tsx` — friend pings, which used to render their own
+  bespoke fixed top banner, now go through the same toast system as
+  everything else.
+- `SessionView.tsx` — the "no easier exercise found" message when a
+  "Can't do this" swap has nowhere left to go.
+- `FriendsPanel.tsx` — add-friend success/error, and a "Copied!"
+  confirmation on the friend-code copy button that previously gave no
+  feedback at all.
+- `pair/page.tsx` — join-pairing errors (bad code, code not found, joining
+  your own code).
+- `onboarding/page.tsx` and `DeclareSkillModal.tsx` — both had a
+  `saveProfile` call with **no error handling whatsoever**; a failed save
+  used to leave the Save button stuck with zero indication anything went
+  wrong. Both now show an error toast and reset cleanly.
+- `AuthContext.tsx` — sign-in/sign-out failures (a blocked popup or network
+  failure used to fail completely silently); a merely-cancelled popup is
+  deliberately *not* toasted, since closing a sign-in popup isn't an error.
+- `ReminderSettings.tsx` — a toast on notification-permission denial (in
+  addition to, not instead of, the persistent inline explanation next to
+  the disabled toggle — see the distinction below) and a confirmation when
+  the test-reminder button is pressed.
+
+**What's deliberately still inline, not toasted, and why:** a toast is for
+something that just *happened* — a transient event. Anything that's
+ongoing *state* the person might come back and look at later stays where
+it is: `ReminderSettings`' explanation of *why* the toggle is currently
+disabled, the wheel's "+N XP banked!" result line that stays visible
+alongside the completed exercise, `ExerciseTipButton`'s "AI tips aren't
+configured" message tied to that specific button. Converting persistent
+state into a toast would just make it disappear before it's answered the
+question it exists to answer.
+
+**Not migrated, on purpose:** a couple of existing `.catch(() => {})`
+blocks — `sessionComplete.ts`'s public-profile sync after finishing a
+session, `AuthContext.tsx`'s friend-code backfill on load, `PWARegister`'s
+service worker registration — are explicitly best-effort background
+operations already commented as such in the code; surfacing a toast for
+"your public profile sync silently failed" would be more alarming than
+useful for something the user never directly triggered and that degrades
+gracefully on its own. This was a deliberate line, not an oversight: not
+every caught error deserves a toast, only ones tied to something the
+person actually just did.
 
 ## Celebration animations
 
@@ -980,13 +1057,28 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   TypeScript (the field is a plain string), so re-run a check like the ones
   used elsewhere in this codebase against `STAGE_ORDER` if you add
   questions.
-- The exercise-swap reverse index (`src/lib/exerciseLookup.ts`) is built
-  once, lazily, on first use, and cached at module scope for the rest of
-  the session — rebuilding it (e.g. after a hot reload picks up new
+- The exercise-hierarchy reverse index (`src/lib/exerciseHierarchy.ts`) is
+  built once, lazily, on first use, and cached at module scope for the rest
+  of the session — rebuilding it (e.g. after a hot reload picks up new
   exercise entries) means reloading the page. If you add a new stage-table
   exercise, it's picked up automatically next time the index builds; no
-  separate registration step. `SessionView`'s three pieces of local overlay
-  state — `individualDelta`, `sessionDelta`, and `overrides` — are all kept
-  separate from the `session` prop itself rather than mutating it, the same
-  pattern the existing `done`/`openTimers` state already used; the actual
-  training-generator output is never touched.
+  separate registration step. To add a 51st skill's hierarchy, add it to
+  `CORE_SKILLS`/`ADVANCED_SKILLS` there and it flattens automatically. To
+  extend the hand-ordered Pull Strength / Push Strength hierarchies, edit
+  `pullStrengthHierarchy`/`pushStrengthHierarchy` directly — unlike the
+  skill hierarchies, these aren't derived from a stage table, so ordering
+  is by hand and worth double-checking stays easy-to-hard when you touch
+  it. `SessionView`'s three pieces of local overlay state —
+  `individualDelta`, `sessionLevel`, and `individualOverrides` — are all
+  kept separate from the `session` prop itself rather than mutating it, the
+  same pattern the existing `done`/`openTimers` state already used; the
+  actual training-generator output is never touched.
+- To show a toast from anywhere, `const toast = useToast()` then
+  `toast.error("...")` (or `.info`/`.success`/`.warning`) — no prop
+  drilling, since `ToastProvider` sits at the very top of `layout.tsx`. Per
+  the durations in `ToastContext.tsx`, keep messages short enough to read
+  in 3-4 seconds for info/success, since that's how long they're on screen.
+  Anything genuinely fire-and-forget in the background (a best-effort sync
+  the user didn't directly trigger) probably shouldn't be a toast at all —
+  see the "deliberately still inline" and "not migrated, on purpose"
+  sections above for where that line was actually drawn in this codebase.

@@ -8,6 +8,7 @@ import { saveProfile } from "@/lib/store";
 import { effectiveLevel } from "@/lib/levelPath";
 import { UserDoc, SkillProfile, StagedSkillKey, SkillMastery } from "@/lib/types";
 import { Celebration } from "@/lib/sessionComplete";
+import { useToast } from "@/context/ToastContext";
 
 export default function DeclareSkillModal({
   open,
@@ -20,6 +21,7 @@ export default function DeclareSkillModal({
   userDoc: UserDoc;
   onSaved: () => Promise<void>;
 }) {
+  const toast = useToast();
   const [skills, setSkills] = useState<SkillProfile>(userDoc.skills);
   const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(userDoc.skillMastery);
   const [saving, setSaving] = useState(false);
@@ -38,7 +40,13 @@ export default function DeclareSkillModal({
   const save = async () => {
     setSaving(true);
     const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
-    await saveProfile(userDoc.uid, userDoc.body, skills, userDoc.equipment, userDoc.goalTracks, mastery);
+    try {
+      await saveProfile(userDoc.uid, userDoc.body, skills, userDoc.equipment, userDoc.goalTracks, mastery);
+    } catch {
+      toast.error("Couldn't save — check your connection and try again.");
+      setSaving(false);
+      return;
+    }
     await onSaved();
     setSaving(false);
     const newLevel = effectiveLevel(userDoc.xp, skills, mastery);
@@ -49,6 +57,7 @@ export default function DeclareSkillModal({
         close();
       }, 2600);
     } else {
+      toast.success("Saved!");
       close();
     }
   };

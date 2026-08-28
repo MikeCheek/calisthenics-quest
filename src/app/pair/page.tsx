@@ -13,6 +13,7 @@ import { createPairing, joinPairing, sendPing, PairingDoc } from "@/lib/store";
 import { generatePairedSession } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { Friend, DEFAULT_EQUIPMENT } from "@/lib/types";
+import { useToast } from "@/context/ToastContext";
 import { Copy, Users } from "lucide-react";
 
 type Mode = "choose" | "create" | "join";
@@ -20,11 +21,11 @@ type Mode = "choose" | "create" | "join";
 export default function PairPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const router = useRouter();
+  const toast = useToast();
   const [mode, setMode] = useState<Mode>("choose");
   const [code, setCode] = useState("");
   const [joinInput, setJoinInput] = useState("");
   const [pairing, setPairing] = useState<PairingDoc | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [invitedName, setInvitedName] = useState<string | null>(null);
@@ -79,19 +80,18 @@ export default function PairPage() {
   };
 
   const handleJoin = async () => {
-    setError(null);
     const c = joinInput.trim().toUpperCase();
     if (c.length !== 6) {
-      setError("Enter the 6-character code your friend shared.");
+      toast.error("Enter the 6-character code your friend shared.");
       return;
     }
     const existing = await import("@/lib/store").then((m) => m.fetchPairing(c));
     if (!existing) {
-      setError("No pairing found for that code.");
+      toast.error("No pairing found for that code.");
       return;
     }
     if (existing.hostUid === userDoc.uid) {
-      setError("That's your own code — share it with your friend instead.");
+      toast.error("That's your own code — share it with your friend instead.");
       return;
     }
     await joinPairing(c, userDoc.uid, userDoc.displayName, userDoc.body, userDoc.skills);
@@ -124,7 +124,6 @@ export default function PairPage() {
     setPairing(null);
     setInvitedName(null);
     setCompleted(false);
-    setError(null);
   };
 
   return (
@@ -174,7 +173,6 @@ export default function PairPage() {
               maxLength={6}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 stat-mono text-xl tracking-widest text-center"
             />
-            {error && <div className="text-xs text-orange-400">{error}</div>}
             <button
               onClick={handleJoin}
               className="w-full py-2.5 rounded-lg heading tracking-wide text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
