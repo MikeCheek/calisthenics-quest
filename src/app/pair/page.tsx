@@ -12,7 +12,7 @@ import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { createPairing, joinPairing, sendPing, PairingDoc } from "@/lib/store";
 import { generatePairedSession } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
-import { Friend } from "@/lib/types";
+import { Friend, DEFAULT_EQUIPMENT } from "@/lib/types";
 import { Copy, Users } from "lucide-react";
 
 type Mode = "choose" | "create" | "join";
@@ -224,8 +224,8 @@ export default function PairPage() {
               {isHost ? "your" : `${pairing?.hostName ?? "the host"}'s`} spot.
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
-              <SessionView session={mySession} onComplete={handleComplete} completed={completed} />
-              <SessionView session={theirSession} />
+              <SessionView session={mySession} equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT} onComplete={handleComplete} completed={completed} />
+              <SessionView session={theirSession} equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT} />
             </div>
           </div>
         )}

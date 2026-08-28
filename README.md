@@ -14,8 +14,10 @@ mapping every skill across your level with its own calisthenics-flavored
 chapter titles — unified with a single XP/level number via a 1-5 mastery
 rating per skill, so a skill you've truly mastered raises your level
 immediately while one you've merely attempted stays honest without being
-blocked outright — live easier/harder adjustments (buttons or a press-and-drag
-swipe gesture), a full-screen guided training mode that steps through a
+blocked outright — live easier/harder adjustments (buttons, a press-and-drag
+swipe gesture, or whole-session feedback that composes with both) with a
+"swap for something easier" option on any exercise, a full-screen guided
+training mode that steps through a
 session hands-free, celebration animations, streaks that freeze
 through rest days instead of breaking, weekly missions, skill/XP charts, a
 redesigned dashboard, a pomodoro-style focus timer, day/week/month plan
@@ -634,6 +636,49 @@ or vertical (a scroll — releases control back to the browser immediately),
 so it coexists with normal vertical scrolling through a long exercise list
 rather than fighting it.
 
+**Whole-session feedback, composed with the same per-exercise adjustment.**
+Above the exercise list, a "How does today's session feel overall?"
+control ("Too advanced" / "Feels right" / "Too easy") applies a session-wide
+delta to every exercise at once — through the exact same `adjustDetail`
+function as the ± buttons and the swipe gesture, not a separate mechanism.
+This is deliberately *additive*, not a hard reset: the displayed detail for
+any exercise is `adjustDetail(baseDetail, sessionDelta +
+individualDelta[exercise])`, so choosing "Too easy" bumps everything up by
+one set, and you can still swipe or tap ± on any single exercise on top of
+that for a further nudge — the two levers compose rather than fight each
+other (`SessionView.tsx`).
+
+**"Can't do this" — swap for something easier, on the exercise itself.**
+Every exercise also has a "Can't do this" button. Unlike the ± adjustment
+(which just changes the set count of the *same* exercise), this replaces
+the exercise entirely with an easier one that still trains the same skill —
+stepping down one stage at a time until it finds a genuinely different
+option (`findEasierExercise` in `src/lib/exerciseLookup.ts`). This works
+without touching the session generator at all: a reverse index is built
+once from the exact same stage tables everything else in the app already
+uses, mapping every exercise name back to the `(skill, stage)` it came
+from, so "swap for easier" is really "look up where this came from, then
+pull from the next stage down." **This is a best-effort match, not a
+guarantee** — a small number of generic drill names (like "Scapula pulls")
+legitimately appear in more than one skill's table, and the reverse index
+just takes the first match it finds; it's built for the common case of
+gracefully sidestepping something you genuinely can't do yet, not for
+perfect precision. If no easier variant is found (already at the easiest
+tracked stage, or the exercise isn't a stage-tracked skill exercise at all
+— this includes the rep-count-based Pull Strength and Push Strength
+tracks, which aren't stage-tracked to begin with), a brief inline message
+says so rather than silently failing. A swapped exercise is tagged
+"(swapped, easier)" and its own ± / swipe adjustment resets to zero, since
+an adjustment relative to the old exercise's baseline wouldn't mean
+anything applied to a different one.
+
+**Not currently supported inside the full-screen guided mode** — swapping
+and the whole-session feedback control both live in the checklist view
+(`SessionView`/`ExerciseRow`); `FocusTrainingMode` steps through the same
+underlying session data but doesn't (yet) expose either control. Adjust
+before starting focus mode, or exit back to the checklist to make a change
+mid-session.
+
 ## Full-screen guided training (`FocusTrainingMode.tsx`)
 
 "Start Training" at the top of a session (`SessionView.tsx`) launches a
@@ -935,3 +980,13 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   TypeScript (the field is a plain string), so re-run a check like the ones
   used elsewhere in this codebase against `STAGE_ORDER` if you add
   questions.
+- The exercise-swap reverse index (`src/lib/exerciseLookup.ts`) is built
+  once, lazily, on first use, and cached at module scope for the rest of
+  the session — rebuilding it (e.g. after a hot reload picks up new
+  exercise entries) means reloading the page. If you add a new stage-table
+  exercise, it's picked up automatically next time the index builds; no
+  separate registration step. `SessionView`'s three pieces of local overlay
+  state — `individualDelta`, `sessionDelta`, and `overrides` — are all kept
+  separate from the `session` prop itself rather than mutating it, the same
+  pattern the existing `done`/`openTimers` state already used; the actual
+  training-generator output is never touched.

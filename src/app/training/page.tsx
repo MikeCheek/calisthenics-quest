@@ -115,6 +115,7 @@ export default function TrainingPage() {
 
         <SessionView
           session={session}
+          equipment={userDoc.equipment}
           onComplete={handleComplete}
           completed={completed}
           onStartFocusMode={() => setFocusModeOpen(true)}

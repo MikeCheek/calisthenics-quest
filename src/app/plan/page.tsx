@@ -234,7 +234,7 @@ export default function PlanPage() {
                     ) : (
                       <div className="text-xs text-zinc-500 mb-2">Preview — come back on this day to log it.</div>
                     )}
-                    <SessionView session={d.session} />
+                    <SessionView session={d.session} equipment={userDoc.equipment} />
                   </div>
                 )}
               </div>

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
-import { Check, Clock, Play, Minus, Plus, RotateCcw } from "lucide-react";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle } from "lucide-react";
 
 const SWIPE_THRESHOLD = 55;
 const SWIPE_MAX = 90;
@@ -13,6 +13,7 @@ export default function ExerciseRow({
   exercise,
   displayedDetail,
   isAdjusted,
+  isSwapped,
   isDone,
   timerOpen,
   trackLabel,
@@ -20,10 +21,12 @@ export default function ExerciseRow({
   onToggleTimer,
   onBump,
   onResetAdjust,
+  onCantDo,
 }: {
   exercise: Exercise;
   displayedDetail: string;
   isAdjusted: boolean;
+  isSwapped?: boolean;
   isDone: boolean;
   timerOpen: boolean;
   trackLabel: string;
@@ -31,6 +34,7 @@ export default function ExerciseRow({
   onToggleTimer: () => void;
   onBump: (delta: number) => void;
   onResetAdjust: () => void;
+  onCantDo?: () => void;
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -121,6 +125,7 @@ export default function ExerciseRow({
             <div className="flex items-start justify-between gap-2">
               <div className={`text-sm font-medium ${isDone ? "text-zinc-400 line-through" : "text-zinc-100"}`}>
                 {exercise.name}
+                {isSwapped && <span className="text-xs text-orange-400 font-normal"> (swapped, easier)</span>}
               </div>
               {exercise.restSeconds > 0 && (
                 <div className="text-xs text-zinc-500 flex items-center gap-1 shrink-0">
@@ -142,6 +147,14 @@ export default function ExerciseRow({
                 <Play size={11} /> {timerOpen ? "Hide timer" : "Start"}
               </button>
               <ExerciseTipButton exerciseName={exercise.name} exerciseDetail={exercise.detail} trackLabel={trackLabel} />
+              {onCantDo && (
+                <button
+                  onClick={onCantDo}
+                  className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-400 hover:border-orange-500 hover:text-orange-400 flex items-center gap-1"
+                >
+                  <ArrowDownCircle size={11} /> Can&apos;t do this
+                </button>
+              )}
               <div className="flex items-center gap-1 ml-auto">
                 <button
                   onClick={() => onBump(-1)}
@@ -169,7 +182,7 @@ export default function ExerciseRow({
               </div>
             </div>
 
-            {timerOpen && <ExerciseTimer exercise={displayedExercise} />}
+            {timerOpen && <ExerciseTimer key={exercise.name} exercise={displayedExercise} />}
           </div>
         </div>
       </div>
