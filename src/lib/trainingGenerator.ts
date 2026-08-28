@@ -171,7 +171,7 @@ function buildSets(
   const warmup: TrainingSet = {
     track: "warmup",
     title: "Warm-Up",
-    exercises: pickWarmup(dateISO),
+    exercises: pickWarmup(dateISO, focus),
   };
 
   const primary: TrainingSet = {

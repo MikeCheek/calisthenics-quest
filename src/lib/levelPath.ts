@@ -265,5 +265,24 @@ export function effectiveXpProgress(
   skills: SkillProfile,
   mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
 ) {
-  return rawXpProgress(effectiveXp(rawXp, skills, mastery));
+  const floor = skillFloorLevel(skills, mastery);
+  const floorXp = xpForLevel(floor);
+
+  // When self-reported skills already justify a level higher than earned
+  // XP does, `effectiveXp` (max of the two) means the level number is
+  // correct — but computing the progress bar from that same max'd value
+  // freezes it at a permanent 0%, since raw XP earned from sessions has no
+  // effect at all until it eventually exceeds the floor (which, for a
+  // high floor, could take hundreds of sessions). Every bit of earned XP
+  // should visibly move the bar, so below the floor this shows honest
+  // progress toward "catching up" using raw XP directly, rather than
+  // progress toward the next level using the floor-dominated value.
+  if (rawXp < floorXp) {
+    const level = levelFromXp(floorXp);
+    const pct = floorXp > 0 ? Math.min(100, Math.round((rawXp / floorXp) * 100)) : 100;
+    return { level, into: rawXp, span: floorXp, pct, catchingUp: true };
+  }
+
+  const { level, into, span, pct } = rawXpProgress(rawXp);
+  return { level, into, span, pct, catchingUp: false };
 }

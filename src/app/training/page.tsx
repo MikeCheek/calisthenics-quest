@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useTrainingSession } from "@/context/TrainingSessionContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
-import FocusTrainingMode from "@/components/FocusTrainingMode";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { SkillTrack } from "@/lib/types";
@@ -17,10 +17,10 @@ import { Dices } from "lucide-react";
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const router = useRouter();
+  const { startSession, expand, session: globalSession, completed: globalCompleted } = useTrainingSession();
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
-  const [focusModeOpen, setFocusModeOpen] = useState(false);
   const [xpGained, setXpGained] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
 
@@ -49,11 +49,6 @@ export default function TrainingPage() {
     setCompleted(true);
     setCelebration(c);
     await refreshUserDoc();
-  };
-
-  const handleFocusModeFinish = async () => {
-    setFocusModeOpen(false);
-    if (!completed) await handleComplete();
   };
 
   return (
@@ -107,6 +102,18 @@ export default function TrainingPage() {
 
         {showTimer && <PomodoroTimer />}
 
+        {globalSession && !globalCompleted && (
+          <div className="panel p-3 border-orange-500/40 flex items-center justify-between gap-3">
+            <div className="text-sm text-zinc-100">A training session is already in progress.</div>
+            <button
+              onClick={expand}
+              className="text-xs px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 shrink-0"
+            >
+              Resume it
+            </button>
+          </div>
+        )}
+
         {completed && xpGained !== null && (
           <div className="panel p-3 border-emerald-600 text-emerald-400 text-sm">
             Session logged — you earned +{xpGained} XP.
@@ -117,8 +124,8 @@ export default function TrainingPage() {
           session={session}
           equipment={userDoc.equipment}
           onComplete={handleComplete}
-          completed={completed}
-          onStartFocusMode={() => setFocusModeOpen(true)}
+          completed={completed || globalCompleted}
+          onStartFocusMode={() => startSession(session)}
         />
 
         <Link
@@ -128,10 +135,6 @@ export default function TrainingPage() {
           <Dices size={16} className="text-orange-400" /> Spin the bonus wheel
         </Link>
       </main>
-
-      {focusModeOpen && (
-        <FocusTrainingMode session={session} onExit={() => setFocusModeOpen(false)} onFinish={handleFocusModeFinish} />
-      )}
     </>
   );
 }

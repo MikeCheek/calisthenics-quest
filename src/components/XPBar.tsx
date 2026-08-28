@@ -40,7 +40,9 @@ export default function XPBar({
         />
       </div>
       <div className="text-xs text-zinc-400 mt-1 stat-mono">
-        {p.into} / {p.span} XP to level {p.level + 1}
+        {p.catchingUp
+          ? `${p.into} / ${p.span} XP — catching up to your skill level`
+          : `${p.into} / ${p.span} XP to level ${p.level + 1}`}
       </div>
       <div className="text-xs text-orange-400 mt-2">View trophy road →</div>
     </Link>

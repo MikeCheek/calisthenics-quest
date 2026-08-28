@@ -132,6 +132,12 @@ function hierarchyFor(group: HierarchyGroup, equipment: TrainingEquipment): Exer
   return skillHierarchy(group, equipment);
 }
 
+// Warm-up and finisher exercises are generic conditioning, not part of any
+// skill's difficulty hierarchy — shared by every difficulty control
+// (whole-session feedback, "can't do this," "I'm tired") so none of them
+// touch these two blocks. Matched against `TrainingSet.title`.
+export const HIERARCHY_EXEMPT_SETS = new Set(["Warm-Up", "Final Hits"]);
+
 interface ExerciseLocation {
   group: HierarchyGroup;
 }

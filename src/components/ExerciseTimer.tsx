@@ -13,9 +13,14 @@ const COUNTDOWN_FROM = 3;
 export default function ExerciseTimer({
   exercise,
   onComplete,
+  externallyPaused,
 }: {
   exercise: Exercise;
   onComplete?: () => void;
+  // Forces the timer to pause regardless of its own play/resume state —
+  // used by the "Pause Training" control in the full-screen guided mode,
+  // which needs to stop a running countdown from outside this component.
+  externallyPaused?: boolean;
 }) {
   const timing = parseTiming(exercise.detail);
   const [set, setSet] = useState(1);
@@ -70,7 +75,7 @@ export default function ExerciseTimer({
 
   // countdown-before-start ticker
   useEffect(() => {
-    if (phase !== "countdown") return;
+    if (phase !== "countdown" || externallyPaused) return;
     if (countdownValue <= 0) return;
     const t = setTimeout(() => {
       const next = countdownValue - 1;
@@ -83,11 +88,11 @@ export default function ExerciseTimer({
     }, 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, countdownValue]);
+  }, [phase, countdownValue, externallyPaused]);
 
   // work/rest countdown loop
   useEffect(() => {
-    if (!running) return;
+    if (!running || externallyPaused) return;
     if (phase !== "work" && phase !== "rest") return;
     if (secondsLeft === null) return;
 
@@ -104,9 +109,10 @@ export default function ExerciseTimer({
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, phase]);
+  }, [running, phase, externallyPaused]);
 
   const start = () => {
+    if (externallyPaused) return;
     if (phase === "idle") {
       beginCountdown();
     } else {
@@ -168,7 +174,8 @@ export default function ExerciseTimer({
       ) : phase === "idle" ? (
         <button
           onClick={start}
-          className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium flex items-center justify-center gap-2"
+          disabled={externallyPaused}
+          className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Play size={16} /> {timing.isTimed ? "Start timer" : `Start set ${set}`}
         </button>
@@ -192,22 +199,24 @@ export default function ExerciseTimer({
       ) : (
         <div className="text-center">
           <div className={`text-xs uppercase tracking-wide mb-1 ${phase === "work" ? "text-orange-400" : "text-emerald-400"}`}>
-            {phase === "work" ? "Go" : "Rest"}
+            {externallyPaused ? "Paused" : phase === "work" ? "Go" : "Rest"}
           </div>
           <div className="stat-mono text-4xl text-zinc-100 mb-2">
             {mm}:{ss}
           </div>
           <div className="flex items-center justify-center gap-2">
             <button
-              onClick={() => setRunning((r) => !r)}
-              className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-400 text-zinc-950 flex items-center justify-center"
+              onClick={() => !externallyPaused && setRunning((r) => !r)}
+              disabled={externallyPaused}
+              className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-400 text-zinc-950 flex items-center justify-center disabled:opacity-50"
               aria-label={running ? "Pause" : "Resume"}
             >
-              {running ? <Pause size={16} /> : <Play size={16} />}
+              {running && !externallyPaused ? <Pause size={16} /> : <Play size={16} />}
             </button>
             <button
               onClick={skip}
-              className="w-10 h-10 rounded-full border border-zinc-600 text-zinc-300 flex items-center justify-center"
+              disabled={externallyPaused}
+              className="w-10 h-10 rounded-full border border-zinc-600 text-zinc-300 flex items-center justify-center disabled:opacity-50"
               aria-label="Skip"
             >
               <SkipForward size={16} />

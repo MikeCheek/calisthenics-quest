@@ -167,9 +167,10 @@ real (non-dev) environment, you can install it as an app from the browser's
   daily focus across 10 tracks — Front Lever, Back Lever, Planche, Muscle-Up,
   Handstand, Human Flag, Pull Strength, Push Strength, Legs, Core — pulled
   from progression tables keyed to your exact stage. Every session has four
-  parts: a **Warm-Up** (generic mobility/activation, rotates daily), the
-  **Main Focus** (the day's skill work — the tables are already ordered from
-  foundational/propedeutic drills up through the harder work for that
+  parts: a **Warm-Up** (targeted mobility for whatever's actually being
+  trained that day, not a generic pool — see "Focus-targeted warm-ups"
+  below), the **Main Focus** (the day's skill work — the tables are already
+  ordered from foundational/propedeutic drills up through the harder work for that
   stage), an **Accessory** block (a complementary strength track), and
   **Final Hits** (a short conditioning finisher). Only focuses your
   equipment can actually support show up (front lever/back lever/muscle-up/
@@ -442,6 +443,35 @@ celebration/friend-profile sync) goes through
 parameter — rather than the raw XP curve, so this is consistent everywhere,
 not just on the dashboard.
 
+**A real bug this floor design created, and the fix.** The floor is
+`max(rawXp, xpForLevel(skillFloorLevel))` — correct for the level *number*,
+since it should never sit below what your skills already justify. But the
+dashboard's XP progress bar used to compute its fill from that same
+max'd value, which meant: for anyone whose skill floor sat meaningfully
+above their raw earned XP (a fresh account that self-reported an advanced
+skill during onboarding, for instance), completing training sessions
+produced **zero visible movement on the bar** — the floor's XP-equivalent
+so thoroughly dominated the max that raw XP gains from actual training
+didn't register at all, sometimes for hundreds of sessions before raw XP
+could organically exceed the floor. I confirmed the exact magnitude before
+fixing it: a floor of level 61 sits at 144,000 XP-equivalent; at ~20-50 XP
+per session, someone in that position would need literally thousands of
+sessions before the bar moved by even one visible percent.
+
+The fix (`effectiveXpProgress` in `src/lib/levelPath.ts`) doesn't touch the
+level number at all — only how the *bar* is computed. Below the floor, it
+shows genuine progress toward "catching up" using raw XP directly
+(`into: rawXp, span: floorXp`), so every session visibly moves the number
+shown, rather than progress toward the next level using the floor-dominated
+value. `XPBar.tsx` labels this state distinctly ("catching up to your
+skill level" instead of "XP to level N+1") so it reads as an honest,
+different kind of progress rather than a mislabeled one. Once raw XP
+actually exceeds the floor, this collapses back to normal next-level
+progress with no visible seam. Accounts without a meaningfully elevated
+floor (the common case) see no behavior change at all — verified this
+directly, level-1-floor progress numbers are bit-for-bit identical before
+and after this fix.
+
 **What's actually enforced now, versus what remains advisory:** the level
 *floor* is a real, load-bearing gate — you cannot claim high mastery on a
 skill without the level to back it, full stop. What's still *not* gated is
@@ -696,6 +726,41 @@ underlying session data but doesn't (yet) expose either control. Adjust
 before starting focus mode, or exit back to the checklist to make a change
 mid-session.
 
+## Focus-targeted warm-ups (`warmupFinisher.ts`)
+
+The Warm-Up block isn't drawn from one generic mobility pool regardless of
+what's being trained — it's picked to actually open up whatever's relevant
+to *today's* focus. Every drill in `MOBILITY_POOL` is tagged with the
+area(s) it targets (wrists, shoulders, scapula, thoracic spine, chest,
+hips, hamstrings, ankles, grip, core), and each of the 10 focus tracks has
+its own short list of priority areas (`FOCUS_AREAS`) — front lever pulls in
+scapula/shoulders/hamstrings/wrists, planche and handstand lean hard on
+wrists, leg day gets hips/ankles/hamstrings, and so on.
+
+`pickWarmup` picks one drill per priority area in turn, matched against
+each drill's *primary* tag (its first-listed area) — not just "highest
+total overlap score" ranked across the whole pool. That distinction matters:
+an earlier version of this scored every drill by how many tags it shared
+with the focus, which let multi-tagged generalist drills (a shoulder
+stretch that also happens to touch wrists) consistently outscore and crowd
+out genuine specialists (dedicated wrist-circle drills) — so a
+planche/handstand warm-up could go through dozens of days without ever
+surfacing real wrist prep, despite wrists being the single most important
+area for either skill. Picking by primary-area-per-priority-slot instead
+guarantees actual coverage of each relevant area. I verified this directly
+before shipping it: all 10 focus tracks produce genuinely differentiated,
+anatomically-relevant selections, and planche/handstand specifically now
+include a dedicated wrist drill in every case rather than none. A
+date+focus-seeded pick among tied candidates still varies which specific
+drill covers a given area from session to session.
+
+**Warm-Up (and Final Hits) are the one place level/difficulty controls
+don't apply.** Neither the whole-session "too advanced/too easy" feedback
+nor the per-exercise "Can't do this" swap touches these two blocks — see
+"Whole-session feedback" above — because they're generic conditioning
+everyone can do regardless of level, not part of any skill's difficulty
+hierarchy to begin with.
+
 ## Full-screen guided training (`FocusTrainingMode.tsx`)
 
 "Start Training" at the top of a session (`SessionView.tsx`) launches a
@@ -713,13 +778,40 @@ managing a list.
   elsewhere in the app (`ExerciseTimer.tsx` — countdown, hands-free
   auto-continue through sets, distinct go/rest/complete sounds; see the
   "Per-exercise timer" section above).
-- **Progresses automatically**: finishing an exercise's timer
-  (`onComplete`) marks it done on the stepper and advances straight to the
-  next one — no tap needed between exercises for timed holds. Manual
-  **Back** / **Next** buttons are also always available, for skipping ahead
-  or reviewing a previous exercise; **Next** marks the current exercise
-  done exactly like its timer finishing would, since you're the judge of
-  "done enough," not the timer.
+- **Progresses automatically, with a rest in between**: finishing an
+  exercise's timer (`onComplete`) marks it done on the stepper and — unless
+  it was the last exercise — drops into a dedicated rest countdown before
+  the next one starts, rather than jumping straight there. The rest
+  duration reuses that exercise's own `restSeconds` (the same number its
+  set-to-set rest already used), clamped to a sensible 20–90s window so a
+  warm-up drill's short set-rest doesn't produce an unrealistically brief
+  transition and a heavy hold's long rest doesn't stall the session —
+  shown full-screen with a countdown, what's coming up next, and a "Skip
+  rest" button for whenever the prescribed rest isn't needed. It respects
+  Pause the same way the exercise timer does. Manual **Back** / **Next**
+  buttons are also always available, for skipping ahead or reviewing a
+  previous exercise; **Next** marks the current exercise done — and still
+  triggers the same rest before the next one — exactly like its timer
+  finishing would, since you're the judge of "done enough," not the timer.
+  Tapping **Back** during that rest cancels the transition and returns you
+  to the exercise you just finished, rather than skipping past it to the
+  one before.
+- **"I'm tired"** eases the current exercise and everything left in the
+  session, mid-training, without stopping to think about it. It's the same
+  exercise-hierarchy stepping the "Can't do this" swap and the checklist's
+  whole-session feedback use — `findEasierExercise` from
+  `src/lib/exerciseHierarchy.ts` — just applied in bulk from wherever you
+  currently are through the end, and, like the whole-session control,
+  Warm-Up and Final Hits are exempt (`HIERARCHY_EXEMPT_SETS`, now shared
+  across all three difficulty controls from one place rather than
+  duplicated). Swapped exercises are tagged inline ("Swapped in — something
+  gentler") so it's clear what changed; a toast confirms how many exercises
+  actually eased, or says plainly if everything left was already at its
+  easiest — tapping it a second time tries to step down another rung from
+  wherever things currently stand, for "I'm *really* tired." The
+  live "time left" estimate in the header updates immediately to reflect
+  whatever's actually left after easing, not the original harder plan.
+
 - Finishing the last exercise (by timer or by tapping Next) shows a
   completion screen with **Finish & log session**, which reuses the exact
   same `completeSession` XP/streak-awarding flow as the classic checklist's
@@ -729,6 +821,74 @@ managing a list.
   `SessionView`s) — `onStartFocusMode` is an optional prop, so it's simply
   omitted there rather than attempting to guide two simultaneous sessions
   through one full-screen flow, which would need its own design.
+
+**The session lives above the page, not inside it, so it survives
+navigation.** `TrainingSessionContext.tsx` — mounted once at the very top
+of `layout.tsx`, alongside Auth and Toast — owns the active session,
+whether it's expanded (full-screen) or minimized (bubble), whether it's
+paused, and the XP-awarding completion flow itself. `FocusTrainingMode`
+no longer takes `session`/`onExit`/`onFinish` props; it reads everything
+from `useTrainingSession()` and is rendered **unconditionally** once,
+globally (`TrainingSessionOverlays.tsx`) — tapping the header's minimize
+chevron doesn't unmount it, it just toggles a `hidden` class, which is the
+whole trick: React state (which exercise you're on, what's been completed,
+even the per-exercise timer's own internal countdown) survives being
+hidden, because hiding a DOM node with CSS never unmounts the React tree
+underneath it. Navigating anywhere else in the app — Profile, Skills,
+wherever — genuinely doesn't touch any of this.
+
+**Pause vs. minimize are two different, complementary things — deliberately.**
+Minimizing (the bubble) does **not** stop the clock: the current exercise's
+timer keeps running in the background exactly as it would if the screen
+were still open, sounds included, since a JS interval doesn't care whether
+its DOM is visible. That's intentional — it's how a real background workout
+timer should behave. **Pause** is the explicit control for actually
+freezing it: `ExerciseTimer` takes an `externallyPaused` prop that halts its
+countdown/interval and disables its own play/resume button without
+resetting any of its state, so resuming picks up from the exact second it
+left off. The pause toggle lives in the `FocusTrainingMode` header and,
+identically, right on the bubble itself — pausing from either place is the
+same context state.
+
+**The draggable bubble** (`TrainingBubble.tsx`) appears whenever a session
+is active but minimized. It shows the current exercise name, a pulse icon
+when running or a pause icon when paused, and can be dragged anywhere on
+screen (raw pointer events, clamped to the viewport) or tapped to re-expand
+— a small movement threshold distinguishes an intentional drag from a tap,
+the same technique used for the exercise-row swipe gesture elsewhere in the
+app. It also carries its own inline pause/resume button and an "end
+session" button (with a native confirm, since discarding loses unsaved
+progress and isn't reversible) so you never have to reopen the full screen
+just to pause or bail out.
+
+## Estimated session time (`estimateSessionMinutes`, `exerciseTiming.ts`)
+
+Every session preview — the checklist header (`SessionView.tsx`, next to
+"Est. reward"), the `/plan` page's expanded day cards (same component, so
+this comes for free), and a live "time left" readout in the guided
+full-screen mode's header — now shows a rough total duration in minutes,
+not just the XP reward.
+
+It's built on the same `parseTiming` every per-exercise timer already
+uses, not a separate guess: for a timed hold, it's sets × target seconds +
+set-to-set rest; for rep-based work (self-paced, so there's no countdown to
+sum) it estimates from whatever rep count the exercise's own detail text
+mentions (a range like "8-10 reps" averages to 9) at roughly 3.5 seconds
+per controlled rep, falling back to a reasonable default only if nothing
+parses. A between-exercise rest is added on top of that, using the *exact
+same* clamped constants (`MIN_BETWEEN_EXERCISE_REST` / `MAX_BETWEEN_EXERCISE_REST`,
+20–90s) that the guided mode's real rest countdown uses — moved into
+`exerciseTiming.ts` specifically so the estimate and what actually happens
+during training can't drift apart into two different numbers. I ran it
+against several real generated sessions before wiring it in: full 9-10
+exercise sessions land around 40-50 minutes, matching what a real
+skill-focused calisthenics session actually takes.
+
+The guided mode's header shows **time remaining**, not the fixed total —
+`estimateExercisesMinutes` (the flat-array core both this and
+`estimateSessionMinutes` are built on) is recomputed from wherever you
+currently are in the step list, so the number counts down realistically as
+you move through the session rather than staying frozen at the start-of-session estimate.
 
 ## Toast notifications (`context/ToastContext.tsx`)
 
@@ -959,9 +1119,14 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   `src/components/FriendsPanel.tsx` and `src/components/PingsListener.tsx`.
 - To regenerate the app icons, see the inline Python/PIL script used to build
   `public/icons/*.png` (simple bar-and-figure glyph on a rounded dark square).
-- Warm-up/finisher pools and their date-seeded daily picks are in
-  `src/lib/warmupFinisher.ts`. Session structure (warm-up → main → accessory
-  → finisher) is assembled in `buildSets` in `src/lib/trainingGenerator.ts`.
+- Warm-up drills and their area tags live in `MOBILITY_POOL` in
+  `src/lib/warmupFinisher.ts`, matched against each focus track's priority
+  areas in `FOCUS_AREAS`; finisher pools and their date-seeded daily picks
+  are in the same file. Session structure (warm-up → main → accessory →
+  finisher) is assembled in `buildSets` in `src/lib/trainingGenerator.ts`.
+  To add a new mobility drill, give it an `areas` tag list with the most
+  defining area first (that's what primary-area matching uses); to give a
+  focus track a new priority area, add it to its entry in `FOCUS_AREAS`.
 - The per-exercise timer's parsing (set count, timed-vs-rep-based, target
   seconds) and the −/+ adjustment logic are both in
   `src/lib/exerciseTiming.ts` — it's regex-based against the existing
@@ -1072,7 +1237,13 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   `individualDelta`, `sessionLevel`, and `individualOverrides` — are all
   kept separate from the `session` prop itself rather than mutating it, the
   same pattern the existing `done`/`openTimers` state already used; the
-  actual training-generator output is never touched.
+  actual training-generator output is never touched. `FocusTrainingMode`
+  keeps its own equivalent (`overrides: Record<number, Exercise>`, keyed by
+  step index) for exactly the same reason, powering both "I'm tired" and
+  the effective exercise shown at each step. `HIERARCHY_EXEMPT_SETS` (the
+  Warm-Up/Final Hits exemption) lives in `exerciseHierarchy.ts` itself now,
+  not duplicated per-component, so `SessionView` and `FocusTrainingMode`
+  can't drift into disagreeing about which set titles are exempt.
 - To show a toast from anywhere, `const toast = useToast()` then
   `toast.error("...")` (or `.info`/`.success`/`.warning`) — no prop
   drilling, since `ToastProvider` sits at the very top of `layout.tsx`. Per

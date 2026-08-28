@@ -2,16 +2,11 @@
 
 import { useState } from "react";
 import { TrainingSession, TrainingEquipment, Exercise } from "@/lib/types";
-import { adjustDetail } from "@/lib/exerciseTiming";
-import { findEasierExercise, findHarderExercise } from "@/lib/exerciseHierarchy";
+import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
+import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
-import { Play } from "lucide-react";
-
-// Warm-up and finisher exercises are generic conditioning, not part of any
-// skill's difficulty hierarchy — everyone can do those regardless of level,
-// so neither the whole-session feedback nor "can't do this" touches them.
-const HIERARCHY_EXEMPT_SETS = new Set(["Warm-Up", "Final Hits"]);
+import { Play, Clock } from "lucide-react";
 
 type SessionLevel = "easier" | "default" | "harder";
 
@@ -98,6 +93,9 @@ export default function SessionView({
         <div className="text-right">
           <div className="text-xs text-zinc-400">Est. reward</div>
           <div className="stat-mono text-orange-400">+{session.estXp} XP</div>
+          <div className="text-xs text-zinc-500 mt-0.5 flex items-center justify-end gap-1">
+            <Clock size={11} /> ~{estimateSessionMinutes(session)} min
+          </div>
         </div>
       </div>
 

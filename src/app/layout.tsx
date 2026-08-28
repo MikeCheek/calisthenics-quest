@@ -3,9 +3,11 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { TrainingSessionProvider } from "@/context/TrainingSessionContext";
 import PWARegister from "@/components/PWARegister";
 import ReminderScheduler from "@/components/ReminderScheduler";
 import PingsListener from "@/components/PingsListener";
+import TrainingSessionOverlays from "@/components/TrainingSessionOverlays";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -56,9 +58,12 @@ export default function RootLayout({
       <body className="font-sans min-h-screen antialiased" suppressHydrationWarning>
         <ToastProvider>
           <AuthProvider>
-            {children}
-            <ReminderScheduler />
-            <PingsListener />
+            <TrainingSessionProvider>
+              {children}
+              <ReminderScheduler />
+              <PingsListener />
+              <TrainingSessionOverlays />
+            </TrainingSessionProvider>
           </AuthProvider>
         </ToastProvider>
         <PWARegister />
