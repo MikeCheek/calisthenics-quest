@@ -1,5 +1,7 @@
 // Core domain types for BarQuests
 
+export type Locale = "en" | "it";
+
 export type FrontLeverStage =
   | "none" | "tuck" | "advancedTuck" | "oneLeg" | "straddle" | "full";
 
@@ -295,6 +297,7 @@ export interface UserDoc {
   notifications: NotificationPrefs;
   friendCode: string;
   createdAt: string;
+  locale?: Locale;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

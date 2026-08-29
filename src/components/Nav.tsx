@@ -3,22 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { rankTitle } from "@/lib/xp";
 import { effectiveXpProgress } from "@/lib/levelPath";
 import { Home, Dumbbell, Users, User, Layers, LogOut } from "lucide-react";
 
-const TABS = [
-  { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/training", label: "Train", icon: Dumbbell },
-  { href: "/skills", label: "Skills", icon: Layers },
-  { href: "/pair", label: "Pair", icon: Users },
-  { href: "/profile", label: "Profile", icon: User },
-];
-
 export default function Nav() {
   const { userDoc, signOut } = useAuth();
+  const { t } = useLanguage();
   const pathname = usePathname();
   const progress = userDoc ? effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery) : null;
+
+  const TABS = [
+    { href: "/dashboard", label: t("nav", "home"), icon: Home },
+    { href: "/training", label: t("nav", "train"), icon: Dumbbell },
+    { href: "/skills", label: t("nav", "skills"), icon: Layers },
+    { href: "/pair", label: t("nav", "pair"), icon: Users },
+    { href: "/profile", label: t("nav", "profile"), icon: User },
+  ];
 
   return (
     <>
@@ -37,7 +39,7 @@ export default function Nav() {
             <button
               onClick={() => signOut()}
               className="p-1.5 text-zinc-500 hover:text-zinc-200"
-              aria-label="Sign out"
+              aria-label={t("nav", "signOut")}
             >
               <LogOut size={16} />
             </button>

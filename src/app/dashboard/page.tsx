@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
 import XPBar from "@/components/XPBar";
 import MissionList from "@/components/MissionList";
@@ -16,6 +17,7 @@ const ALL_50_SKILLS = SKILL_CATEGORIES.flatMap((c) => c.skills);
 
 export default function DashboardPage() {
   const { user, userDoc, loading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export default function DashboardPage() {
   }, [loading, user, userDoc, router]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <main className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
   }
 
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
@@ -38,9 +40,9 @@ export default function DashboardPage() {
       <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5">
         <div>
           <h1 className="heading text-2xl text-zinc-100">
-            Welcome back, {userDoc.displayName?.split(" ")[0] ?? "Athlete"}
+            {t("dashboard", "welcomeBack", { name: userDoc.displayName?.split(" ")[0] ?? "Athlete" })}
           </h1>
-          <p className="text-zinc-400 text-sm">{userDoc.totalSessionsCompleted} sessions logged</p>
+          <p className="text-zinc-400 text-sm">{t("dashboard", "sessionsLogged", { count: userDoc.totalSessionsCompleted })}</p>
         </div>
 
         {/* Hero: today's session, the primary call to action */}
@@ -52,12 +54,12 @@ export default function DashboardPage() {
             <Dumbbell size={22} className="text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-zinc-500 uppercase tracking-wide">Today&apos;s focus</div>
+            <div className="text-xs text-zinc-500 uppercase tracking-wide">{t("dashboard", "todaysFocus")}</div>
             <div className="heading text-xl text-zinc-100 truncate">{todaysFocus}</div>
-            <div className="text-xs text-zinc-500">Warm-up → skill work → accessory → finisher</div>
+            <div className="text-xs text-zinc-500">{t("dashboard", "sessionFlow")}</div>
           </div>
           <div className="shrink-0 heading text-sm bg-orange-500 text-zinc-950 px-4 py-2.5 rounded-lg">
-            Start
+            {t("dashboard", "start")}
           </div>
         </Link>
 
@@ -67,17 +69,17 @@ export default function DashboardPage() {
             href="/path"
             value={String(userDoc.streak)}
             suffix="🔥"
-            label="day streak"
+            label={t("dashboard", "dayStreak")}
           />
           <StatTile
             href="/skills"
             value={`${skillsStarted}/50`}
-            label="skills started"
+            label={t("dashboard", "skillsStarted")}
           />
           <StatTile
             href="/profile"
             value={String(userDoc.totalSessionsCompleted)}
-            label="sessions"
+            label={t("dashboard", "sessions")}
           />
         </div>
 
@@ -87,14 +89,14 @@ export default function DashboardPage() {
 
         {/* Quick actions grid */}
         <div>
-          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Quick actions</div>
+          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">{t("dashboard", "quickActions")}</div>
           <div className="grid grid-cols-3 gap-3">
-            <QuickAction href="/wheel" icon={Dices} label="Bonus wheel" />
-            <QuickAction href="/plan" icon={CalendarDays} label="Plan ahead" />
-            <QuickAction href="/pair" icon={Users2} label="Pair up" />
-            <QuickAction href="/skills" icon={Layers} label="Skills" />
-            <QuickAction href="/pomodoro" icon={Timer} label="Focus timer" />
-            <QuickAction href="/path" icon={ChevronRight} label="Trophy road" />
+            <QuickAction href="/wheel" icon={Dices} label={t("dashboard", "bonusWheel")} />
+            <QuickAction href="/plan" icon={CalendarDays} label={t("dashboard", "planAhead")} />
+            <QuickAction href="/pair" icon={Users2} label={t("dashboard", "pairUp")} />
+            <QuickAction href="/skills" icon={Layers} label={t("dashboard", "skills")} />
+            <QuickAction href="/pomodoro" icon={Timer} label={t("dashboard", "focusTimer")} />
+            <QuickAction href="/path" icon={ChevronRight} label={t("dashboard", "trophyRoad")} />
           </div>
         </div>
       </main>

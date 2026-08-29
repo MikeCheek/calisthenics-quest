@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
 import SkillRadarChart from "@/components/SkillRadarChart";
 import SkillWall from "@/components/SkillWall";
@@ -13,9 +14,11 @@ import InfoIconButton from "@/components/InfoIconButton";
 import DeclareSkillModal from "@/components/DeclareSkillModal";
 import { rankTitle } from "@/lib/xp";
 import { effectiveXpProgress, effectiveLevel } from "@/lib/levelPath";
-import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
+import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey, Locale } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import ReminderSettings from "@/components/ReminderSettings";
+import { updateProgress } from "@/lib/store";
+import { Globe } from "lucide-react";
 
 const ALL_SKILL_KEYS: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -33,6 +36,7 @@ const ALL_SKILL_KEYS: StagedSkillKey[] = [
 
 export default function ProfilePage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
+  const { t, locale, setLocale } = useLanguage();
   const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
   const [declareOpen, setDeclareOpen] = useState(false);
   const router = useRouter();
@@ -44,10 +48,20 @@ export default function ProfilePage() {
   }, [loading, user, userDoc, router]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <main className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
   }
 
   const progress = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+
+  const changeLocale = async (next: Locale) => {
+    setLocale(next);
+    try {
+      await updateProgress(userDoc.uid, { locale: next });
+    } catch {
+      // locale is still applied locally via localStorage even if the
+      // cross-device sync write fails — not worth alarming the user over
+    }
+  };
 
   return (
     <>
@@ -57,39 +71,61 @@ export default function ProfilePage() {
           <div>
             <h1 className="heading text-2xl text-zinc-100">{userDoc.displayName}</h1>
             <p className="text-zinc-400 text-sm">
-              Level {progress.level} · {rankTitle(progress.level)} · {userDoc.streak} day streak
+              Level {progress.level} · {rankTitle(progress.level)} · {userDoc.streak} {t("profile", "daysStreak")}
             </p>
           </div>
           <Link
             href="/onboarding"
             className="text-xs px-3 py-1.5 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg shrink-0"
           >
-            Edit profile
+            {t("profile", "editProfile")}
           </Link>
         </div>
 
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2">Skill radar</div>
+          <div className="heading text-base text-zinc-100 mb-2">{t("profile", "skillRadar")}</div>
           <SkillRadarChart skills={userDoc.skills} />
         </div>
 
         <SkillWall skills={userDoc.skills} mastery={userDoc.skillMastery} playerLevel={progress.level} />
 
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-3">XP over time</div>
+          <div className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</div>
           <XPHistoryChart history={userDoc.xpHistory ?? []} />
+        </div>
+
+        <div className="panel p-4">
+          <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+            <Globe size={16} className="text-orange-400" /> {t("profile", "language")}
+          </div>
+          <p className="text-xs text-zinc-500 mb-3">{t("profile", "languageHint")}</p>
+          <div className="flex gap-2">
+            {(["en", "it"] as Locale[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => changeLocale(l)}
+                className={`flex-1 py-2 rounded-lg text-sm border ${
+                  locale === l
+                    ? "border-orange-500 bg-orange-500/10 text-zinc-100"
+                    : "border-zinc-700 text-zinc-400"
+                }`}
+              >
+                {l === "en" ? "English" : "Italiano"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {userDoc.goalTracks?.length > 0 && (
           <div className="panel p-4">
             <div className="heading text-base text-zinc-100 mb-2">Your goals</div>
             <div className="flex flex-wrap gap-2">
-              {userDoc.goalTracks.map((t) => (
+              {userDoc.goalTracks.map((track) => (
                 <span
-                  key={t}
+                  key={track}
                   className="text-xs px-2.5 py-1 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300"
                 >
-                  {TRACK_LABEL[t]}
+                  {TRACK_LABEL[track]}
                 </span>
               ))}
             </div>
@@ -97,23 +133,20 @@ export default function ProfilePage() {
         )}
 
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2">Update your skills</div>
-          <p className="text-xs text-zinc-500 mb-3">
-            Hit something new? Declare it directly. Feeling like a lot has changed? Retake the
-            full assessment.
-          </p>
+          <div className="heading text-base text-zinc-100 mb-2">{t("profile", "updateSkills")}</div>
+          <p className="text-xs text-zinc-500 mb-3">{t("profile", "updateSkillsHint")}</p>
           <div className="flex gap-2">
             <button
               onClick={() => setDeclareOpen(true)}
               className="flex-1 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
             >
-              I hit a new skill
+              {t("profile", "declareSkill")}
             </button>
             <Link
               href="/onboarding"
               className="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 text-sm text-center"
             >
-              Retake assessment
+              {t("profile", "retakeAssessment")}
             </Link>
           </div>
         </div>

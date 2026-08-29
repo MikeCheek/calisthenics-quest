@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Exercise, StagedSkillKey, SKILL_FIELD_LABEL, DEFAULT_SKILLS, DEFAULT_EQUIPMENT } from "@/lib/types";
 import { wheelPoolWeighted } from "@/lib/wheelPool";
+import { useLanguage } from "@/context/LanguageContext";
+import { localizedDescription } from "@/lib/exerciseTiming";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
 import { playBeep } from "@/lib/sound";
@@ -23,6 +25,7 @@ const WEDGE_COLORS = ["#f97316", "#18181b", "#ea580c", "#27272a", "#fb923c", "#3
 const WHEEL_SPIN_MS = 2600;
 
 export default function LandingWheelDemo() {
+  const { locale } = useLanguage();
   const [skill, setSkill] = useState<StagedSkillKey>("frontLever");
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
@@ -128,7 +131,7 @@ export default function LandingWheelDemo() {
         <div className="mt-4 p-3 rounded-lg bg-zinc-800/60 border border-orange-500/40 animate-pop-in">
           <div className="text-sm font-medium text-zinc-100">{result.name}</div>
           <div className="text-xs text-zinc-400 mb-2">{result.detail}</div>
-          {result.description && <p className="text-xs text-zinc-300 mb-2">{result.description}</p>}
+          {result.description && <p className="text-xs text-zinc-300 mb-2">{localizedDescription(result, locale)}</p>}
           <div className="mb-2">
             <ExerciseTipButton exerciseName={result.name} exerciseDetail={result.detail} trackLabel={SKILL_FIELD_LABEL[skill]} />
           </div>

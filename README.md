@@ -726,6 +726,70 @@ underlying session data but doesn't (yet) expose either control. Adjust
 before starting focus mode, or exit back to the checklist to make a change
 mid-session.
 
+## Multilingual support (`context/LanguageContext.tsx`)
+
+English and Italian, switchable from the profile screen, with a "Language"
+panel showing both as buttons — no page reload, the whole app re-renders
+immediately in the new language.
+
+**How it works:** `lib/i18n/en.ts` defines both the translation strings
+*and* the structural type (`TranslationDict`) that `lib/i18n/it.ts` is
+checked against — this is deliberate, not incidental. Because the type
+describes each key's shape as `string` rather than a literal value,
+TypeScript enforces that every namespace and key in `en.ts` has a
+corresponding entry in `it.ts` (add a key to one without the other and the
+build fails), while still allowing the actual translated text to differ
+freely. `useLanguage()` exposes a namespaced `t(namespace, key, vars?)`
+lookup with `{placeholder}` interpolation for the handful of strings that
+need it (`t("dashboard", "welcomeBack", { name: "Marco" })` →
+`"Welcome back, Marco"` / `"Bentornato, Marco"` — verified both directions
+work correctly, interpolation included, before wiring it in).
+
+**Locale persistence is two-layered.** `localStorage` is the immediate,
+always-available layer — it's what a signed-out visitor on the landing
+page gets, and what makes the choice stick on reload without waiting on
+any network round-trip. For a signed-in account, the choice also writes to
+`userDoc.locale` in Firestore, and `LocaleSync.tsx` — mounted once at the
+root — reads that field back on load and applies it, so signing in on a
+second device picks up the same language rather than defaulting to
+English. If no preference exists anywhere yet (a fresh visit, nothing in
+storage), the browser's own language is checked once as a sensible
+starting guess.
+
+**Scope, stated plainly.** Given the sheer amount of text in an app this
+size, I translated the app's core chrome — the bottom/top navigation, the
+Dashboard, and the Profile screen (including the language switcher itself)
+— to a real, professional standard in both languages, and built the
+underlying infrastructure to extend it. I did **not** attempt to translate
+every string across all 16 routes and 60+ components. Extending coverage
+to another page is mechanical once the pattern is there: add the keys to
+both `en.ts` and `it.ts` (the type system will immediately flag if either
+is missing something), then swap that page's hardcoded strings for `t()`
+calls the same way `Nav.tsx`, `dashboard/page.tsx`, and `profile/page.tsx`
+already do.
+
+**The exercise catalog itself — names, set/rep detail text, coaching cues
+— stays in English on purpose**, as the shared international skill
+vocabulary ("Tuck front lever holds," "4 x max hold" reads the same to any
+athlete regardless of language, the way "muscle-up" or "planche" already
+do in Italian fitness communities). **But the how-to descriptions
+(`localizedDescription()` in `exerciseTiming.ts`) are fully translated —
+all 175 of them**, everywhere a description is shown: the exercise detail
+modal (checklist, guided full-screen mode), the bonus wheel, and the
+landing page's live demo wheel. Rather than adding an `descriptionIt`
+field to all 577 individual exercise objects (touching that many entries a
+second time), it's one flat dictionary keyed by the exercise's exact
+English name — `exerciseDescriptions.it.ts` — so a single lookup covers
+every table that reuses the same exercise name across different skills'
+stages. I verified coverage programmatically before shipping it: of the
+175 unique exercise names that currently have an English description, all
+175 have a matching Italian one — zero missing, zero orphaned entries in
+the Italian file with no English counterpart. The lookup falls back to the
+English text for the roughly 350 exercises (the two larger advanced-skill
+tables) that don't have a description in *either* language yet, so nothing
+ever renders blank.
+
+
 ## The skill wall (`SkillWall.tsx`)
 
 On `/profile`, alongside the skill radar chart and XP-over-time chart, a

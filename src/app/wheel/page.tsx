@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { localizedDescription } from "@/lib/exerciseTiming";
 import Nav from "@/components/Nav";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
@@ -82,6 +84,7 @@ export default function WheelPage() {
 
 function WheelContent() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
+  const { locale } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -417,7 +420,7 @@ function WheelContent() {
               )}
             </div>
             <div className="text-sm text-zinc-400 mb-1">{composed.detail}</div>
-            {composed.description && <p className="text-sm text-zinc-300 mb-2">{composed.description}</p>}
+            {composed.description && <p className="text-sm text-zinc-300 mb-2">{localizedDescription(composed, locale)}</p>}
             {composed.cue && <div className="text-xs text-orange-400/80 italic mb-2">{composed.cue}</div>}
             <div className="flex items-center gap-2 mb-2">
               <ExerciseTipButton exerciseName={composed.name} exerciseDetail={composed.detail} trackLabel={SKILL_FIELD_LABEL[track]} />

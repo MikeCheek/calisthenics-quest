@@ -1,4 +1,5 @@
-import { Exercise, TrainingSession } from "./types";
+import { Exercise, TrainingSession, Locale } from "./types";
+import itExerciseDescriptions from "./i18n/exerciseDescriptions.it";
 
 export interface ExerciseTiming {
   sets: number;
@@ -107,4 +108,18 @@ export function estimateExercisesMinutes(exercises: Exercise[]): number {
 // truth, so the estimate and the actual guided flow can't disagree.
 export function estimateSessionMinutes(session: TrainingSession): number {
   return estimateExercisesMinutes(session.sets.flatMap((s) => s.exercises));
+}
+
+// The exercise catalog itself (names, set/rep detail, coaching cues) stays
+// in English — it's the shared international skill vocabulary. But the
+// "how to actually do this" description is translated, looked up by the
+// exercise's exact English name against a name-keyed dictionary rather
+// than a field on every exercise object, so adding a language doesn't mean
+// touching all 577 exercise entries. Falls back to the English text (or
+// nothing) if a given exercise isn't in the Italian dictionary yet.
+export function localizedDescription(exercise: Exercise, locale: Locale): string | undefined {
+  if (locale === "it") {
+    return itExerciseDescriptions[exercise.name] ?? exercise.description;
+  }
+  return exercise.description;
 }
