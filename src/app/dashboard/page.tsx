@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
+import NotificationPrompt from "@/components/NotificationPrompt";
 import XPBar from "@/components/XPBar";
 import MissionList from "@/components/MissionList";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
@@ -44,6 +45,8 @@ export default function DashboardPage() {
           </h1>
           <p className="text-zinc-400 text-sm">{t("dashboard", "sessionsLogged", { count: userDoc.totalSessionsCompleted })}</p>
         </div>
+
+        <NotificationPrompt />
 
         {/* Hero: today's session, the primary call to action */}
         <Link

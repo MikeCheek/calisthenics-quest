@@ -982,6 +982,80 @@ The guided mode's header shows **time remaining**, not the fixed total —
 currently are in the step list, so the number counts down realistically as
 you move through the session rather than staying frozen at the start-of-session estimate.
 
+## Friends, pairing, and read-only friend profiles
+
+Several real gaps closed at once here, all building on infrastructure that
+mostly already existed rather than starting from scratch.
+
+**Notification prompt on login.** `NotificationPrompt.tsx`, shown on
+`/dashboard`, appears exactly once for an athlete who's never made a
+choice about notifications at all (`userDoc.notifications === undefined`)
+— turning them on, turning them off, or dismissing all count as "decided"
+and the prompt never reappears; Profile's reminder settings are always
+there afterward if they change their mind.
+
+**Remove a friend.** The backend function (`removeFriend` in `store.ts`)
+already existed with no UI attached to it — `FriendsPanel.tsx` now has a
+remove button per friend row with a confirm, since it's not reversible
+from that side (removing only deletes your own copy of the relationship;
+see the function's own comment on why the mirrored side is left for the
+other person to remove on theirs).
+
+**Friend profile pages** (`/friend/[uid]`) — tap any friend's name to see
+a read-only view of their level, rank, streak, total sessions, total XP,
+skill radar, and skill wall. This required actually expanding what's
+public: `PublicProfile` used to carry just name/level/streak/friend code;
+it now also carries `xp`, `totalSessionsCompleted`, `skills`, and
+`skillMastery`, populated at both places that already sync a public
+profile (`sessionComplete.ts` on every session completion, and
+`ensureFriendCode` on login) from data those functions already had on
+hand — no new reads added anywhere.
+
+**Pairing invites are a genuinely different kind of ping, not just a
+worded nudge.** `Ping` gained a `kind: "nudge" | "pairing_invite"` field
+and (for invites) a `pairingCode`. `PingsListener.tsx` branches on it:
+nudges keep the existing toast-and-auto-dismiss behavior; a pairing
+invite renders as a **persistent Accept/Decline card** that stays until
+actually acted on. Accepting calls `joinPairing` immediately (not
+deferred to page navigation) and only then routes to `/pair?code=...`,
+which picks up the already-joined pairing via that query param rather
+than asking the person to re-enter a code they already accepted.
+
+**The "how many bars" question and alternating turns.** Once both people
+are linked, before any session is generated, the host is asked "1 bar" or
+"2 or more" (`PairingDoc.barCount`, `setPairingBarCount`) — the guest sees
+a waiting state until the host answers, since it's a property of the
+shared physical space. With 2+, nothing changes from before. **With
+exactly 1**, `applyAlternatingBarTurns` in `trainingGenerator.ts` adjusts
+only the tracks that actually contend for a shared bar — Front Lever, Back
+Lever, Muscle-Up, and Pull Strength — roughly doubling the rest period on
+those specific exercises (the rest window now needs to cover both your own
+recovery *and* your partner's turn on the same bar) and labeling that
+block "(alternate turns on the bar)". Planche, Handstand, Legs, Core, Push
+Strength, warm-up, and the finisher are untouched, since none of those
+compete for the same bar. I tested this against a real generated paired
+session before wiring it in: Push Strength (dips, not bar-dependent) came
+through with identical rest times; Pull Strength's rest correctly doubled
+and picked up the alternating label.
+
+**Two honest limits, stated plainly rather than glossed over:**
+- **There's no backend push service in this app** — no Firebase Cloud
+  Functions, no FCM. "Notification on the friend's phone," for both
+  nudges and pairing invites, works through the existing real-time
+  Firestore listener (`PingsListener`, mounted globally) firing a local
+  browser notification — which only works while their app is open or
+  recently backgrounded. True push delivery to a fully closed app would
+  need real server infrastructure, which is a different scope of project
+  than this client-only rebuild.
+- **"Synchronized" doesn't mean a live turn-by-turn timer keeping both
+  phones in lockstep.** Building that (shared real-time turn state, whose
+  turn it is right now, live countdown synced across two devices) would be
+  a substantially larger feature on its own. What's actually built is a
+  session-generation-time adjustment — the rest periods and labeling are
+  set up to make sense for alternating, but each person's phone still runs
+  their own independent guided session; nothing enforces the literal
+  timing of the handoff between you in real time.
+
 ## Toast notifications (`context/ToastContext.tsx`)
 
 Every info/success/warning/error message in the app funnels through one

@@ -118,6 +118,10 @@ export async function completeSession(
       friendCode: userDoc.friendCode,
       level: effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery),
       streak: newStreak,
+      xp: totalXp,
+      totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
+      skills: userDoc.skills,
+      skillMastery: userDoc.skillMastery,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });

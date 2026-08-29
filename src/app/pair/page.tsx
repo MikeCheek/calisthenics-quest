@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -9,8 +9,8 @@ import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import FriendsPanel from "@/components/FriendsPanel";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
-import { createPairing, joinPairing, sendPing, PairingDoc } from "@/lib/store";
-import { generatePairedSession } from "@/lib/trainingGenerator";
+import { createPairing, joinPairing, sendPairingInvite, setPairingBarCount, PairingDoc } from "@/lib/store";
+import { generatePairedSession, applyAlternatingBarTurns } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { Friend, DEFAULT_EQUIPMENT } from "@/lib/types";
 import { useToast } from "@/context/ToastContext";
@@ -19,8 +19,21 @@ import { Copy, Users } from "lucide-react";
 type Mode = "choose" | "create" | "join";
 
 export default function PairPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>
+      }
+    >
+      <PairContent />
+    </Suspense>
+  );
+}
+
+function PairContent() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const [mode, setMode] = useState<Mode>("choose");
   const [code, setCode] = useState("");
@@ -35,6 +48,13 @@ export default function PairPage() {
     if (!user) router.replace("/");
     else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
   }, [loading, user, userDoc, router]);
+
+  // Arriving here from an accepted pairing invite — the join already
+  // happened at accept time, this just picks up the existing pairing.
+  useEffect(() => {
+    const fromInvite = searchParams.get("code");
+    if (fromInvite && !code) setCode(fromInvite.toUpperCase());
+  }, [searchParams, code]);
 
   useEffect(() => {
     if (!code) return;
@@ -68,12 +88,7 @@ export default function PairPage() {
       userDoc.skills,
       userDoc.equipment
     );
-    await sendPing(
-      friend.uid,
-      userDoc.uid,
-      userDoc.displayName,
-      `wants to train together — join with code ${newCode}`
-    );
+    await sendPairingInvite(friend.uid, userDoc.uid, userDoc.displayName, newCode);
     setInvitedName(friend.displayName);
     setCode(newCode);
     setMode("create");
@@ -100,15 +115,27 @@ export default function PairPage() {
 
   const isHost = pairing?.hostUid === userDoc.uid;
   const bothReady = !!pairing?.guestUid;
+  const barCount = pairing?.barCount;
 
   const paired =
-    pairing && bothReady
+    pairing && bothReady && barCount
       ? generatePairedSession(pairing.hostSkills, pairing.guestSkills!, pairing.hostEquipment)
       : null;
 
-  const mySession = paired ? (isHost ? paired.hostSession : paired.guestSession) : null;
-  const theirSession = paired ? (isHost ? paired.guestSession : paired.hostSession) : null;
+  const rawMySession = paired ? (isHost ? paired.hostSession : paired.guestSession) : null;
+  const rawTheirSession = paired ? (isHost ? paired.guestSession : paired.hostSession) : null;
+  const mySession = rawMySession && barCount === 1 ? applyAlternatingBarTurns(rawMySession) : rawMySession;
+  const theirSession = rawTheirSession && barCount === 1 ? applyAlternatingBarTurns(rawTheirSession) : rawTheirSession;
   const partnerName = isHost ? pairing?.guestName : pairing?.hostName;
+
+  const chooseBarCount = async (n: 1 | 2) => {
+    if (!code) return;
+    try {
+      await setPairingBarCount(code, n);
+    } catch {
+      toast.error("Couldn't save that — try again.");
+    }
+  };
 
   const handleComplete = async () => {
     if (!mySession) return;
@@ -191,7 +218,7 @@ export default function PairPage() {
               {isHost === false
                 ? "Waiting for the host..."
                 : invitedName
-                ? `Nudge sent to ${invitedName} — waiting for them to join`
+                ? `Invite sent to ${invitedName} — waiting for them to accept`
                 : "Share this code with whoever you're training with"}
             </div>
             <div className="flex items-center justify-center gap-2">
@@ -213,6 +240,33 @@ export default function PairPage() {
           </div>
         )}
 
+        {code && bothReady && !barCount && (
+          <div className="panel p-6 text-center space-y-3">
+            <div className="text-sm text-zinc-100">
+              Linked with <span className="text-orange-400">{partnerName}</span>! One last thing —
+            </div>
+            <div className="text-sm text-zinc-400">How many pull-up bars do you have between you?</div>
+            {isHost ? (
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => chooseBarCount(1)}
+                  className="px-4 py-2.5 rounded-lg border border-zinc-700 hover:border-orange-500 text-zinc-200 text-sm"
+                >
+                  Just 1 — we&apos;ll alternate
+                </button>
+                <button
+                  onClick={() => chooseBarCount(2)}
+                  className="px-4 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
+                >
+                  2 or more
+                </button>
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-500">Waiting for {pairing?.hostName ?? "the host"} to answer...</div>
+            )}
+          </div>
+        )}
+
         {paired && mySession && theirSession && (
           <div className="space-y-4">
             <div className="panel p-3 text-sm text-zinc-400">
@@ -220,6 +274,12 @@ export default function PairPage() {
               shared focus: <span className="text-orange-400">{paired.focusLabel}</span>. You
               each get exercises matched to your own skill stage, based on the equipment at{" "}
               {isHost ? "your" : `${pairing?.hostName ?? "the host"}'s`} spot.
+              {barCount === 1 && (
+                <span className="block mt-1 text-orange-400">
+                  Just one bar — pull/front lever/back lever/muscle-up work is set up to alternate
+                  turns, with rest stretched to cover your partner&apos;s turn too.
+                </span>
+              )}
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <SessionView session={mySession} equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT} onComplete={handleComplete} completed={completed} />

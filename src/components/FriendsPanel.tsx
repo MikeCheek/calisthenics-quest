@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import {
   addFriend,
   fetchPublicProfile,
   listenFriends,
   lookupUidByFriendCode,
+  removeFriend,
   sendPing,
 } from "@/lib/store";
 import { Friend } from "@/lib/types";
 import { pickReminderLine } from "@/lib/reminderMessages";
 import { useToast } from "@/context/ToastContext";
-import { Copy, UserPlus, Zap, Users2 } from "lucide-react";
+import { Copy, UserPlus, Zap, Users2, UserMinus } from "lucide-react";
 
 export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (friend: Friend) => void }) {
   const { userDoc } = useAuth();
@@ -72,6 +74,16 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
     await sendPing(friend.uid, userDoc.uid, userDoc.displayName, pickReminderLine());
     setNudged(friend.uid);
     setTimeout(() => setNudged(null), 2500);
+  };
+
+  const handleRemove = async (friend: Friend) => {
+    if (!window.confirm(`Remove ${friend.displayName} from your friends?`)) return;
+    try {
+      await removeFriend(userDoc.uid, friend.uid);
+      toast.success(`Removed ${friend.displayName}.`);
+    } catch {
+      toast.error("Couldn't remove them — try again.");
+    }
   };
 
   return (
@@ -135,8 +147,10 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
                 key={f.uid}
                 className="flex items-center justify-between border border-zinc-700 rounded-lg px-3 py-2.5"
               >
-                <div className="text-sm text-zinc-100">{f.displayName}</div>
-                <div className="flex items-center gap-2">
+                <Link href={`/friend/${f.uid}`} className="text-sm text-zinc-100 hover:text-orange-400 truncate mr-2">
+                  {f.displayName}
+                </Link>
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => handleNudge(f)}
                     className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
@@ -149,6 +163,13 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
                     className="text-xs px-2.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950"
                   >
                     Train together
+                  </button>
+                  <button
+                    onClick={() => handleRemove(f)}
+                    className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400"
+                    aria-label={`Remove ${f.displayName}`}
+                  >
+                    <UserMinus size={14} />
                   </button>
                 </div>
               </li>

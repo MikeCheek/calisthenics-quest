@@ -6,6 +6,7 @@ import {
   TrainingEquipment,
   TrainingSession,
   TrainingSet,
+  TrainingSetKind,
   TRACK_LABEL,
 } from "./types";
 import {
@@ -259,3 +260,32 @@ export function generatePairedSession(
 }
 
 export { FOCUS_ORDER, FOCUS_LABEL };
+
+// Tracks that genuinely need a shared pull-up bar — front lever, back
+// lever, and muscle-up all hang from one; pull strength's whole track is
+// bar-based too. Planche/handstand/legs/core/push-strength/human-flag
+// (a pole, not a bar) don't compete for the same piece of equipment.
+const BAR_DEPENDENT_TRACKS = new Set<TrainingSetKind>(["frontLever", "backLever", "muscleUp", "pullStrength"]);
+
+// With only one bar between two training partners, they can't both be on
+// it at once — instead of training in parallel, they alternate turns. The
+// rest period built into a bar-dependent exercise already accounts for one
+// person's own recovery; with a single bar, that same window is also when
+// the *other* person takes their turn, so it needs to be roughly doubled
+// to actually cover both turns rather than rushing the partner who's
+// waiting. Exercises that don't touch a shared bar (warm-up, legs, core,
+// push strength, finisher) are untouched — everyone can do those in
+// parallel regardless of bar count.
+export function applyAlternatingBarTurns(session: TrainingSession): TrainingSession {
+  return {
+    ...session,
+    sets: session.sets.map((set) => {
+      if (!BAR_DEPENDENT_TRACKS.has(set.track)) return set;
+      return {
+        ...set,
+        title: `${set.title} (alternate turns on the bar)`,
+        exercises: set.exercises.map((ex) => ({ ...ex, restSeconds: ex.restSeconds * 2 })),
+      };
+    }),
+  };
+}

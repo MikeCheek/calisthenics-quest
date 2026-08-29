@@ -310,6 +310,10 @@ export interface PublicProfile {
   friendCode: string;
   level: number;
   streak: number;
+  xp: number;
+  totalSessionsCompleted: number;
+  skills: SkillProfile;
+  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>;
 }
 
 export interface Friend {
@@ -325,6 +329,8 @@ export interface Ping {
   fromName: string;
   message: string;
   createdAtISO: string;
+  kind?: "nudge" | "pairing_invite";
+  pairingCode?: string;
 }
 
 export const DEFAULT_SKILLS: SkillProfile = {

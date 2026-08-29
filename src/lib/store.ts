@@ -24,6 +24,7 @@ import {
   StagedSkillKey,
   TrainingEquipment,
   UserDoc,
+  DEFAULT_SKILLS,
 } from "./types";
 
 export async function fetchUserDoc(uid: string): Promise<UserDoc | null> {
@@ -74,6 +75,10 @@ export interface PairingDoc {
   guestBody?: BodyProfile;
   guestSkills?: SkillProfile;
   createdAtISO: string;
+  // How many pull-up bars the two of you actually have between you — with
+  // just one, sessions are adjusted so you alternate turns on it instead
+  // of both training the same bar-dependent exercise at once.
+  barCount?: 1 | 2;
 }
 
 export const generatePairingCode = generateShortCode;
@@ -120,6 +125,10 @@ export async function joinPairing(
   });
 }
 
+export async function setPairingBarCount(code: string, barCount: 1 | 2): Promise<void> {
+  await updateDoc(doc(db, "pairings", code.toUpperCase()), { barCount });
+}
+
 // ---- Public profile + permanent friend code ----
 // profiles/{uid} holds only what's safe to show any signed-in user (name,
 // photo, level, streak, friend code) — skills/equipment/body stay private
@@ -138,9 +147,16 @@ export async function ensureFriendCode(
   streak: number
 ): Promise<string> {
   const userSnap = await getDoc(doc(db, "users", uid));
-  const existing = userSnap.exists() ? (userSnap.data() as UserDoc).friendCode : undefined;
+  const userData = userSnap.exists() ? (userSnap.data() as UserDoc) : undefined;
+  const existing = userData?.friendCode;
+  const extra = {
+    xp: userData?.xp ?? 0,
+    totalSessionsCompleted: userData?.totalSessionsCompleted ?? 0,
+    skills: userData?.skills ?? DEFAULT_SKILLS,
+    skillMastery: userData?.skillMastery ?? {},
+  };
   if (existing) {
-    await syncPublicProfile({ uid, displayName, photoURL, friendCode: existing, level, streak });
+    await syncPublicProfile({ uid, displayName, photoURL, friendCode: existing, level, streak, ...extra });
     return existing;
   }
 
@@ -151,7 +167,7 @@ export async function ensureFriendCode(
     if (codeSnap.exists()) continue;
     await setDoc(doc(db, "usercodes", code), { uid });
     await updateDoc(doc(db, "users", uid), { friendCode: code });
-    await syncPublicProfile({ uid, displayName, photoURL, friendCode: code, level, streak });
+    await syncPublicProfile({ uid, displayName, photoURL, friendCode: code, level, streak, ...extra });
     return code;
   }
   throw new Error("Could not generate a unique friend code — please try again.");
@@ -212,6 +228,26 @@ export async function sendPing(toUid: string, fromUid: string, fromName: string,
     fromName,
     message,
     createdAtISO: new Date().toISOString(),
+    kind: "nudge",
+  });
+}
+
+// A pairing invite is still a ping, but a distinct kind — the listener
+// shows it as an Accept/Decline card rather than a passing toast, since
+// there's a real action attached rather than just an FYI.
+export async function sendPairingInvite(
+  toUid: string,
+  fromUid: string,
+  fromName: string,
+  pairingCode: string
+): Promise<void> {
+  await addDoc(collection(db, "users", toUid, "pings"), {
+    fromUid,
+    fromName,
+    message: "wants to train together",
+    createdAtISO: new Date().toISOString(),
+    kind: "pairing_invite",
+    pairingCode,
   });
 }
 
