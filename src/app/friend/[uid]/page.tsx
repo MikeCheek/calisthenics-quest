@@ -7,7 +7,7 @@ import Nav from "@/components/Nav";
 import SkillRadarChart from "@/components/SkillRadarChart";
 import SkillWall from "@/components/SkillWall";
 import { fetchPublicProfile } from "@/lib/store";
-import { PublicProfile } from "@/lib/types";
+import { PublicProfile, DEFAULT_SKILLS } from "@/lib/types";
 import { rankTitle } from "@/lib/xp";
 import { ChevronLeft, Flame, Dumbbell } from "lucide-react";
 
@@ -92,10 +92,10 @@ export default function FriendProfilePage() {
 
         <div className="panel p-4">
           <div className="heading text-base text-zinc-100 mb-2">Skill radar</div>
-          <SkillRadarChart skills={profile.skills} />
+          <SkillRadarChart skills={profile.skills ?? DEFAULT_SKILLS} />
         </div>
 
-        <SkillWall skills={profile.skills} mastery={profile.skillMastery} playerLevel={profile.level} />
+        <SkillWall skills={profile.skills ?? DEFAULT_SKILLS} mastery={profile.skillMastery ?? {}} playerLevel={profile.level} />
 
         <p className="text-xs text-zinc-600 text-center">
           Read-only — this is what {profile.displayName.split(" ")[0]} looks like to friends.

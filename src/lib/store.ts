@@ -179,10 +179,28 @@ export async function lookupUidByFriendCode(code: string): Promise<string | null
   return (snap.data() as { uid: string }).uid;
 }
 
+// Profiles written before `PublicProfile` grew xp/totalSessionsCompleted/
+// skills/skillMastery (any friend who hasn't logged in since) won't have
+// those fields in Firestore yet — defaulting them here, once, means every
+// consumer of this function gets a complete, safe object rather than each
+// screen needing its own fallback (and rather than crashing on
+// `undefined.frontLever` the way the friend profile page did before this).
 export async function fetchPublicProfile(uid: string): Promise<PublicProfile | null> {
   const snap = await getDoc(doc(db, "profiles", uid));
   if (!snap.exists()) return null;
-  return snap.data() as PublicProfile;
+  const data = snap.data() as Partial<PublicProfile>;
+  return {
+    uid: data.uid ?? uid,
+    displayName: data.displayName ?? "Athlete",
+    photoURL: data.photoURL,
+    friendCode: data.friendCode ?? "",
+    level: data.level ?? 1,
+    streak: data.streak ?? 0,
+    xp: data.xp ?? 0,
+    totalSessionsCompleted: data.totalSessionsCompleted ?? 0,
+    skills: data.skills ?? DEFAULT_SKILLS,
+    skillMastery: data.skillMastery ?? {},
+  };
 }
 
 // ---- Friends (mutual — adding writes both sides) ----
