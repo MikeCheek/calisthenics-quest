@@ -982,6 +982,38 @@ The guided mode's header shows **time remaining**, not the fixed total —
 currently are in the step list, so the number counts down realistically as
 you move through the session rather than staying frozen at the start-of-session estimate.
 
+## About page (`/about`)
+
+Linked from Profile ("About, privacy & support the developer") and from
+the signed-out landing page footer — accessible whether or not you're
+logged in, since privacy/cookie information should be readable before
+someone even creates an account.
+
+- **Who made this** — Michele Pulvirenti, with links to
+  [Ko-fi](https://ko-fi.com/michelepulvirenti),
+  [GitHub](https://github.com/MikeCheek), and the
+  [portfolio site](https://michelepulvirenti.vercel.app/).
+- **Privacy notice** — states plainly what's actually collected (Google
+  account info, plus everything you enter: body stats, equipment, skills,
+  sessions, streaks, friends), what it's used for, and — this is the part
+  worth calling out specifically — an accurate account of the *one*
+  third-party data flow that exists: when you use an AI feature (exercise
+  tips, plan coaching, AI plan review), only exercise names and a short
+  skill/equipment summary go to OpenRouter, never your name, email, or
+  photo. Nothing here is guessed or templated; it describes exactly what
+  the code in this repo actually does.
+- **Cookie policy** — I audited the codebase for this rather than writing
+  generic boilerplate: BarQuests sets no tracking or advertising cookies
+  at all (`grep`-confirmed zero `document.cookie` or `sessionStorage`
+  usage anywhere in the app). What it does store locally is exactly three
+  things, named specifically — Firebase Authentication's own session
+  storage, the `barquests:locale` language preference, and the
+  `barquests:lastReminderIndex` rotation index — which are the only two
+  `localStorage` keys the app ever actually writes.
+- **Other useful info** — a brief not-medical-advice note (genuinely
+  relevant for a physical training app), the tech stack, and where to
+  report a bug or idea.
+
 ## AI plan review (`/api/plan-review`, `PlanReviewButton.tsx`)
 
 A "Review with AI" button on `/training`, right below today's session, that

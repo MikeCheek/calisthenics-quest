@@ -18,7 +18,7 @@ import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey, Locale } from "@/lib/ty
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import ReminderSettings from "@/components/ReminderSettings";
 import { updateProgress } from "@/lib/store";
-import { Globe } from "lucide-react";
+import { Globe, Info } from "lucide-react";
 
 const ALL_SKILL_KEYS: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -214,6 +214,16 @@ export default function ProfilePage() {
         </div>
 
         <ReminderSettings />
+
+        <Link
+          href="/about"
+          className="panel p-4 flex items-center justify-between hover:border-orange-500 border border-transparent"
+        >
+          <span className="text-sm text-zinc-200 flex items-center gap-2">
+            <Info size={16} className="text-zinc-500" /> About, privacy &amp; support the developer
+          </span>
+          <span className="text-zinc-500">›</span>
+        </Link>
       </main>
 
       <SkillInfoModal

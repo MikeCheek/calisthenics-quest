@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import LandingWheelDemo from "@/components/LandingWheelDemo";
@@ -84,6 +85,12 @@ export default function LandingPage() {
           Sign in with Google
         </button>
         <p className="text-xs text-zinc-600 mt-3">Free. Takes about a minute to set up.</p>
+      </div>
+
+      <div className="max-w-md mx-auto text-center mt-8">
+        <Link href="/about" className="text-xs text-zinc-600 hover:text-zinc-400">
+          About &amp; privacy
+        </Link>
       </div>
     </main>
   );
