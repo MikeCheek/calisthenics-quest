@@ -982,6 +982,46 @@ The guided mode's header shows **time remaining**, not the fixed total —
 currently are in the step list, so the number counts down realistically as
 you move through the session rather than staying frozen at the start-of-session estimate.
 
+## Training screen reorganization
+
+`/training` and `SessionView.tsx` had accumulated a lot over the course of
+this project — the session-wide difficulty control, collapsible-worthy
+warm-up/finisher content, AI review, the bonus wheel link — all stacked as
+always-visible blocks. Reorganized for less scrolling and a clearer
+default view, without removing any capability:
+
+- **Collapsible exercise sections.** Each block (Warm-Up, Main Focus,
+  Accessory, Final Hits) is now its own accordion section with an exercise
+  count next to its title. Warm-Up and Final Hits — the same
+  everyone-can-do-these content every session, per the earlier
+  focus-targeted-warmup work — start collapsed; Main Focus and Accessory,
+  the part that actually changes day to day, start open. Since this lives
+  inside the shared `SessionView` component, `/pair` and `/plan` picked up
+  the same collapsing for free, no separate changes needed there.
+- **The difficulty control moved into a modal.** "How does today's
+  session feel?" used to be permanently visible taking real vertical
+  space; it's now a small "Adjust today's difficulty" button that opens a
+  modal, and once something other than the default is chosen, the button
+  itself relabels to show the active state ("Difficulty: Too advanced")
+  so it's still visible at a glance without needing the whole control
+  taking up permanent space.
+- **The focus picker collapses to one line.** Instead of always showing
+  every available focus track as a row of chips, the page now shows just
+  "Focus: Front Lever · Change ▾" — tapping it expands the same chip
+  picker that was always there. Most days, the auto-picked focus is the
+  right one; the full picker is one tap away when it's not.
+- **A floating "Start Training" button.** Once the on-page Start button
+  scrolls out of view (past 280px of scroll), a floating pill button
+  appears bottom-left with the same action, so starting the session
+  doesn't require scrolling back to the top after reviewing the exercise
+  list. It's deliberately positioned bottom-*left* and only renders when
+  there's no session already in progress — the persistent training bubble
+  (bottom-right, shown only when a session *is* in progress) and this FAB
+  are mutually exclusive by the conditions that show them, so they can
+  never visually collide.
+- **AI Review and the bonus wheel link** moved from two full-width stacked
+  blocks into one compact two-column row — same actions, less scroll.
+
 ## About page (`/about`)
 
 Linked from Profile ("About, privacy & support the developer") and from
