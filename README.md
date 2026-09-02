@@ -982,6 +982,55 @@ The guided mode's header shows **time remaining**, not the fixed total —
 currently are in the step list, so the number counts down realistically as
 you move through the session rather than staying frozen at the start-of-session estimate.
 
+## AI plan review (`/api/plan-review`, `PlanReviewButton.tsx`)
+
+A "Review with AI" button on `/training`, right below today's session, that
+sends the actual generated session — not a fresh AI-authored one — to a
+second AI endpoint (following the exact same OpenRouter conventions as the
+existing `/api/plan-coach`: JSON mode with a plain-text fallback,
+`<think>`-block stripping, smart-quote/trailing-comma repair, balanced-brace
+extraction as a last resort) and gets back a **1-10 score**, a short
+written assessment, and zero or more **suggested exercise substitutions**.
+
+**The review is genuinely informed by the day's context, not generic.**
+The request includes today's focus label, a short skill summary scoped to
+what's actually relevant (pull-up/dip max reps, which track is being
+trained — not all 50 skills dumped in), and which equipment is actually
+available, so a suggestion can't recommend something the athlete can't
+physically do.
+
+**Every suggestion is scoped to one exact exercise slot**, referenced by
+the same `setTitle-index` key the rest of the app already uses internally
+— the model is instructed to only ever reference a key it was given, and
+the server-side validation drops anything that doesn't (or that's missing
+a name/detail), so a slightly malformed model response degrades to fewer
+suggestions rather than a broken or mismatched substitution. I tested this
+validation directly with a deliberately messy simulated response (an
+out-of-range score, an invalid key, an incomplete suggestion) before
+shipping it — the score correctly clamped to 10 and the two bad
+suggestions were dropped, keeping only the one valid one.
+
+**The athlete decides, per suggestion, not all-or-nothing.** Each proposed
+change shows the original exercise struck through next to the AI's
+replacement and its one-sentence reasoning, with a toggle defaulting to
+"approved" that can be individually unchecked — "Apply (N)" only touches
+the ones still checked. Approving nothing and closing the panel leaves the
+session completely untouched. Applying builds a new session by copying the
+original and only replacing the approved slots' name/detail, keeping the
+original `restSeconds` (the model isn't asked to invent rest timing) — this
+new session becomes what `/training` displays and what "Start Training"
+hands to the guided full-screen mode, but it's swapped at the page level,
+not written back into `SessionView`'s own internal override state, so it
+composes cleanly with switching the day's focus (which resets it) rather
+than leaving a stale AI edit behind for a different track.
+
+**Scoped to `/training` only** — the daily session is the highest-traffic,
+most natural target for this. It isn't wired into the multi-day `/plan`
+preview or paired sessions on `/pair`; extending it there would mean
+running the same review per day or per side, which is a reasonable future
+extension but a deliberately separate scope decision here, not an
+oversight.
+
 ## Friends, pairing, and read-only friend profiles
 
 Several real gaps closed at once here, all building on infrastructure that

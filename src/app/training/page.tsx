@@ -7,11 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
+import PlanReviewButton from "@/components/PlanReviewButton";
 import PomodoroTimer from "@/components/PomodoroTimer";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
-import { SkillTrack } from "@/lib/types";
+import { SkillTrack, TrainingSession } from "@/lib/types";
 import { Dices } from "lucide-react";
 
 export default function TrainingPage() {
@@ -23,6 +24,7 @@ export default function TrainingPage() {
   const [showTimer, setShowTimer] = useState(false);
   const [xpGained, setXpGained] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const [aiAppliedSession, setAiAppliedSession] = useState<TrainingSession | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -39,12 +41,21 @@ export default function TrainingPage() {
     return generateSession(userDoc.skills, userDoc.equipment, focus);
   }, [userDoc, focus]);
 
-  if (loading || !userDoc || !session) {
+  // an AI-applied version only replaces the base session for as long as
+  // it's actually for today's same focus — switching focus should show a
+  // fresh, un-reviewed session, not a stale AI edit for a different track
+  useEffect(() => {
+    setAiAppliedSession(null);
+  }, [focus]);
+
+  const displayedSession = aiAppliedSession ?? session;
+
+  if (loading || !userDoc || !displayedSession) {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
   const handleComplete = async () => {
-    const { patch, celebration: c } = await completeSession(userDoc, session);
+    const { patch, celebration: c } = await completeSession(userDoc, displayedSession);
     setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
     setCompleted(true);
     setCelebration(c);
@@ -121,11 +132,18 @@ export default function TrainingPage() {
         )}
 
         <SessionView
-          session={session}
+          session={displayedSession}
           equipment={userDoc.equipment}
           onComplete={handleComplete}
           completed={completed || globalCompleted}
-          onStartFocusMode={() => startSession(session)}
+          onStartFocusMode={() => startSession(displayedSession)}
+        />
+
+        <PlanReviewButton
+          session={displayedSession}
+          skills={userDoc.skills}
+          equipment={userDoc.equipment}
+          onApply={setAiAppliedSession}
         />
 
         <Link
