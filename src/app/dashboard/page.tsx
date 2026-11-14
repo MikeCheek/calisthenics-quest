@@ -9,6 +9,7 @@ import Nav from "@/components/Nav";
 import NotificationPrompt from "@/components/NotificationPrompt";
 import XPBar from "@/components/XPBar";
 import MissionList from "@/components/MissionList";
+import VerifiedSkillsCard from "@/components/VerifiedSkillsCard";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
 import { pickFocus, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { SKILL_CATEGORIES } from "@/lib/skillCategories";
@@ -89,6 +90,8 @@ export default function DashboardPage() {
         <XPBar xp={userDoc.xp} streak={userDoc.streak} skills={userDoc.skills} mastery={userDoc.skillMastery} />
 
         <MissionList missions={missions} />
+
+        <VerifiedSkillsCard userDoc={userDoc} />
 
         {/* Quick actions grid */}
         <div>

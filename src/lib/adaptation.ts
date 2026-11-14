@@ -19,6 +19,8 @@ import {
 } from "./exerciseHierarchy";
 import { adjustDetail } from "./exerciseTiming";
 import { STAGE_ORDER, STAGE_LABEL, stageIndex } from "./stageOrder";
+import { median, scaleHoldDetail, round5 } from "./timingLearning";
+import type { VerificationEvent } from "./verification";
 
 // ---------------------------------------------------------------------------
 // Learning from activity.
@@ -47,6 +49,13 @@ const VOLUME_AT = -3; // pressure at/below which a set is added
 const STEP_UP_AT = -6; // pressure at/below which a harder rung is tried
 const STEP_UP_MIN_DONE = 6;
 const REP_DELTA_LIMIT = 3;
+
+// timing (see timingLearning.ts for the per-sample and per-session cleaning)
+const TIMING_HISTORY = 5; // sessions remembered per exercise
+const REST_MIN_SESSIONS = 3; // rest only changes after this many clean sessions agree
+const HOLD_MIN_SESSIONS = 2;
+const REST_DEADBAND = 0.15; // ignore rest differences within ±15%
+const HOLD_SHORTEN_BELOW = 0.75; // median held / target under this: shorten the target
 
 const SKILL_SCORE_STEP = 6; // score needed to move mastery one notch (~1–2 full sessions)
 const SNOOZE_DAYS = 7;
@@ -79,11 +88,20 @@ export function applyExerciseFeedback(
 
   for (const fb of feedback) {
     if (HIERARCHY_EXEMPT_SETS.has(fb.setTitle)) continue; // warm-up / finisher: same for everyone
+    if (fb.check) continue; // skill checks are handled by verification.ts
     const s = get(fb.name);
     s.last = nowISO;
+
+    // one cleaned value per session (already a median of that session's sets)
+    const t = fb.timing;
+    if (t?.restRatio !== undefined) s.rr = [...(s.rr ?? []), +t.restRatio.toFixed(2)].slice(-TIMING_HISTORY);
+    if (t?.holdRatio !== undefined) s.hr = [...(s.hr ?? []), +t.holdRatio.toFixed(2)].slice(-TIMING_HISTORY);
+
     if (fb.outcome === "done") {
       s.done += 1;
-      s.p = clamp(s.p - 1, P_MIN, P_MAX);
+      // "done", but the timer shows broken holds or repeated mid-set
+      // pauses: count it as done without crediting it toward easing/step-ups
+      if (!t?.struggled) s.p = clamp(s.p - 1, P_MIN, P_MAX);
       if (fb.repDelta) s.rd = clamp((s.rd ?? 0) + fb.repDelta, -REP_DELTA_LIMIT, REP_DELTA_LIMIT);
     } else if (fb.outcome === "skipped") {
       s.skipped += 1;
@@ -112,6 +130,41 @@ export function applyExerciseFeedback(
 
 function statFor(stats: Record<string, ExerciseStat> | undefined, name: string): ExerciseStat | undefined {
   return stats?.[statKey(name)];
+}
+
+// Rest and hold-target tweaks learned from the timer. Applied to whatever
+// exercise ends up in the slot, using that exercise's own history.
+function applyTiming(ex: Exercise, stats: Record<string, ExerciseStat>): Exercise {
+  const s = statFor(stats, ex.name);
+  if (!s) return ex;
+  const notes: string[] = [];
+  let out = ex;
+
+  if ((s.rr?.length ?? 0) >= REST_MIN_SESSIONS && ex.restSeconds > 0) {
+    const r = median(s.rr!);
+    if (Math.abs(r - 1) > REST_DEADBAND) {
+      const rest = round5(ex.restSeconds * clamp(r, 0.5, 1.75));
+      if (rest !== ex.restSeconds) {
+        notes.push(`rest ${ex.restSeconds}s → ${rest}s, matching what you take`);
+        out = { ...out, restSeconds: rest };
+      }
+    }
+  }
+
+  if ((s.hr?.length ?? 0) >= HOLD_MIN_SESSIONS) {
+    const h = median(s.hr!);
+    if (h < HOLD_SHORTEN_BELOW) {
+      const detail = scaleHoldDetail(out.detail, Math.max(0.5, h));
+      if (detail !== out.detail) {
+        notes.push("shorter hold target, matching your recent holds");
+        out = { ...out, detail };
+      }
+    }
+  }
+
+  if (notes.length === 0) return out;
+  const note = notes.join(" · ");
+  return { ...out, adaptNote: out.adaptNote ? `${out.adaptNote} · ${note}` : note.charAt(0).toUpperCase() + note.slice(1) };
 }
 
 // `taken` holds the names already in this block: a swap never lands on
@@ -195,7 +248,8 @@ export function adaptSession(
       if (HIERARCHY_EXEMPT_SETS.has(set.title)) return set;
       const taken = new Set(set.exercises.map((e) => e.name));
       const exercises = set.exercises.map((ex) => {
-        const adapted = adaptOne(ex, stats, equipment, taken);
+        if (ex.check) return ex;
+        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken), stats);
         taken.add(adapted.name);
         return adapted;
       });
@@ -227,6 +281,8 @@ export interface AdaptationReport {
   masteryChanges: MasteryChange[];
   suggestions: StageSuggestion[];
   feedbackCounts: { done: number; skipped: number; tooHard: number };
+  verifications: VerificationEvent[];
+  ignoredTimingSamples: number; // timer samples dropped as unreliable
 }
 
 export function applySkillFeedback(
@@ -244,13 +300,13 @@ export function applySkillFeedback(
   const delta: Partial<Record<StagedSkillKey, number>> = {};
 
   for (const fb of feedback) {
-    if (HIERARCHY_EXEMPT_SETS.has(fb.setTitle)) continue;
+    if (HIERARCHY_EXEMPT_SETS.has(fb.setTitle) || fb.check) continue;
     const loc = exerciseStage(fb.name);
     if (!loc) continue;
     const userStage = (skills as unknown as Record<string, string>)[loc.skill] ?? "none";
     const rel = stageIndex(loc.skill, loc.stage) - stageIndex(loc.skill, userStage);
     let d = 0;
-    if (fb.outcome === "done") d = rel >= 1 ? 2 : rel === 0 ? 1 : 0;
+    if (fb.outcome === "done") d = fb.timing?.struggled ? 0 : rel >= 1 ? 2 : rel === 0 ? 1 : 0;
     else if (fb.outcome === "tooHard") d = rel >= 1 ? -1 : -2; // struggling above your stage is expected
     else d = rel >= 0 ? -0.5 : 0;
     delta[loc.skill] = (delta[loc.skill] ?? 0) + d;

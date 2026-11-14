@@ -210,6 +210,40 @@ export interface Exercise {
   adaptNote?: string;
   adaptedFrom?: string; // the exercise name it replaced
   adaptDir?: "easier" | "harder";
+  // Present on a "Skill Check" exercise: the claim it verifies and the
+  // target that proves it (see verification.ts).
+  check?: CheckSpec;
+}
+
+export type BaselineClaimKey = "pullUpMaxReps" | "pushUpMaxReps" | "dipMaxReps";
+export type ClaimKey = StagedSkillKey | BaselineClaimKey;
+
+export interface CheckSpec {
+  key: ClaimKey;
+  kind: "hold" | "reps" | "pass"; // seconds held / reps done / did-it yes-no
+  target: number; // seconds or reps; 1 for "pass"
+  label: string; // e.g. "Tuck Front Lever"
+}
+
+// Something the athlete said they can do — from the assessment or a profile
+// edit. It stays "claimed" until a Skill Check in training proves it.
+export interface SkillClaim {
+  value: string | number; // stage, or a rep count for baselines
+  status: "claimed" | "verified" | "unconfirmed";
+  claimedAt: string;
+  verifiedAt?: string;
+  lastAttemptAt?: string;
+  fails: number; // failed attempts on separate days since the claim
+  best?: number; // best measured result so far
+}
+
+// Cleaned timing from one exercise's timer, after filtering out
+// interruptions and accidental taps (see timingLearning.ts).
+export interface TimingSummary {
+  restRatio?: number; // median rest actually taken / planned, this session
+  holdRatio?: number; // median seconds held / target, this session
+  struggled: boolean; // broke holds early or paused mid-set repeatedly
+  ignored: number; // samples dropped as unreliable
 }
 
 // What happened to one exercise in a finished session — fed back into
@@ -223,6 +257,9 @@ export interface ExerciseFeedback {
   repDelta?: number; // the athlete's own in-session +/- adjustment
   adaptedFrom?: string;
   adaptDir?: "easier" | "harder";
+  timing?: TimingSummary;
+  check?: CheckSpec;
+  checkResult?: number | boolean;
 }
 
 // Rolling per-exercise memory. `p` is a "pressure" score: too hard and
@@ -234,6 +271,8 @@ export interface ExerciseStat {
   skipped: number;
   tooHard: number;
   rd?: number; // remembered rep/set adjustment the athlete keeps choosing
+  rr?: number[]; // last few sessions' median rest ratio (taken / planned)
+  hr?: number[]; // last few sessions' median hold ratio (held / target)
   last: string;
 }
 
@@ -244,7 +283,7 @@ export interface SkillProgress {
   snoozeUntil?: string; // a declined suggestion isn't re-offered before this
 }
 
-export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill";
+export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill" | "skillCheck";
 
 export interface TrainingSet {
   track: TrainingSetKind;
@@ -340,6 +379,7 @@ export interface UserDoc {
   locale?: Locale;
   exerciseStats?: Record<string, ExerciseStat>;
   skillProgress?: Partial<Record<StagedSkillKey, SkillProgress>>;
+  claims?: Partial<Record<ClaimKey, SkillClaim>>;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

@@ -9,7 +9,14 @@ correctly in both. Sessions then learn from you: every exercise you complete,
 skip or mark too hard feeds per-exercise memory (ease to an easier rung, add a
 set, step up a rung, remember your usual rep tweaks) and per-skill mastery,
 with a "Coach update" suggesting stage changes when you're ready (or
-struggling). Then complete sessions
+struggling). The exercise timer also feeds it: rest actually taken and hold
+times are learned (after filtering out backgrounded app time, interruptions,
+tapped-through sets and forgotten timers, then taking medians per session and
+across sessions), so rest periods and hold targets match the athlete. What the
+athlete *claims* ("10 push-ups", "5s full front lever") is tracked as a claim
+until a Skill Check in a regular session proves it: hit the target and it's
+verified (or raised); miss on two separate days and the baseline is set to
+what was measured or a step back is suggested. Then complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
 skill stage — across 50 tracked skills, from Front Lever to Iron Cross, Victorian Cross, and
 Manna, each with its own description in a full skills catalog — and the

@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
+import SkillCheckPanel from "@/components/SkillCheckPanel";
+import { TimerLog, summarizeTimerLog, bestHoldFromLog } from "@/lib/timingLearning";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
@@ -46,6 +48,8 @@ export default function FocusTrainingMode() {
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
   const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
+  const [timerLogs, setTimerLogs] = useState<Record<number, TimerLog>>({});
+  const [checkResults, setCheckResults] = useState<Record<number, number | boolean | undefined>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // reset internal progress whenever a genuinely new session starts
@@ -57,6 +61,8 @@ export default function FocusTrainingMode() {
     setOverrides({});
     setSkippedSteps(new Set());
     setTooHard([]);
+    setTimerLogs({});
+    setCheckResults({});
   }, [session]);
 
   const rawCurrent = steps[index];
@@ -171,7 +177,10 @@ export default function FocusTrainingMode() {
     const out: ExerciseFeedback[] = [...tooHard];
     steps.forEach((step, i) => {
       const ex = overrides[i] ?? step.exercise;
-      const isDone = completedSteps.has(i);
+      const checkResult = ex.check
+        ? checkResults[i] ?? (ex.check.kind === "hold" ? bestHoldFromLog(timerLogs[i]) ?? undefined : undefined)
+        : undefined;
+      const isDone = completedSteps.has(i) || checkResult !== undefined;
       if (!isDone && tooHard.some((t) => t.name === ex.name && t.setTitle === step.setTitle)) return;
       out.push({
         name: ex.name,
@@ -179,6 +188,9 @@ export default function FocusTrainingMode() {
         setTitle: step.setTitle,
         adaptedFrom: ex.adaptedFrom,
         adaptDir: ex.adaptDir,
+        timing: summarizeTimerLog(timerLogs[i]),
+        check: ex.check,
+        checkResult,
       });
     });
     return out;
@@ -325,9 +337,19 @@ export default function FocusTrainingMode() {
               <ExerciseTimer
                 key={`${current.key}-${current.exercise.name}`}
                 exercise={current.exercise}
-                onComplete={markCompleteAndAdvance}
+                // a Skill Check waits on "Next" so the result can be logged first
+                onComplete={current.exercise.check ? undefined : markCompleteAndAdvance}
                 externallyPaused={paused}
+                onLog={(log) => setTimerLogs((prev) => ({ ...prev, [index]: log }))}
               />
+              {current.exercise.check && (
+                <SkillCheckPanel
+                  spec={current.exercise.check}
+                  value={checkResults[index]}
+                  timerBest={bestHoldFromLog(timerLogs[index])}
+                  onChange={(v) => setCheckResults((prev) => ({ ...prev, [index]: v }))}
+                />
+              )}
             </div>
           </div>
 
@@ -355,12 +377,14 @@ export default function FocusTrainingMode() {
               >
                 <SkipForward size={13} /> Skip
               </button>
+              {!current.exercise.check && (
               <button
                 onClick={handleTooHard}
                 className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
               >
                 <ArrowDownCircle size={13} /> Too hard
               </button>
+              )}
             </div>
           )}
           <button

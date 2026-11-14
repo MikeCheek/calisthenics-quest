@@ -14,6 +14,7 @@ import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { ExerciseFeedback, SkillTrack, TrainingSession } from "@/lib/types";
 import { adaptSession, adaptedCount } from "@/lib/adaptation";
+import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
 import { useToast } from "@/context/ToastContext";
 import { Play, ChevronDown, Timer, CalendarDays, Dices } from "lucide-react";
 
@@ -56,7 +57,10 @@ export default function TrainingPage() {
     if (!userDoc || !focus) return null;
     // generated from the athlete's stages, then adapted to their own history
     // of completing, skipping and struggling with specific exercises
-    return adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus), userDoc.exerciseStats, userDoc.equipment);
+    const adapted = adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus), userDoc.exerciseStats, userDoc.equipment);
+    // one Skill Check per session, verifying something the athlete claimed
+    const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), userDoc.equipment, focus);
+    return addSkillCheck(adapted, check);
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).

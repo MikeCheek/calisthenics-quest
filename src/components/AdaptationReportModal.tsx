@@ -5,7 +5,7 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { describeSuggestion } from "@/lib/adaptation";
 import { MASTERY_LABEL, SKILL_FIELD_LABEL } from "@/lib/types";
 import Modal from "@/components/Modal";
-import { TrendingUp, TrendingDown, Brain } from "lucide-react";
+import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban } from "lucide-react";
 
 // Shown after a session when what the athlete did actually changed
 // something: a skill's mastery moved, or the engine thinks a stage change
@@ -30,6 +30,26 @@ export default function AdaptationReportModal() {
           Based on what you completed, skipped and marked too hard, your plan has adjusted.
           Next sessions will reflect this automatically.
         </p>
+
+        {report.verifications.length > 0 && (
+          <div>
+            <div className="text-xs uppercase tracking-wide text-sky-400 mb-1.5">Skill check</div>
+            <ul className="space-y-1.5">
+              {report.verifications.map((v) => (
+                <li key={v.key + v.outcome} className="flex items-start gap-2 text-sm text-zinc-200">
+                  {v.outcome === "verified" || v.outcome === "raised" ? (
+                    <BadgeCheck size={15} className="text-emerald-400 shrink-0 mt-0.5" />
+                  ) : v.outcome === "ignored" ? (
+                    <Ban size={15} className="text-zinc-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <HelpCircle size={15} className="text-orange-400 shrink-0 mt-0.5" />
+                  )}
+                  {v.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {report.masteryChanges.length > 0 && (
           <ul className="space-y-1.5">
@@ -73,6 +93,13 @@ export default function AdaptationReportModal() {
             </div>
           </div>
         ))}
+
+        {report.ignoredTimingSamples > 0 && (
+          <p className="text-[11px] text-zinc-500">
+            {report.ignoredTimingSamples} timer reading{report.ignoredTimingSamples === 1 ? " was" : "s were"} left
+            out as unreliable (app in the background, long interruptions or tapped-through sets).
+          </p>
+        )}
 
         <button
           onClick={clearReport}

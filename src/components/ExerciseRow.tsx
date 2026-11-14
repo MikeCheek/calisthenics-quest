@@ -5,6 +5,8 @@ import { Exercise } from "@/lib/types";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
+import SkillCheckPanel from "@/components/SkillCheckPanel";
+import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
 import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles } from "lucide-react";
 
 const SWIPE_THRESHOLD = 55;
@@ -25,6 +27,10 @@ export default function ExerciseRow({
   onResetAdjust,
   onCantDo,
   onSkip,
+  timerLog,
+  onTimerLog,
+  checkValue,
+  onCheckChange,
 }: {
   exercise: Exercise;
   displayedDetail: string;
@@ -40,10 +46,18 @@ export default function ExerciseRow({
   onResetAdjust: () => void;
   onCantDo?: () => void;
   onSkip?: () => void;
+  timerLog?: TimerLog;
+  onTimerLog?: (log: TimerLog) => void;
+  checkValue?: number | boolean;
+  onCheckChange?: (v: number | boolean | undefined) => void;
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  // once opened, the timer stays mounted (just hidden) so hiding it doesn't
+  // throw away its progress or the timing it has recorded
+  const [timerMounted, setTimerMounted] = useState(false);
+  if (timerOpen && !timerMounted) setTimerMounted(true);
   const start = useRef<{ x: number; y: number } | null>(null);
   const lockedAxis = useRef<"h" | "v" | null>(null);
   const displayedExercise = { ...exercise, detail: displayedDetail };
@@ -215,7 +229,19 @@ export default function ExerciseRow({
               </div>
             </div>
 
-            {timerOpen && <ExerciseTimer key={exercise.name} exercise={displayedExercise} />}
+            {timerMounted && (
+              <div className={timerOpen ? "" : "hidden"}>
+                <ExerciseTimer key={exercise.name} exercise={displayedExercise} onLog={onTimerLog} />
+              </div>
+            )}
+            {exercise.check && onCheckChange && (
+              <SkillCheckPanel
+                spec={exercise.check}
+                value={checkValue}
+                timerBest={bestHoldFromLog(timerLog)}
+                onChange={onCheckChange}
+              />
+            )}
           </div>
         </div>
       </div>

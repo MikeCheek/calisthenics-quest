@@ -35,7 +35,7 @@ interface TrainingSessionContextValue {
 }
 
 function reportIsWorthShowing(r: AdaptationReport): boolean {
-  return r.masteryChanges.length > 0 || r.suggestions.length > 0;
+  return r.masteryChanges.length > 0 || r.suggestions.length > 0 || r.verifications.length > 0;
 }
 
 const TrainingSessionContext = createContext<TrainingSessionContextValue | null>(null);

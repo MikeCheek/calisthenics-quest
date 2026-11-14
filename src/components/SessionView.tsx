@@ -6,6 +6,7 @@ import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
+import { TimerLog, summarizeTimerLog, bestHoldFromLog } from "@/lib/timingLearning";
 import Modal from "@/components/Modal";
 import { Play, Clock, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -41,6 +42,9 @@ export default function SessionView({
   // every "too hard" press, in order — the exercise it was pressed on, not
   // the easier one swapped in for it
   const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
+  // raw timer logs and Skill Check results, per row
+  const [timerLogs, setTimerLogs] = useState<Record<string, TimerLog>>({});
+  const [checkResults, setCheckResults] = useState<Record<string, number | boolean | undefined>>({});
   const [openTimers, setOpenTimers] = useState<Set<string>>(new Set());
   const [individualDelta, setIndividualDelta] = useState<Record<string, number>>({});
   const [sessionLevel, setSessionLevel] = useState<SessionLevel>("default");
@@ -137,7 +141,11 @@ export default function SessionView({
       set.exercises.forEach((originalEx, i) => {
         const key = `${set.title}-${i}`;
         const ex = effectiveFor(key, originalEx, exempt);
-        const isDone = done.has(key);
+        const checkResult = ex.check
+          ? checkResults[key] ?? (ex.check.kind === "hold" ? bestHoldFromLog(timerLogs[key]) ?? undefined : undefined)
+          : undefined;
+        // logging a check result counts as doing it, even without the tick
+        const isDone = done.has(key) || checkResult !== undefined;
         // a row pressed "too hard" with no easier swap and never done is
         // already recorded as too hard — don't also count it as a skip
         if (!isDone && !individualOverrides[key] && tooHard.some((t) => t.name === ex.name && t.setTitle === set.title)) return;
@@ -148,6 +156,9 @@ export default function SessionView({
           repDelta: isDone ? individualDelta[key] ?? 0 : undefined,
           adaptedFrom: ex.adaptedFrom,
           adaptDir: ex.adaptDir,
+          timing: summarizeTimerLog(timerLogs[key]),
+          check: ex.check,
+          checkResult,
         });
       });
     });
@@ -232,7 +243,11 @@ export default function SessionView({
                         onToggleTimer={() => toggleTimer(key)}
                         onBump={(delta) => bump(key, delta)}
                         onResetAdjust={() => resetAdjust(key)}
-                        onCantDo={exempt ? undefined : () => swapForEasier(key, effectiveExercise, set.title)}
+                        onCantDo={exempt || effectiveExercise.check ? undefined : () => swapForEasier(key, effectiveExercise, set.title)}
+                        timerLog={timerLogs[key]}
+                        onTimerLog={(log) => setTimerLogs((prev) => ({ ...prev, [key]: log }))}
+                        checkValue={checkResults[key]}
+                        onCheckChange={(v) => setCheckResults((prev) => ({ ...prev, [key]: v }))}
                         onSkip={() => toggleSkip(key)}
                       />
                     );

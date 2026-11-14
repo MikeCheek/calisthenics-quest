@@ -1,5 +1,6 @@
 import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
+import { applyCheckResults, syncClaims } from "./verification";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile } from "./store";
 import { effectiveLevel } from "./levelPath";
@@ -110,21 +111,40 @@ export async function completeSession(
     userDoc.skillProgress ?? {},
     feedback
   );
+  // Verify (or question) what the athlete claimed, from any Skill Check.
+  const verified = applyCheckResults(
+    syncClaims(userDoc.claims, userDoc.skills),
+    userDoc.skills,
+    learned.mastery,
+    learned.progress,
+    feedback
+  );
+  const newSkills = verified.skills;
+  const claims = syncClaims(verified.claims, newSkills);
+  const suggestions = [
+    ...verified.suggestions,
+    ...learned.suggestions.filter((s) => !verified.suggestions.some((v) => v.skill === s.skill)),
+  ];
+
   const report: AdaptationReport = {
     masteryChanges: learned.masteryChanges,
-    suggestions: learned.suggestions,
+    suggestions,
+    verifications: verified.events,
+    ignoredTimingSamples: feedback.reduce((n, f) => n + (f.timing?.ignored ?? 0), 0),
     feedbackCounts: {
       done: feedback.filter((f) => f.outcome === "done").length,
       skipped: feedback.filter((f) => f.outcome === "skipped").length,
       tooHard: feedback.filter((f) => f.outcome === "tooHard").length,
     },
   };
-  const newMastery = learned.mastery;
+  const newMastery = verified.mastery;
 
   const patch: Partial<UserDoc> = {
     exerciseStats,
     skillProgress: learned.progress,
     skillMastery: newMastery,
+    skills: newSkills,
+    claims,
     xp: totalXp,
     streak: newStreak,
     lastSessionDateISO: new Date().toISOString(),
@@ -141,11 +161,11 @@ export async function completeSession(
       displayName: userDoc.displayName,
       photoURL: userDoc.photoURL,
       friendCode: userDoc.friendCode,
-      level: effectiveLevel(totalXp, userDoc.skills, newMastery),
+      level: effectiveLevel(totalXp, newSkills, newMastery),
       streak: newStreak,
       xp: totalXp,
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
-      skills: userDoc.skills,
+      skills: newSkills,
       skillMastery: newMastery,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
@@ -153,7 +173,7 @@ export async function completeSession(
   }
 
   const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
-  const newLevel = effectiveLevel(totalXp, userDoc.skills, newMastery);
+  const newLevel = effectiveLevel(totalXp, newSkills, newMastery);
 
   return {
     patch,
