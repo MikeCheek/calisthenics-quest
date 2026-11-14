@@ -71,7 +71,7 @@ export default function SkillCheckPanel({
             value={effective === undefined ? "" : String(effective)}
             placeholder={String(spec.target)}
             onChange={(e) => onChange(e.target.value === "" ? undefined : Math.max(0, Math.round(Number(e.target.value))))}
-            className="w-20 text-center bg-zinc-900 border border-zinc-700 rounded-lg py-1.5 text-sm text-zinc-100"
+            className="w-20 text-center bg-zinc-900 border border-zinc-700 rounded-lg py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600"
           />
           <button
             type="button"

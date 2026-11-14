@@ -10,6 +10,7 @@ import NotificationPrompt from "@/components/NotificationPrompt";
 import XPBar from "@/components/XPBar";
 import MissionList from "@/components/MissionList";
 import VerifiedSkillsCard from "@/components/VerifiedSkillsCard";
+import { claimCounts, syncClaims } from "@/lib/verification";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
 import { pickFocus, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { SKILL_CATEGORIES } from "@/lib/skillCategories";
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
   const todaysFocus = FOCUS_LABEL[pickFocus(new Date(), userDoc.equipment, userDoc.goalTracks)];
   const skillsStarted = ALL_50_SKILLS.filter((s) => userDoc.skills[s] !== "none").length;
+  const { verified: verifiedCount, total: verifiedTotal } = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
 
   return (
     <>
@@ -69,11 +71,12 @@ export default function DashboardPage() {
 
         {/* Stat row */}
         <div className="grid grid-cols-3 gap-3">
+          {/* streak already shows in the level card below — show proof instead */}
           <StatTile
-            href="/path"
-            value={String(userDoc.streak)}
-            suffix="🔥"
-            label={t("dashboard", "dayStreak")}
+            href="/profile"
+            value={verifiedTotal ? `${verifiedCount}/${verifiedTotal}` : "–"}
+            suffix="✓"
+            label="verified"
           />
           <StatTile
             href="/skills"

@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
 import ExerciseTimer from "@/components/ExerciseTimer";
-import ExerciseTipButton from "@/components/ExerciseTipButton";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
 import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
@@ -150,10 +149,11 @@ export default function ExerciseRow({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="text-zinc-500 hover:text-orange-400"
-                  aria-label={`How to do ${exercise.name}`}
+                  className="text-zinc-500 hover:text-orange-400 p-0.5 -m-0.5"
+                  aria-label={`How to do ${exercise.name}, with an AI tip`}
+                  title="How to · AI tip"
                 >
-                  <Info size={14} />
+                  <Info size={15} />
                 </button>
                 {exercise.restSeconds > 0 && (
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
@@ -174,39 +174,38 @@ export default function ExerciseRow({
             )}
             {isSkipped && <div className="text-[11px] text-zinc-500 mt-0.5">Skipped</div>}
 
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            <div className="flex items-center gap-1.5 mt-2">
               <button
                 onClick={onToggleTimer}
-                className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
+                className={`text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-medium ${
+                  timerOpen ? "bg-zinc-800 text-zinc-200" : "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25"
+                }`}
               >
-                <Play size={11} /> {timerOpen ? "Hide timer" : "Start"}
+                <Play size={11} /> {timerOpen ? "Hide" : "Start"}
               </button>
-              <ExerciseTipButton exerciseName={exercise.name} exerciseDetail={exercise.detail} trackLabel={trackLabel} />
-              {onCantDo && (
+              {onSkip && !isDone && (
+                <button
+                  onClick={onSkip}
+                  className={`text-xs px-2 py-1.5 rounded-lg flex items-center gap-1 ${
+                    isSkipped ? "bg-zinc-700 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                  }`}
+                >
+                  <SkipForward size={11} /> {isSkipped ? "Undo" : "Skip"}
+                </button>
+              )}
+              {onCantDo && !isDone && (
                 <button
                   onClick={onCantDo}
-                  className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-400 hover:border-orange-500 hover:text-orange-400 flex items-center gap-1"
+                  className="text-xs px-2 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-orange-400 flex items-center gap-1 whitespace-nowrap"
                 >
                   <ArrowDownCircle size={11} /> Too hard
                 </button>
               )}
-              {onSkip && !isDone && (
-                <button
-                  onClick={onSkip}
-                  className={`text-xs px-2 py-1 rounded-lg border flex items-center gap-1 ${
-                    isSkipped
-                      ? "border-zinc-500 text-zinc-300"
-                      : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  <SkipForward size={11} /> {isSkipped ? "Undo skip" : "Skip"}
-                </button>
-              )}
-              <div className="flex items-center gap-1 ml-auto">
+              <div className="flex items-center ml-auto rounded-lg border border-zinc-700 overflow-hidden" title="Sets — or swipe the card">
                 <button
                   onClick={() => onBump(-1)}
-                  aria-label="Make easier"
-                  className="w-6 h-6 rounded-lg border border-zinc-600 text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 flex items-center justify-center"
+                  aria-label="One set fewer"
+                  className="w-7 h-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
                 >
                   <Minus size={11} />
                 </button>
@@ -214,15 +213,15 @@ export default function ExerciseRow({
                   <button
                     onClick={onResetAdjust}
                     aria-label="Reset to default"
-                    className="w-6 h-6 rounded-lg border border-zinc-600 text-zinc-500 hover:text-orange-400 flex items-center justify-center"
+                    className="w-6 h-7 text-orange-400 hover:bg-zinc-800 flex items-center justify-center border-x border-zinc-700"
                   >
                     <RotateCcw size={10} />
                   </button>
                 )}
                 <button
                   onClick={() => onBump(1)}
-                  aria-label="Make harder"
-                  className="w-6 h-6 rounded-lg border border-zinc-600 text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 flex items-center justify-center"
+                  aria-label="One set more"
+                  className="w-7 h-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
                 >
                   <Plus size={11} />
                 </button>

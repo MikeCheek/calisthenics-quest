@@ -39,7 +39,11 @@ redesigned dashboard, a pomodoro-style focus timer, day/week/month plan
 generation with optional AI coach notes, a friends list with mutual add and
 nudges, daily training reminders with rotating fun
 punch-lines, and paired training via a share
-code. Installable as a PWA.
+code. The profile is organised into Progress / Skills / Settings / Account
+tabs; Account has a data export and a danger zone (reset training memory,
+reset verifications, reset skills, start over, delete account), each showing
+exactly what it removes and keeps, with typed confirmation for the
+irreversible ones. Installable as a PWA.
 
 ## Stack
 
@@ -115,6 +119,8 @@ service cloud.firestore {
     match /usercodes/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      // released when its owner deletes their account
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     match /pairings/{code} {
@@ -123,6 +129,8 @@ service cloud.firestore {
       allow update: if request.auth != null &&
         (resource.data.hostUid == request.auth.uid ||
          request.resource.data.guestUid == request.auth.uid);
+      // pairings hold the host's body stats and skills — removed on account deletion
+      allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
     }
   }
 }
