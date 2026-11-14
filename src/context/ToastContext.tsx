@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { Info, CheckCircle2, AlertTriangle, AlertCircle, X } from "lucide-react";
+import { useOptionalLanguage } from "@/context/LanguageContext";
 
 export type ToastKind = "info" | "success" | "warning" | "error";
 
@@ -65,11 +66,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error("useToast must be used within ToastProvider");
+  const lang = useOptionalLanguage();
+  const tr = (m: string) => (lang ? lang.tx(m) : m);
   return {
-    info: (message: string) => ctx.show("info", message),
-    success: (message: string) => ctx.show("success", message),
-    warning: (message: string) => ctx.show("warning", message),
-    error: (message: string) => ctx.show("error", message),
+    // messages are written in English and translated here, in one place
+    info: (message: string) => ctx.show("info", tr(message)),
+    success: (message: string) => ctx.show("success", tr(message)),
+    warning: (message: string) => ctx.show("warning", tr(message)),
+    error: (message: string) => ctx.show("error", tr(message)),
   };
 }
 

@@ -18,6 +18,7 @@ import { STAGE_LABEL } from "@/lib/stageOrder";
 import ReminderSettings from "@/components/ReminderSettings";
 import { updateProgress } from "@/lib/store";
 import VerifiedSkillsCard from "@/components/VerifiedSkillsCard";
+import CoachInsightsCard from "@/components/CoachInsightsCard";
 import DangerZone from "@/components/DangerZone";
 import { claimCounts, syncClaims } from "@/lib/verification";
 import { Globe, Info, Flame, Dumbbell, Zap, BadgeCheck, Pencil, ChevronRight, Sparkles, Ruler, MapPin, Target } from "lucide-react";
@@ -57,7 +58,7 @@ const EQUIPMENT_LABEL: [keyof import("@/lib/types").TrainingEquipment, string][]
 
 export default function ProfilePage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
-  const { t, locale, setLocale } = useLanguage();
+  const { t, tx, locale, setLocale } = useLanguage();
   const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
   const [declareOpen, setDeclareOpen] = useState(false);
   const [showAllSkills, setShowAllSkills] = useState(false);
@@ -124,20 +125,22 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="heading text-xl text-zinc-100 truncate">{userDoc.displayName}</h1>
-              <div className="text-sm text-orange-400">{rankTitle(progress.level)}</div>
+              <div className="text-sm text-orange-400">{tx(rankTitle(progress.level))}</div>
               <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${progress.pct}%` }} />
               </div>
               <div className="text-[11px] text-zinc-500 mt-1 stat-mono">
-                {progress.catchingUp ? `${progress.pct}% to match your skill level` : `${progress.into} / ${progress.span} XP to level ${progress.level + 1}`}
+                {progress.catchingUp
+                  ? tx("{p}% to match your skill level", { p: progress.pct })
+                  : tx("{a} / {b} XP to level {n}", { a: progress.into, b: progress.span, n: progress.level + 1 })}
               </div>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-2 mt-4 relative">
             <HeroStat icon={<Flame size={14} className="text-orange-400" />} value={userDoc.streak} label={t("profile", "daysStreak")} />
-            <HeroStat icon={<Dumbbell size={14} className="text-sky-400" />} value={userDoc.totalSessionsCompleted} label="sessions" />
+            <HeroStat icon={<Dumbbell size={14} className="text-sky-400" />} value={userDoc.totalSessionsCompleted} label={tx("sessions")} />
             <HeroStat icon={<Zap size={14} className="text-amber-400" />} value={userDoc.xp} label="XP" />
-            <HeroStat icon={<BadgeCheck size={14} className="text-emerald-400" />} value={counts.total ? `${counts.verified}/${counts.total}` : "–"} label="verified" />
+            <HeroStat icon={<BadgeCheck size={14} className="text-emerald-400" />} value={counts.total ? `${counts.verified}/${counts.total}` : "–"} label={tx("verified")} />
           </div>
         </section>
 
@@ -154,7 +157,7 @@ export default function ProfilePage() {
                   tab === x.id ? "bg-zinc-800 text-zinc-100 shadow" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                {x.label}
+                {tx(x.label)}
               </button>
             ))}
           </div>
@@ -167,6 +170,7 @@ export default function ProfilePage() {
               <XPHistoryChart history={userDoc.xpHistory ?? []} />
             </div>
             <VerifiedSkillsCard userDoc={userDoc} />
+            <CoachInsightsCard userDoc={userDoc} />
             <div className="panel p-4">
               <div className="heading text-base text-zinc-100 mb-2">{t("profile", "skillRadar")}</div>
               <SkillRadarChart skills={userDoc.skills} />
@@ -200,12 +204,12 @@ export default function ProfilePage() {
             {userDoc.goalTracks?.length > 0 && (
               <div className="panel p-4">
                 <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
-                  <Target size={16} className="text-orange-400" /> Your goals
+                  <Target size={16} className="text-orange-400" /> {tx("Your goals")}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {userDoc.goalTracks.map((track) => (
                     <span key={track} className="text-xs px-2.5 py-1 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300">
-                      {TRACK_LABEL[track]}
+                      {tx(TRACK_LABEL[track])}
                     </span>
                   ))}
                 </div>
@@ -215,7 +219,7 @@ export default function ProfilePage() {
             <div className="panel p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="heading text-base text-zinc-100">
-                  {t("profile", "allSkills")} <span className="text-zinc-500 text-sm font-normal">· {startedKeys.length} started</span>
+                  {t("profile", "allSkills")} <span className="text-zinc-500 text-sm font-normal">· {tx("{n} started", { n: startedKeys.length })}</span>
                 </div>
                 <div className="flex p-0.5 rounded-lg bg-zinc-800 text-xs">
                   {[false, true].map((all) => (
@@ -224,13 +228,13 @@ export default function ProfilePage() {
                       onClick={() => setShowAllSkills(all)}
                       className={`px-2.5 py-1 rounded-md ${showAllSkills === all ? "bg-zinc-950 text-zinc-100" : "text-zinc-400"}`}
                     >
-                      {all ? "All 50" : "Started"}
+                      {all ? tx("All 50") : tx("Started")}
                     </button>
                   ))}
                 </div>
               </div>
               {shownKeys.length === 0 ? (
-                <p className="text-xs text-zinc-500">No skills started yet — switch to “All 50” to explore them.</p>
+                <p className="text-xs text-zinc-500">{tx("No skills started yet — switch to “All 50” to explore them.")}</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {shownKeys.map((key) => {
@@ -251,7 +255,7 @@ export default function ProfilePage() {
                           {verified && <BadgeCheck size={11} className="text-emerald-400 shrink-0" aria-label="verified" />}
                         </div>
                         <div className={`stat-mono text-[11px] mt-0.5 ${started ? "text-emerald-400" : "text-zinc-600"}`}>
-                          {STAGE_LABEL[stage] ?? stage}
+                          {tx(STAGE_LABEL[stage] ?? stage)}
                         </div>
                         {started && m && (
                           <div className="flex gap-0.5 mt-1.5">
@@ -266,7 +270,7 @@ export default function ProfilePage() {
                 </div>
               )}
               <div className="text-[11px] text-zinc-600 mt-2 flex items-center gap-1">
-                <Info size={11} /> Tap a skill for its description and progression.
+                <Info size={11} /> {tx("Tap a skill for its description and progression.")}
               </div>
             </div>
 
@@ -279,29 +283,29 @@ export default function ProfilePage() {
             <Link href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <div className="heading text-base text-zinc-100 flex items-center gap-2">
-                  <Ruler size={16} className="text-orange-400" /> Body &amp; schedule
+                  <Ruler size={16} className="text-orange-400" /> {tx("Body & schedule")}
                 </div>
                 <span className="text-xs text-zinc-400 flex items-center gap-1">
-                  <Pencil size={12} /> Edit
+                  <Pencil size={12} /> {tx("Edit")}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-sm">
-                <Stat label="Age" value={`${userDoc.body.ageYears} yrs`} />
-                <Stat label="Height" value={`${userDoc.body.heightCm} cm`} />
-                <Stat label="Weight" value={`${userDoc.body.weightKg} kg`} />
+                <Stat label={tx("Age")} value={`${userDoc.body.ageYears} ${tx("yrs")}`} />
+                <Stat label={tx("Height")} value={`${userDoc.body.heightCm} cm`} />
+                <Stat label={tx("Weight")} value={`${userDoc.body.weightKg} kg`} />
               </div>
               <div className="text-xs text-zinc-500 mt-2">
-                {userDoc.body.trainingDaysPerWeek ?? 3} days/week · ~{userDoc.body.sessionLengthMinutes ?? 45} min sessions
+                {tx("{a} days/week · ~{b} min sessions", { a: userDoc.body.trainingDaysPerWeek ?? 3, b: userDoc.body.sessionLengthMinutes ?? 45 })}
               </div>
             </Link>
 
             <Link href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <div className="heading text-base text-zinc-100 flex items-center gap-2">
-                  <MapPin size={16} className="text-orange-400" /> Where you train
+                  <MapPin size={16} className="text-orange-400" /> {tx("Where you train")}
                 </div>
                 <span className="text-xs text-zinc-400 flex items-center gap-1">
-                  <Pencil size={12} /> Edit
+                  <Pencil size={12} /> {tx("Edit")}
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -312,7 +316,7 @@ export default function ProfilePage() {
                       userDoc.equipment[k] ? "border-emerald-600 text-emerald-400 bg-emerald-600/10" : "border-zinc-800 text-zinc-600 line-through"
                     }`}
                   >
-                    {label}
+                    {tx(label)}
                   </span>
                 ))}
               </div>
@@ -342,7 +346,7 @@ export default function ProfilePage() {
 
             <Link href="/about" className="panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors">
               <span className="text-sm text-zinc-200 flex items-center gap-2">
-                <Info size={16} className="text-zinc-500" /> About, privacy &amp; support the developer
+                <Info size={16} className="text-zinc-500" /> {tx("About, privacy & support the developer")}
               </span>
               <ChevronRight size={16} className="text-zinc-500" />
             </Link>

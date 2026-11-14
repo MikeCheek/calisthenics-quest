@@ -20,7 +20,7 @@ const ALL_50_SKILLS = SKILL_CATEGORIES.flatMap((c) => c.skills);
 
 export default function DashboardPage() {
   const { user, userDoc, loading } = useAuth();
-  const { t } = useLanguage();
+  const { t, tx } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function DashboardPage() {
             href="/profile"
             value={verifiedTotal ? `${verifiedCount}/${verifiedTotal}` : "–"}
             suffix="✓"
-            label="verified"
+            label={tx("verified")}
           />
           <StatTile
             href="/skills"

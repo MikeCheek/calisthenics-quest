@@ -16,6 +16,7 @@ import WeekdayPicker from "@/components/WeekdayPicker";
 import SkillAssessmentStep from "@/components/SkillAssessmentStep";
 import CalisthenicsFigure from "@/components/CalisthenicsFigure";
 import { ChevronLeft } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const GOAL_TRACKS: SkillTrack[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand",
@@ -49,6 +50,7 @@ export default function OnboardingStepper({
   ) => void;
   saving?: boolean;
 }) {
+  const { tx } = useLanguage();
   const [step, setStep] = useState(0);
   const [body, setBody] = useState<BodyProfile>(initialBody);
   const [skills, setSkills] = useState<SkillProfile>(initialSkills);
@@ -71,7 +73,7 @@ export default function OnboardingStepper({
       {/* progress dots */}
       <div className="flex items-center gap-2">
         {step > 0 && (
-          <button onClick={back} className="p-1.5 -ml-1.5 text-zinc-400" aria-label="Back">
+          <button onClick={back} className="p-1.5 -ml-1.5 text-zinc-400" aria-label={tx("Back")}>
             <ChevronLeft size={20} />
           </button>
         )}
@@ -86,39 +88,39 @@ export default function OnboardingStepper({
       </div>
       <div>
         <div className="text-xs text-orange-400 mb-0.5">
-          Step {step + 1} of {STEPS.length}
+          {tx("Step {a} of {b}", { a: step + 1, b: STEPS.length })}
         </div>
-        <h2 className="heading text-xl text-zinc-100">{STEPS[step]}</h2>
+        <h2 className="heading text-xl text-zinc-100">{tx(STEPS[step])}</h2>
       </div>
 
       {step === 0 && (
         <div className="space-y-5">
           <CalisthenicsFigure move="pullup" />
           <div className="grid grid-cols-3 gap-3">
-            <ScrollPicker label="Age" value={body.ageYears} min={12} max={80} unit="yrs" variant="wheel"
+            <ScrollPicker label={tx("Age")} value={body.ageYears} min={12} max={80} unit={tx("yrs")} variant="wheel"
               onChange={(v) => setBody({ ...body, ageYears: v })} />
-            <ScrollPicker label="Height" value={body.heightCm} min={130} max={220} unit="cm" variant="ruler"
+            <ScrollPicker label={tx("Height")} value={body.heightCm} min={130} max={220} unit="cm" variant="ruler"
               onChange={(v) => setBody({ ...body, heightCm: v })} />
-            <ScrollPicker label="Weight" value={body.weightKg} min={35} max={160} unit="kg" variant="wheel"
+            <ScrollPicker label={tx("Weight")} value={body.weightKg} min={35} max={160} unit="kg" variant="wheel"
               onChange={(v) => setBody({ ...body, weightKg: v })} />
           </div>
           <SegmentedControl
-            label="Sex (optional — helps calibrate a couple of exercise choices)"
+            label={tx("Sex (optional — helps calibrate a couple of exercise choices)")}
             value={body.sex ?? "unspecified"}
             options={[
-              { value: "unspecified", label: "Prefer not to say" },
-              { value: "male", label: "Male" },
-              { value: "female", label: "Female" },
+              { value: "unspecified", label: tx("Prefer not to say") },
+              { value: "male", label: tx("Male") },
+              { value: "female", label: tx("Female") },
             ]}
             onChange={(v) => setBody({ ...body, sex: v as BodyProfile["sex"] })}
           />
           <WeekdayPicker
-            label="Which days do you train?"
+            label={tx("Which days do you train?")}
             selected={body.trainingDaysOfWeek ?? []}
             onChange={(days) => setBody({ ...body, trainingDaysOfWeek: days, trainingDaysPerWeek: days.length })}
           />
           <SegmentedControl
-            label="Typical session length"
+            label={tx("Typical session length")}
             value={String(body.sessionLengthMinutes ?? 45)}
             options={[15, 30, 45, 60, 90].map((n) => ({ value: String(n), label: `${n} min` }))}
             onChange={(v) => setBody({ ...body, sessionLengthMinutes: Number(v) })}
@@ -129,25 +131,24 @@ export default function OnboardingStepper({
       {step === 1 && (
         <div className="space-y-4">
           <p className="text-sm text-zinc-400">
-            Tap everything available where you usually train. Sessions only
-            suggest what you can actually do — ground work always shows up.
+            {tx("Tap everything available where you usually train. Sessions only suggest what you can actually do — ground work always shows up.")}
           </p>
           <div className="grid grid-cols-2 gap-2.5">
-            <EquipmentToggle label="Pull-up bar" checked={equipment.pullUpBar}
+            <EquipmentToggle label={tx("Pull-up bar")} checked={equipment.pullUpBar}
               onChange={(v) => setEquipment({ ...equipment, pullUpBar: v })} />
-            <EquipmentToggle label="Parallel bars / dip station" checked={equipment.parallelBars}
+            <EquipmentToggle label={tx("Parallel bars / dip station")} checked={equipment.parallelBars}
               onChange={(v) => setEquipment({ ...equipment, parallelBars: v })} />
-            <EquipmentToggle label="Rings" checked={equipment.rings}
+            <EquipmentToggle label={tx("Rings")} checked={equipment.rings}
               onChange={(v) => setEquipment({ ...equipment, rings: v })} />
-            <EquipmentToggle label="Wall space" checked={equipment.wallSpace}
+            <EquipmentToggle label={tx("Wall space")} checked={equipment.wallSpace}
               onChange={(v) => setEquipment({ ...equipment, wallSpace: v })} />
-            <EquipmentToggle label="Vertical pole / sturdy tree" checked={equipment.verticalPole}
+            <EquipmentToggle label={tx("Vertical pole / sturdy tree")} checked={equipment.verticalPole}
               onChange={(v) => setEquipment({ ...equipment, verticalPole: v })} />
-            <EquipmentToggle label="Monkey bars" checked={equipment.monkeyBars}
+            <EquipmentToggle label={tx("Monkey bars")} checked={equipment.monkeyBars}
               onChange={(v) => setEquipment({ ...equipment, monkeyBars: v })} />
-            <EquipmentToggle label="Weights (vest, belt, plates, backpack)" checked={equipment.weights}
+            <EquipmentToggle label={tx("Weights (vest, belt, plates, backpack)")} checked={equipment.weights}
               onChange={(v) => setEquipment({ ...equipment, weights: v })} />
-            <EquipmentToggle label="Elastic / resistance bands" checked={equipment.resistanceBands}
+            <EquipmentToggle label={tx("Elastic / resistance bands")} checked={equipment.resistanceBands}
               onChange={(v) => setEquipment({ ...equipment, resistanceBands: v })} />
           </div>
         </div>
@@ -173,8 +174,7 @@ export default function OnboardingStepper({
         <div className="space-y-4">
           <CalisthenicsFigure move="flag" />
           <p className="text-sm text-zinc-400">
-            Pick up to 4 skills you most want to progress. Sessions targeting
-            these show up more often in your rotation.
+            {tx("Pick up to 4 skills you most want to progress. Sessions targeting these show up more often in your rotation.")}
           </p>
           <div className="flex flex-wrap gap-2">
             {GOAL_TRACKS.map((t) => (
@@ -188,7 +188,7 @@ export default function OnboardingStepper({
                     : "border-zinc-700 text-zinc-400"
                 }`}
               >
-                {TRACK_LABEL[t]}
+                {tx(TRACK_LABEL[t])}
               </button>
             ))}
           </div>
@@ -201,7 +201,7 @@ export default function OnboardingStepper({
         disabled={saving}
         className="w-full py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-60"
       >
-        {step < STEPS.length - 1 ? "Continue" : saving ? "Saving..." : "Save & start training"}
+        {step < STEPS.length - 1 ? tx("Continue") : saving ? tx("Saving...") : tx("Save & start training")}
       </button>
       )}
     </div>

@@ -6,6 +6,7 @@ import { parseTiming } from "@/lib/exerciseTiming";
 import { TimerLog, EMPTY_TIMER_LOG } from "@/lib/timingLearning";
 import { playCountdownTick, playGoSound, playRestSound, playCompleteSound } from "@/lib/sound";
 import { Play, Pause, SkipForward, Check } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 type Phase = "idle" | "countdown" | "work" | "rest" | "done";
 
@@ -28,6 +29,11 @@ export default function ExerciseTimer({
   externallyPaused?: boolean;
 }) {
   const timing = parseTiming(exercise.detail);
+  const { tx } = useLanguage();
+  // lower end of a prescribed rep range ("3 x 8-10 reps" -> 8); null = max reps
+  const repMatch = exercise.detail.match(/(\d+)(?:-\d+)?\s*reps?\b/i);
+  const targetReps = repMatch ? parseInt(repMatch[1], 10) : /max/i.test(exercise.detail) ? null : undefined;
+  const [repLog, setRepLog] = useState<(number | undefined)[]>([]);
   const [set, setSet] = useState(1);
   const [phase, setPhase] = useState<Phase>("idle");
   const [countdownValue, setCountdownValue] = useState(COUNTDOWN_FROM);
@@ -75,6 +81,24 @@ export default function ExerciseTimer({
   const emitLog = () => {
     const l = logRef.current;
     onLogRef.current?.({ sets: [...l.sets], rests: [...l.rests], workPauses: l.workPauses });
+  };
+
+  // Optional per-set rep logging for rep-based exercises: shown during the
+  // rest after a set (and once finished). Untouched = not logged, so a
+  // prefilled number never pretends to be data.
+  const repSetIdx = timing.isTimed ? -1 : logRef.current.sets.length - 1;
+  const lastLogged = [...repLog].reverse().find((r) => r !== undefined);
+  const repDefault = lastLogged ?? targetReps ?? 5;
+  const logReps = (v: number) => {
+    const sample = logRef.current.sets[repSetIdx];
+    if (!sample) return;
+    sample.reps = v;
+    setRepLog((prev) => {
+      const next = [...prev];
+      next[repSetIdx] = v;
+      return next;
+    });
+    emitLog();
   };
 
   const isPausedNow =
@@ -126,6 +150,7 @@ export default function ExerciseTimer({
         ? Math.max(0, (timing.workSeconds ?? 0) - (remaining ?? 0))
         : Math.max(0, (m.elapsedMs - m.pausedMs) / 1000),
       endedEarly: isHold && (remaining ?? 0) > 0,
+      targetReps: isHold ? undefined : targetReps,
       maxPauseMs: m.maxPauseMs,
       hiddenMs: m.hiddenMs,
     });
@@ -249,6 +274,7 @@ export default function ExerciseTimer({
     firedComplete.current = false;
     // a reset means "start over" — the aborted attempt isn't representative
     logRef.current = { sets: [], rests: [], workPauses: 0 };
+    setRepLog([]);
     emitLog();
   };
 
@@ -277,18 +303,18 @@ export default function ExerciseTimer({
     <div className="mt-2 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-zinc-400">
-          Set {Math.min(set, timing.sets)} of {timing.sets}
+          {tx("Set {a} of {b}", { a: Math.min(set, timing.sets), b: timing.sets })}
         </span>
         {phase !== "done" && (
           <button onClick={reset} className="text-xs text-zinc-500 hover:text-zinc-300">
-            Reset
+            {tx("Reset")}
           </button>
         )}
       </div>
 
       {phase === "done" ? (
         <div className="flex items-center gap-2 text-emerald-400 text-sm py-2 justify-center">
-          <Check size={16} /> Exercise complete!
+          <Check size={16} /> {tx("Exercise complete!")}
         </div>
       ) : phase === "idle" ? (
         <button
@@ -296,29 +322,29 @@ export default function ExerciseTimer({
           disabled={externallyPaused}
           className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Play size={16} /> {timing.isTimed ? "Start timer" : `Start set ${set}`}
+          <Play size={16} /> {timing.isTimed ? tx("Start timer") : tx("Start set {n}", { n: set })}
         </button>
       ) : phase === "countdown" ? (
         <div className="text-center py-2">
-          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Get ready</div>
+          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">{tx("Get ready")}</div>
           <div key={countdownValue} className="stat-mono text-5xl text-orange-400 animate-pop-in">
             {countdownValue}
           </div>
         </div>
       ) : phase === "work" && !timing.isTimed ? (
         <div className="text-center space-y-2">
-          <div className="text-sm text-zinc-300">Do your reps, then mark the set done.</div>
+          <div className="text-sm text-zinc-300">{tx("Do your reps, then mark the set done.")}</div>
           <button
             onClick={finishRepSet}
             className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-zinc-950 text-sm font-medium"
           >
-            Done with set {set}
+            {tx("Done with set {n}", { n: set })}
           </button>
         </div>
       ) : (
         <div className="text-center">
           <div className={`text-xs uppercase tracking-wide mb-1 ${phase === "work" ? "text-orange-400" : "text-emerald-400"}`}>
-            {externallyPaused ? "Paused" : phase === "work" ? "Go" : "Rest"}
+            {externallyPaused ? tx("Paused") : phase === "work" ? tx("Go") : tx("Rest")}
           </div>
           <div className="stat-mono text-4xl text-zinc-100 mb-2">
             {mm}:{ss}
@@ -328,7 +354,7 @@ export default function ExerciseTimer({
               onClick={() => !externallyPaused && setRunning((r) => !r)}
               disabled={externallyPaused}
               className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-400 text-zinc-950 flex items-center justify-center disabled:opacity-50"
-              aria-label={running ? "Pause" : "Resume"}
+              aria-label={running ? tx("Pause") : tx("Resume")}
             >
               {running && !externallyPaused ? <Pause size={16} /> : <Play size={16} />}
             </button>
@@ -336,11 +362,45 @@ export default function ExerciseTimer({
               onClick={skip}
               disabled={externallyPaused}
               className="w-10 h-10 rounded-full border border-zinc-600 text-zinc-300 flex items-center justify-center disabled:opacity-50"
-              aria-label="Skip"
+              aria-label={tx("Skip")}
             >
               <SkipForward size={16} />
             </button>
           </div>
+        </div>
+      )}
+
+      {repSetIdx >= 0 && (phase === "rest" || phase === "done") && (
+        <div className="mt-3 pt-3 border-t border-zinc-700 flex items-center gap-2">
+          <span className="text-xs text-zinc-400 flex-1">{tx("Reps in set {n}", { n: repSetIdx + 1 })}</span>
+          <button
+            type="button"
+            aria-label={tx("Fewer reps")}
+            onClick={() => logReps(Math.max(0, (repLog[repSetIdx] ?? repDefault) - 1))}
+            className="w-7 h-7 rounded-lg border border-zinc-600 text-zinc-300"
+          >
+            −
+          </button>
+          <span className={`stat-mono w-8 text-center text-sm ${repLog[repSetIdx] === undefined ? "text-zinc-600" : "text-zinc-100"}`}>
+            {repLog[repSetIdx] ?? repDefault}
+          </span>
+          <button
+            type="button"
+            aria-label={tx("More reps")}
+            onClick={() => logReps((repLog[repSetIdx] ?? repDefault) + 1)}
+            className="w-7 h-7 rounded-lg border border-zinc-600 text-zinc-300"
+          >
+            +
+          </button>
+          {repLog[repSetIdx] === undefined && (
+            <button
+              type="button"
+              onClick={() => logReps(repDefault)}
+              className="text-xs px-2 py-1 rounded-lg bg-emerald-600/20 text-emerald-300"
+            >
+              {tx("Log")}
+            </button>
+          )}
         </div>
       )}
     </div>

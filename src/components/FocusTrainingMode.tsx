@@ -8,11 +8,12 @@ import { useToast } from "@/context/ToastContext";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
-import { TimerLog, summarizeTimerLog, bestHoldFromLog } from "@/lib/timingLearning";
+import { TimerLog, TimerRestSample, summarizeTimerLog, bestHoldFromLog, learnedTransitionRest } from "@/lib/timingLearning";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Step {
   key: string;
@@ -30,6 +31,7 @@ export default function FocusTrainingMode() {
     useTrainingSession();
   const { userDoc } = useAuth();
   const toast = useToast();
+  const { tx } = useLanguage();
 
   const steps: Step[] = useMemo(() => {
     if (!session) return [];
@@ -51,6 +53,49 @@ export default function FocusTrainingMode() {
   const [timerLogs, setTimerLogs] = useState<Record<number, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<number, number | boolean | undefined>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [restWasLearned, setRestWasLearned] = useState(false);
+
+  // ---- measuring rest between exercises (same cleaning as in-exercise rest) ----
+  const transitionSamples = useRef<TimerRestSample[]>([]);
+  const restMeter = useRef<{ planned: number; start: number; pauseStart: number | null; maxPauseMs: number; hiddenMs: number; hiddenStart: number | null } | null>(null);
+
+  const startRestMeter = (planned: number) => {
+    const now = Date.now();
+    restMeter.current = { planned, start: now, pauseStart: null, maxPauseMs: 0, hiddenMs: 0, hiddenStart: document.hidden ? now : null };
+  };
+  const closeRestMeter = (keep: boolean) => {
+    const m = restMeter.current;
+    restMeter.current = null;
+    if (!m || !keep) return;
+    const now = Date.now();
+    if (m.pauseStart !== null) m.maxPauseMs = Math.max(m.maxPauseMs, now - m.pauseStart);
+    if (m.hiddenStart !== null) m.hiddenMs += now - m.hiddenStart;
+    transitionSamples.current.push({ plannedSec: m.planned, takenSec: (now - m.start) / 1000, maxPauseMs: m.maxPauseMs, hiddenMs: m.hiddenMs });
+  };
+
+  useEffect(() => {
+    const m = restMeter.current;
+    if (!m) return;
+    if (paused && m.pauseStart === null) m.pauseStart = Date.now();
+    else if (!paused && m.pauseStart !== null) {
+      m.maxPauseMs = Math.max(m.maxPauseMs, Date.now() - m.pauseStart);
+      m.pauseStart = null;
+    }
+  }, [paused]);
+
+  useEffect(() => {
+    const onVis = () => {
+      const m = restMeter.current;
+      if (!m) return;
+      if (document.hidden) m.hiddenStart = Date.now();
+      else if (m.hiddenStart !== null) {
+        m.hiddenMs += Date.now() - m.hiddenStart;
+        m.hiddenStart = null;
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   // reset internal progress whenever a genuinely new session starts
   useEffect(() => {
@@ -63,6 +108,8 @@ export default function FocusTrainingMode() {
     setTooHard([]);
     setTimerLogs({});
     setCheckResults({});
+    transitionSamples.current = [];
+    restMeter.current = null;
   }, [session]);
 
   const rawCurrent = steps[index];
@@ -99,6 +146,7 @@ export default function FocusTrainingMode() {
 
   useEffect(() => {
     if (restSecondsLeft !== 0) return;
+    closeRestMeter(true);
     playGoSound();
     setRestSecondsLeft(null);
     setIndex((i) => i + 1);
@@ -121,12 +169,17 @@ export default function FocusTrainingMode() {
       setAllDoneScreen(true);
       return;
     }
-    const rest = Math.min(MAX_BETWEEN_EXERCISE_REST, Math.max(MIN_BETWEEN_EXERCISE_REST, current.exercise.restSeconds || MIN_BETWEEN_EXERCISE_REST));
+    const planned = Math.min(MAX_BETWEEN_EXERCISE_REST, Math.max(MIN_BETWEEN_EXERCISE_REST, current.exercise.restSeconds || MIN_BETWEEN_EXERCISE_REST));
+    // learned from how long this athlete actually rests between exercises
+    const { seconds: rest, learned } = learnedTransitionRest(planned, userDoc?.transitionRest);
+    setRestWasLearned(learned);
+    startRestMeter(rest);
     playRestSound();
     setRestSecondsLeft(rest);
   };
 
   const skipRest = () => {
+    closeRestMeter(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
     playGoSound();
     setRestSecondsLeft(null);
@@ -137,6 +190,7 @@ export default function FocusTrainingMode() {
     if (index === 0 && restSecondsLeft === null) return;
     setAllDoneScreen(false);
     setRestSecondsLeft(null);
+    closeRestMeter(false); // going back isn't a rest decision
     if (restSecondsLeft !== null) return; // step back into the exercise we were resting after
     setIndex((i) => i - 1);
   };
@@ -211,7 +265,7 @@ export default function FocusTrainingMode() {
     }
     setOverrides(updates);
     if (swapped > 0) {
-      toast.success(`Eased up what's left — ${swapped} exercise${swapped === 1 ? "" : "s"} swapped for something gentler.`);
+      toast.success(`Eased up what's left — ${swapped} swapped for something gentler.`);
     } else {
       toast.info("Everything left is already about as easy as it gets — hang in there.");
     }
@@ -225,19 +279,19 @@ export default function FocusTrainingMode() {
       className={`fixed inset-0 z-50 bg-zinc-950 flex-col safe-top safe-bottom ${expanded ? "flex" : "hidden"}`}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <button onClick={minimize} className="p-1.5 text-zinc-500 hover:text-zinc-200" aria-label="Minimize">
+        <button onClick={minimize} className="p-1.5 text-zinc-500 hover:text-zinc-200" aria-label={tx("Minimize")}>
           <ChevronDown size={20} />
         </button>
         <div className="text-xs text-zinc-500 stat-mono">
           {Math.min(index + 1, steps.length)} / {steps.length}
           {!allDoneScreen && (
-            <span className="text-zinc-600"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} min left</span>
+            <span className="text-zinc-600"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
           )}
         </div>
         <button
           onClick={togglePause}
           className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-zinc-500 hover:text-zinc-200"}`}
-          aria-label={paused ? "Resume training" : "Pause training"}
+          aria-label={paused ? tx("Resume training") : tx("Pause training")}
         >
           {paused ? <Play size={18} /> : <Pause size={18} />}
         </button>
@@ -256,27 +310,28 @@ export default function FocusTrainingMode() {
           ))}
         </div>
         {!allDoneScreen && !isLastStep && (
-          <div className="text-xs text-zinc-500 mt-2 truncate">Next: {next?.exercise.name}</div>
+          <div className="text-xs text-zinc-500 mt-2 truncate">{tx("Next:")} {next?.exercise.name}</div>
         )}
       </div>
 
       {restSecondsLeft !== null ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">Rest before next exercise</div>
+          <div className="text-xs uppercase tracking-wide text-emerald-400 mb-2">{tx("Rest before next exercise")}</div>
           <div className="stat-mono text-6xl text-zinc-100 mb-2">
             {mm}:{ss}
           </div>
-          {next && <div className="text-sm text-zinc-400 mb-6">Up next: {next.exercise.name}</div>}
+          {next && <div className="text-sm text-zinc-400 mb-1">{tx("Up next:")} {next.exercise.name}</div>}
+          <div className="text-[11px] text-zinc-600 mb-6 h-4">{restWasLearned ? tx("Rest adjusted to your usual pace") : ""}</div>
           {paused && (
             <div className="text-xs text-orange-400 flex items-center gap-1.5 mb-4">
-              <Pause size={12} /> Training paused
+              <Pause size={12} /> {tx("Training paused")}
             </div>
           )}
           <button
             onClick={skipRest}
             className="px-5 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-2 text-sm"
           >
-            <SkipForward size={15} /> Skip rest
+            <SkipForward size={15} /> {tx("Skip rest")}
           </button>
         </div>
       ) : allDoneScreen ? (
@@ -284,27 +339,31 @@ export default function FocusTrainingMode() {
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mb-4">
             <Check size={28} className="text-emerald-400" />
           </div>
-          <div className="heading text-2xl text-zinc-100 mb-2">Session complete!</div>
+          <div className="heading text-2xl text-zinc-100 mb-2">{tx("Session complete!")}</div>
           <p className="text-sm text-zinc-400 mb-6">
             {skippedSteps.size === 0
-              ? "Every exercise is done. Log it to bank your XP and streak."
-              : `${completedSteps.size} done, ${skippedSteps.size} skipped. Log it to bank your XP. Your next sessions adapt to what you skipped.`}
+              ? tx("Every exercise is done. Log it to bank your XP and streak.")
+              : tx("{a} done, {b} skipped. Log it to bank your XP. Your next sessions adapt to what you skipped.", { a: completedSteps.size, b: skippedSteps.size })}
           </p>
           <button
-            onClick={() => finishSession(collectFeedback())}
+            onClick={() =>
+              finishSession(collectFeedback(), {
+                transitionRestRatio: summarizeTimerLog({ sets: [], rests: transitionSamples.current, workPauses: 0 })?.restRatio,
+              })
+            }
             className="w-full max-w-xs py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
           >
-            Finish &amp; log session
+            {tx("Finish & log session")}
           </button>
           <button onClick={goBack} className="text-xs text-zinc-500 hover:text-zinc-300 mt-3">
-            Go back and review
+            {tx("Go back and review")}
           </button>
         </div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col">
             <div className="text-center mb-6">
-              <div className="text-xs uppercase tracking-wide text-emerald-400 mb-1">{current.setTitle}</div>
+              <div className="text-xs uppercase tracking-wide text-emerald-400 mb-1">{tx(current.setTitle)}</div>
               <div className="flex items-center justify-center gap-2">
                 <div className="heading text-2xl text-zinc-100">{current.exercise.name}</div>
                 <button
@@ -316,20 +375,23 @@ export default function FocusTrainingMode() {
                 </button>
               </div>
               {index in overrides ? (
-                <div className="text-xs text-orange-400 mt-0.5">Swapped in — something gentler</div>
+                <div className="text-xs text-orange-400 mt-0.5">{tx("Swapped in — something gentler")}</div>
               ) : (
                 current.exercise.adaptNote && (
                   <div className="text-xs text-sky-400/90 mt-0.5 flex items-center justify-center gap-1">
-                    <Sparkles size={11} /> {current.exercise.adaptNote}
+                    <Sparkles size={11} /> {tx(current.exercise.adaptNote)}
                   </div>
                 )
               )}
               <div className="text-sm text-zinc-400 mt-1">{current.exercise.detail}</div>
+              {current.exercise.cue && (
+                <div className="text-xs text-orange-400/80 italic mt-1">{tx(current.exercise.cue)}</div>
+              )}
             </div>
 
             {paused && (
               <div className="max-w-sm w-full mx-auto mb-3 text-center text-xs text-orange-400 flex items-center justify-center gap-1.5">
-                <Pause size={12} /> Training paused — your spot is saved
+                <Pause size={12} /> {tx("Training paused — your spot is saved")}
               </div>
             )}
 
@@ -359,14 +421,14 @@ export default function FocusTrainingMode() {
               disabled={index === 0}
               className="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 disabled:opacity-40 flex items-center justify-center gap-1.5 text-sm"
             >
-              <ChevronLeft size={16} /> Back
+              <ChevronLeft size={16} /> {tx("Back")}
             </button>
             <button
               onClick={goNext}
               disabled={paused}
               className="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center justify-center gap-1.5 text-sm disabled:opacity-40"
             >
-              Next <ChevronRight size={16} />
+              {tx("Next")} <ChevronRight size={16} />
             </button>
           </div>
           {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && (
@@ -375,14 +437,14 @@ export default function FocusTrainingMode() {
                 onClick={handleSkip}
                 className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 flex items-center justify-center gap-1.5 text-xs"
               >
-                <SkipForward size={13} /> Skip
+                <SkipForward size={13} /> {tx("Skip")}
               </button>
               {!current.exercise.check && (
               <button
                 onClick={handleTooHard}
                 className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
               >
-                <ArrowDownCircle size={13} /> Too hard
+                <ArrowDownCircle size={13} /> {tx("Too hard")}
               </button>
               )}
             </div>
@@ -391,7 +453,7 @@ export default function FocusTrainingMode() {
             onClick={handleTired}
             className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-zinc-500 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
           >
-            <BatteryLow size={13} /> I&apos;m tired — ease up what&apos;s left
+            <BatteryLow size={13} /> {tx("I'm tired — ease up what's left")}
           </button>
         </>
       )}

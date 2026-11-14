@@ -5,10 +5,12 @@ import { UserDoc, ClaimKey } from "@/lib/types";
 import { syncClaims, claimCounts, claimLabel, checkSpecFor } from "@/lib/verification";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 // What the athlete has claimed vs. what training has actually proven.
 export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
   const [open, setOpen] = useState(false);
+  const { tx } = useLanguage();
   const claims = syncClaims(userDoc.claims, userDoc.skills);
   const { total, verified, unconfirmed } = claimCounts(claims);
   if (total === 0) return null;
@@ -21,10 +23,11 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
       <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between">
         <div className="text-left">
           <div className="text-sm text-zinc-100 flex items-center gap-1.5">
-            <BadgeCheck size={15} className="text-emerald-400" /> Verified skills
+            <BadgeCheck size={15} className="text-emerald-400" /> {tx("Verified skills")}
           </div>
           <div className="text-xs text-zinc-500">
-            {verified} of {total} proven in training{unconfirmed > 0 ? ` · ${unconfirmed} to retest` : ""}
+            {tx("{a} of {b} proven in training", { a: verified, b: total })}
+            {unconfirmed > 0 ? ` · ${tx("{n} to retest", { n: unconfirmed })}` : ""}
           </div>
         </div>
         <ChevronDown size={16} className={`text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -47,17 +50,17 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
                 ) : (
                   <CircleDashed size={14} className="text-zinc-500 shrink-0" />
                 )}
-                <span className="text-zinc-200 truncate">{claimLabel(k)}</span>
+                <span className="text-zinc-200 truncate">{tx(claimLabel(k))}</span>
                 <span className="text-xs text-zinc-500 ml-auto shrink-0">
-                  {what}
+                  {tx(String(what))}
                   {spec?.kind === "hold" ? ` · ${spec.target}s` : ""} ·{" "}
-                  {c.status === "verified" ? "verified" : c.status === "unconfirmed" ? "retest" : "claimed"}
+                  {tx(c.status === "verified" ? "verified" : c.status === "unconfirmed" ? "retest" : "claimed")}
                 </span>
               </li>
             );
           })}
           <li className="text-[11px] text-zinc-500 pt-1">
-            Each session includes one Skill Check for something you claimed. Hit the target and it&apos;s verified.
+            {tx("Each session includes one Skill Check for something you claimed — and regular sets that hit a claimed target count too.")}
           </li>
         </ul>
       )}

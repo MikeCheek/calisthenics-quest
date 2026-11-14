@@ -1,3 +1,5 @@
+import { adaptSession } from "./adaptation";
+import type { ExerciseStat } from "./types";
 import {
   BodyProfile,
   SkillProfile,
@@ -45,7 +47,8 @@ export function generatePlan(
   goalTracks: SkillTrack[],
   body: BodyProfile,
   range: PlanRange,
-  startDate: Date = new Date()
+  startDate: Date = new Date(),
+  stats?: Record<string, ExerciseStat>
 ): PlanDay[] {
   const totalDays = RANGE_DAYS[range];
 
@@ -66,7 +69,8 @@ export function generatePlan(
     }
 
     const focus = pickFocus(date, equipment, goalTracks, trainingCounter);
-    const session = generateSession(skills, equipment, focus, date);
+    // planned sessions reflect what training has already learned
+    const session = adaptSession(generateSession(skills, equipment, focus, date), stats, equipment);
     trainingCounter++;
     days.push({ dateISO, weekday, isRestDay: false, session });
   }

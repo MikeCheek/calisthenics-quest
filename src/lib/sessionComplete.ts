@@ -83,7 +83,7 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
-  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[] } = {}
+  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number } = {}
 ): Promise<CompleteSessionResult> {
   const feedback = opts.feedback ?? [];
   const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
@@ -145,6 +145,9 @@ export async function completeSession(
     skillMastery: newMastery,
     skills: newSkills,
     claims,
+    ...(opts.transitionRestRatio !== undefined
+      ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) }
+      : {}),
     xp: totalXp,
     streak: newStreak,
     lastSessionDateISO: new Date().toISOString(),

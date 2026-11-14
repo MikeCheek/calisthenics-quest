@@ -15,6 +15,7 @@ import {
   resetVerifications,
 } from "@/lib/account";
 import { AlertTriangle, Brain, BadgeCheck, Download, RotateCcw, Trash2, Layers, Loader2, LogOut } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 type ActionId = "memory" | "verifications" | "skills" | "all" | "delete";
 
@@ -106,6 +107,7 @@ const DELETE_STEP_LABEL: Record<DeleteStep, string> = {
 export default function DangerZone() {
   const { user, userDoc, refreshUserDoc, signOut } = useAuth();
   const toast = useToast();
+  const { tx } = useLanguage();
   const router = useRouter();
   const [active, setActive] = useState<Action | null>(null);
   const [typed, setTyped] = useState("");
@@ -192,8 +194,8 @@ export default function DangerZone() {
     <div className="space-y-4">
       <section className="panel p-4 space-y-3">
         <div>
-          <h3 className="heading text-base text-zinc-100">Your data</h3>
-          <p className="text-xs text-zinc-500">Everything BarQuests stores about you, yours to take.</p>
+          <h3 className="heading text-base text-zinc-100">{tx("Your data")}</h3>
+          <p className="text-xs text-zinc-500">{tx("Everything BarQuests stores about you, yours to take.")}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -201,13 +203,13 @@ export default function DangerZone() {
             disabled={exporting}
             className="py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-200 hover:border-orange-500 flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Export data
+            {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {tx("Export data")}
           </button>
           <button
             onClick={signOut}
             className="py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-200 hover:border-orange-500 flex items-center justify-center gap-2"
           >
-            <LogOut size={15} /> Sign out
+            <LogOut size={15} /> {tx("Sign out")}
           </button>
         </div>
       </section>
@@ -215,9 +217,9 @@ export default function DangerZone() {
       <section className="rounded-2xl border border-red-500/30 bg-red-500/[0.03] p-4 space-y-3">
         <div className="flex items-center gap-2">
           <AlertTriangle size={16} className="text-red-400" />
-          <h3 className="heading text-base text-red-300">Danger zone</h3>
+          <h3 className="heading text-base text-red-300">{tx("Danger zone")}</h3>
         </div>
-        <p className="text-xs text-zinc-500 -mt-1">From a gentle refresh to permanent deletion. Each one tells you exactly what goes.</p>
+        <p className="text-xs text-zinc-500 -mt-1">{tx("From a gentle refresh to permanent deletion. Each one tells you exactly what goes.")}</p>
         <ul className="space-y-2">
           {ACTIONS.map((a) => {
             const Icon = a.icon;
@@ -235,8 +237,8 @@ export default function DangerZone() {
                     <Icon size={17} />
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className={`block text-sm ${a.severity === "fatal" ? "text-red-300" : "text-zinc-100"}`}>{a.title}</span>
-                    <span className="block text-xs text-zinc-500">{a.summary}</span>
+                    <span className={`block text-sm ${a.severity === "fatal" ? "text-red-300" : "text-zinc-100"}`}>{tx(a.title)}</span>
+                    <span className="block text-xs text-zinc-500">{tx(a.summary)}</span>
                   </span>
                   <span className="text-zinc-600">›</span>
                 </button>
@@ -246,25 +248,25 @@ export default function DangerZone() {
         </ul>
       </section>
 
-      <Modal open={!!active} onClose={close} title={active?.title ?? ""}>
+      <Modal open={!!active} onClose={close} title={tx(active?.title ?? "")}>
         {active && (
           <div className="space-y-4">
-            <p className="text-sm text-zinc-300">{active.summary}</p>
+            <p className="text-sm text-zinc-300">{tx(active.summary)}</p>
             <div className={`grid gap-3 ${active.keeps.length ? "grid-cols-2" : "grid-cols-1"}`}>
               <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3">
-                <div className="text-[11px] uppercase tracking-wide text-red-300 mb-1.5">Removes</div>
+                <div className="text-[11px] uppercase tracking-wide text-red-300 mb-1.5">{tx("Removes")}</div>
                 <ul className="space-y-1 text-xs text-zinc-300">
                   {active.removes.map((r) => (
-                    <li key={r}>− {r}</li>
+                    <li key={r}>− {tx(r)}</li>
                   ))}
                 </ul>
               </div>
               {active.keeps.length > 0 && (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-emerald-300 mb-1.5">Keeps</div>
+                  <div className="text-[11px] uppercase tracking-wide text-emerald-300 mb-1.5">{tx("Keeps")}</div>
                   <ul className="space-y-1 text-xs text-zinc-300">
                     {active.keeps.map((k) => (
-                      <li key={k}>+ {k}</li>
+                      <li key={k}>+ {tx(k)}</li>
                     ))}
                   </ul>
                 </div>
@@ -273,15 +275,14 @@ export default function DangerZone() {
 
             {active.id === "delete" && (
               <p className="text-xs text-zinc-400">
-                This can&apos;t be undone. You&apos;ll be asked to confirm with Google first — cancelling
-                there leaves everything untouched. Tip: export your data first.
+                {tx("This can't be undone. You'll be asked to confirm with Google first — cancelling there leaves everything untouched. Tip: export your data first.")}
               </p>
             )}
 
             {active.confirmWord && (
               <label className="block">
                 <span className="text-xs text-zinc-400">
-                  Type <span className="stat-mono text-zinc-100">{active.confirmWord}</span> to confirm
+                  {tx("Type")} <span className="stat-mono text-zinc-100">{active.confirmWord}</span> {tx("to confirm")}
                 </span>
                 <input
                   value={typed}
@@ -300,7 +301,7 @@ export default function DangerZone() {
                 disabled={busy}
                 className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-300 disabled:opacity-50"
               >
-                Cancel
+                {tx("Cancel")}
               </button>
               <button
                 onClick={run}
@@ -310,7 +311,7 @@ export default function DangerZone() {
                 }`}
               >
                 {busy && <Loader2 size={15} className="animate-spin" />}
-                {busy && step ? DELETE_STEP_LABEL[step] : active.cta}
+                {busy && step ? tx(DELETE_STEP_LABEL[step]) : tx(active.cta)}
               </button>
             </div>
           </div>

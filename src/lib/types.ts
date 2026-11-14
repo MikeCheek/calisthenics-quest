@@ -242,7 +242,10 @@ export interface SkillClaim {
 export interface TimingSummary {
   restRatio?: number; // median rest actually taken / planned, this session
   holdRatio?: number; // median seconds held / target, this session
-  struggled: boolean; // broke holds early or paused mid-set repeatedly
+  repRatio?: number; // median logged reps / prescribed reps, this session
+  bestReps?: number; // most reps logged in one clean set
+  bestHold?: number; // longest clean hold, seconds
+  struggled: boolean; // broke holds early, missed reps, or paused mid-set repeatedly
   ignored: number; // samples dropped as unreliable
 }
 
@@ -273,6 +276,7 @@ export interface ExerciseStat {
   rd?: number; // remembered rep/set adjustment the athlete keeps choosing
   rr?: number[]; // last few sessions' median rest ratio (taken / planned)
   hr?: number[]; // last few sessions' median hold ratio (held / target)
+  rp?: number[]; // last few sessions' median rep ratio (logged / prescribed)
   last: string;
 }
 
@@ -380,6 +384,8 @@ export interface UserDoc {
   exerciseStats?: Record<string, ExerciseStat>;
   skillProgress?: Partial<Record<StagedSkillKey, SkillProgress>>;
   claims?: Partial<Record<ClaimKey, SkillClaim>>;
+  // guided mode: last few sessions' median rest-between-exercises ratio
+  transitionRest?: number[];
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

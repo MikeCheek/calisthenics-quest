@@ -26,7 +26,7 @@ interface TrainingSessionContextValue {
   expand: () => void;
   togglePause: () => void;
   reportCurrentExercise: (name: string) => void;
-  finishSession: (feedback?: ExerciseFeedback[]) => Promise<void>;
+  finishSession: (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => Promise<void>;
   discardSession: () => void;
   report: AdaptationReport | null;
   showReport: (r: AdaptationReport) => void;
@@ -111,10 +111,13 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
     setCurrentExerciseName(null);
   }, []);
 
-  const finishSession = useCallback(async (feedback?: ExerciseFeedback[]) => {
+  const finishSession = useCallback(async (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => {
     if (!session || !userDoc || completed) return;
     try {
-      const { patch, celebration: c, report: r } = await completeSession(userDoc, session, { feedback });
+      const { patch, celebration: c, report: r } = await completeSession(userDoc, session, {
+        feedback,
+        transitionRestRatio: extras?.transitionRestRatio,
+      });
       showReport(r);
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;
       setCompleted(true);

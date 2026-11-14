@@ -25,6 +25,8 @@ export interface TimerSetSample {
   endedEarly: boolean; // a hold stopped before its target
   maxPauseMs: number; // longest single pause during the set
   hiddenMs: number; // time the app spent in the background during the set
+  reps?: number; // reps the athlete logged for this set (rep sets, optional)
+  targetReps?: number | null; // lower end of the prescribed range; null = "max reps"
 }
 
 export interface TimerRestSample {
@@ -49,6 +51,7 @@ const MIN_REP_SET_SEC = 3; // shorter = tapped through without doing the set
 const MAX_REP_SET_SEC = 300; // longer = forgot to tap "done"
 const MIN_REST_SEC = 2; // shorter = double-tap through the rest screen
 const STRUGGLE_HOLD_RATIO = 0.7;
+const STRUGGLE_REP_RATIO = 0.75; // logging well under the prescribed reps
 
 export function median(xs: number[]): number {
   if (xs.length === 0) return NaN;
@@ -112,11 +115,29 @@ export function summarizeTimerLog(log: TimerLog | undefined): TimingSummary | un
     restRatios.push(Math.max(0.25, Math.min(3, r.takenSec / r.plannedSec)));
   }
 
+  // logged reps: only from trustworthy sets, and only plausible counts
+  const repRatios: number[] = [];
+  let bestReps: number | undefined;
+  for (const s of validRepSets) {
+    if (s.reps === undefined) continue;
+    if (s.reps > Math.max((s.targetReps ?? 0) * 4, 100)) {
+      ignored++;
+      continue;
+    }
+    bestReps = Math.max(bestReps ?? 0, s.reps);
+    if (s.targetReps) repRatios.push(Math.min(2, s.reps / s.targetReps));
+  }
+
   const holdRatio = holdRatios.length ? median(holdRatios) : undefined;
   const restRatio = restRatios.length ? median(restRatios) : undefined;
-  const struggled = (holdRatio !== undefined && holdRatio < STRUGGLE_HOLD_RATIO) || log.workPauses >= 2;
+  const repRatio = repRatios.length ? median(repRatios) : undefined;
+  const bestHold = bestHoldFromLog(log) ?? undefined;
+  const struggled =
+    (holdRatio !== undefined && holdRatio < STRUGGLE_HOLD_RATIO) ||
+    (repRatio !== undefined && repRatio < STRUGGLE_REP_RATIO) ||
+    log.workPauses >= 2;
 
-  return { holdRatio, restRatio, struggled, ignored };
+  return { holdRatio, restRatio, repRatio, bestReps, bestHold, struggled, ignored };
 }
 
 // Scales every "Ns" / "N-Ms" seconds figure in a detail string, e.g.
@@ -126,6 +147,16 @@ export function scaleHoldDetail(detail: string, factor: number): string {
   return detail.replace(/(\d+)(?:-(\d+))?(\s*)s\b/g, (_m, a: string, b: string | undefined, sp: string) =>
     b ? `${r(+a)}-${r(+b)}${sp}s` : `${r(+a)}${sp}s`
   );
+}
+
+// Rest between exercises in guided mode, learned from the last few
+// sessions' medians; returns the planned rest when there isn't enough data.
+export function learnedTransitionRest(planned: number, history: number[] | undefined): { seconds: number; learned: boolean } {
+  if (!history || history.length < 3) return { seconds: planned, learned: false };
+  const r = median(history);
+  if (Math.abs(r - 1) <= 0.15) return { seconds: planned, learned: false };
+  const seconds = Math.min(150, round5(planned * Math.max(0.5, Math.min(1.75, r))));
+  return { seconds, learned: seconds !== planned };
 }
 
 export function round5(n: number): number {

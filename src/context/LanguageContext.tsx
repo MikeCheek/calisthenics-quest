@@ -5,6 +5,7 @@ import { Locale } from "@/lib/types";
 import en from "@/lib/i18n/en";
 import it from "@/lib/i18n/it";
 import type { TranslationDict } from "@/lib/i18n/en";
+import { translate } from "@/lib/i18n/tx";
 
 const DICTS: Record<Locale, TranslationDict> = { en, it };
 const STORAGE_KEY = "barquests:locale";
@@ -19,6 +20,9 @@ interface LanguageContextValue {
     key: keyof TranslationDict[NS],
     vars?: Record<string, string | number>
   ) => string;
+  // Phrase lookup by the English text itself (see lib/i18n/tx.ts) — also
+  // translates generated messages that match a known template.
+  tx: (english: string, vars?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -69,11 +73,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [locale]
   );
 
-  return <LanguageContext.Provider value={{ locale, setLocale, t }}>{children}</LanguageContext.Provider>;
+  const tx = useCallback(
+    (english: string, vars?: Record<string, string | number>) => translate(locale, english, vars),
+    [locale]
+  );
+
+  return <LanguageContext.Provider value={{ locale, setLocale, t, tx }}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
   const ctx = useContext(LanguageContext);
   if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
   return ctx;
+}
+
+// For hooks that may also run outside the provider (e.g. useToast):
+// returns null instead of throwing.
+export function useOptionalLanguage() {
+  return useContext(LanguageContext);
 }

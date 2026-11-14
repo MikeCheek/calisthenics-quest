@@ -19,6 +19,7 @@ import {
 import { STAGE_ORDER, STAGE_LABEL } from "./stageOrder";
 import { advancedSkillAvailable } from "./advancedSkills";
 import type { StageSuggestion } from "./adaptation";
+import { exerciseStage } from "./exerciseHierarchy";
 
 // ---------------------------------------------------------------------------
 // Claims and verification.
@@ -283,7 +284,11 @@ export function applyCheckResults(
 
   for (const fb of feedback) {
     const spec = fb.check;
-    if (!spec) continue;
+    if (!spec) {
+      const ev = passiveEvidence(fb, claims, skills, mastery, nowISO);
+      if (ev) events.push(ev);
+      continue;
+    }
     const prev = claims[spec.key];
     // the claim changed since this check was generated (e.g. edited in the
     // profile mid-session): the result no longer tests it
@@ -370,6 +375,56 @@ export function applyCheckResults(
   }
 
   return { claims, skills, mastery, events, suggestions };
+}
+
+// ---- passive verification from regular training ----
+// Exercises whose logged reps directly measure a rep baseline.
+const BASELINE_EXERCISES: Record<string, BaselineClaimKey> = {
+  "Pull-ups": "pullUpMaxReps",
+  "Push-ups": "pushUpMaxReps",
+  "Parallel bar dips": "dipMaxReps",
+  "Ring dips": "dipMaxReps",
+};
+
+// A regular exercise can prove a claim too: a clean hold of the claimed
+// stage for its target time, or a logged set reaching a claimed rep count.
+// Only ever confirms or raises — a mid-session set after other work isn't a
+// fair test, so falling short here never counts against a claim.
+function passiveEvidence(
+  fb: ExerciseFeedback,
+  claims: Partial<Record<ClaimKey, SkillClaim>>,
+  skills: SkillProfile,
+  mastery: Partial<Record<StagedSkillKey, SkillMastery>>,
+  nowISO: string
+): VerificationEvent | null {
+  if (fb.outcome !== "done" || !fb.timing) return null;
+
+  const baseKey = BASELINE_EXERCISES[fb.name];
+  const reps = fb.timing.bestReps;
+  if (baseKey && reps !== undefined) {
+    const c = claims[baseKey];
+    if (!c) return null;
+    const claimed = Number(c.value);
+    if (reps < claimed || reps > Math.max(claimed * 3, claimed + 25)) return null;
+    if (c.status === "verified" && reps <= claimed) return null;
+    claims[baseKey] = { ...c, value: Math.max(claimed, reps), status: "verified", verifiedAt: nowISO, fails: 0, best: Math.max(c.best ?? 0, reps) };
+    (skills as unknown as Record<string, number>)[baseKey] = Math.max(claimed, reps);
+    return reps > claimed
+      ? { key: baseKey, outcome: "raised", text: `${claimLabel(baseKey)}: ${reps} in training — raised from ${claimed}` }
+      : { key: baseKey, outcome: "verified", text: `${claimLabel(baseKey)}: ${reps} in training — verified` };
+  }
+
+  const hold = fb.timing.bestHold;
+  if (hold === undefined || !/hold/i.test(fb.name)) return null;
+  const loc = exerciseStage(fb.name);
+  if (!loc) return null;
+  const c = claims[loc.skill];
+  if (!c || c.status === "verified" || String(c.value) !== loc.stage) return null;
+  const spec = checkSpecFor(loc.skill, c.value);
+  if (!spec || spec.kind !== "hold" || hold < spec.target * 0.95 || hold > Math.max(spec.target * 8, 60)) return null;
+  claims[loc.skill] = { ...c, status: "verified", verifiedAt: nowISO, fails: 0, best: Math.max(c.best ?? 0, hold) };
+  if ((mastery[loc.skill] ?? DEFAULT_MASTERY) < 4) mastery[loc.skill] = 4;
+  return { key: loc.skill, outcome: "verified", text: `${spec.label}: held ${hold}s in training — verified` };
 }
 
 export function claimCounts(claims: Partial<Record<ClaimKey, SkillClaim>>) {

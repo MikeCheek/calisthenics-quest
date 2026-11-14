@@ -9,6 +9,7 @@ import ExerciseRow from "@/components/ExerciseRow";
 import { TimerLog, summarizeTimerLog, bestHoldFromLog } from "@/lib/timingLearning";
 import Modal from "@/components/Modal";
 import { Play, Clock, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 type SessionLevel = "easier" | "default" | "harder";
 
@@ -52,6 +53,7 @@ export default function SessionView({
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(COLLAPSED_BY_DEFAULT));
   const toast = useToast();
+  const { tx } = useLanguage();
   const eq = equipment ?? DEFAULT_LOOKUP_EQUIPMENT;
 
   const toggleSkip = (key: string) => {
@@ -175,10 +177,10 @@ export default function SessionView({
           {session.partnerLabel && (
             <div className="text-xs text-orange-400 stat-mono mb-0.5">{session.partnerLabel}</div>
           )}
-          <div className="heading text-2xl text-zinc-100">{session.focusLabel}</div>
+          <div className="heading text-2xl text-zinc-100">{tx(session.focusLabel)}</div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-zinc-400">Est. reward</div>
+          <div className="text-xs text-zinc-400">{tx("Est. reward")}</div>
           <div className="stat-mono text-orange-400">+{session.estXp} XP</div>
           <div className="text-xs text-zinc-500 mt-0.5 flex items-center justify-end gap-1">
             <Clock size={11} /> ~{estimateSessionMinutes(session)} min
@@ -191,7 +193,7 @@ export default function SessionView({
           onClick={onStartFocusMode}
           className="w-full mt-3 py-2.5 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 flex items-center justify-center gap-2"
         >
-          <Play size={15} /> Start Training
+          <Play size={15} /> {tx("Start Training")}
         </button>
       )}
 
@@ -200,7 +202,7 @@ export default function SessionView({
         className="w-full mt-2 py-2 rounded-lg border border-zinc-700 text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 flex items-center justify-center gap-1.5"
       >
         <SlidersHorizontal size={12} />
-        {sessionLevel === "default" ? "Adjust today's difficulty" : `Difficulty: ${levelLabel}`}
+        {sessionLevel === "default" ? tx("Adjust today's difficulty") : tx("Difficulty: {x}", { x: tx(levelLabel ?? "") })}
       </button>
 
       <div className="space-y-3 mt-4">
@@ -214,7 +216,7 @@ export default function SessionView({
                 className="w-full flex items-center justify-between text-sm uppercase tracking-wide text-emerald-400 mb-2"
               >
                 <span>
-                  {set.title} <span className="text-zinc-600 normal-case">({set.exercises.length})</span>
+                  {tx(set.title)} <span className="text-zinc-600 normal-case">({set.exercises.length})</span>
                 </span>
                 {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </button>
@@ -271,14 +273,13 @@ export default function SessionView({
               : "bg-zinc-700 hover:bg-zinc-600 text-zinc-100"
           }`}
         >
-          {completed ? "Session Logged" : allDone ? "Complete Session — Claim XP" : "Mark Complete Anyway"}
+          {completed ? tx("Session Logged") : allDone ? tx("Complete Session — Claim XP") : tx("Mark Complete Anyway")}
         </button>
       )}
 
-      <Modal open={adjustOpen} onClose={() => setAdjustOpen(false)} title="Adjust today's difficulty">
+      <Modal open={adjustOpen} onClose={() => setAdjustOpen(false)} title={tx("Adjust today's difficulty")}>
         <p className="text-xs text-zinc-500 mb-3">
-          Drag an exercise left or right in the list for a quick per-exercise easier/harder reps
-          adjustment, or use its own +/- buttons. This sets the difficulty for the whole session at once.
+          {tx("Drag an exercise left or right in the list for a quick per-exercise easier/harder reps adjustment, or use its own +/- buttons. This sets the difficulty for the whole session at once.")}
         </p>
         <div className="flex gap-1.5">
           {SESSION_LEVEL_OPTIONS.map((opt) => (
@@ -291,22 +292,22 @@ export default function SessionView({
                   : "border-zinc-700 text-zinc-400"
               }`}
             >
-              {opt.label}
+              {tx(opt.label)}
             </button>
           ))}
         </div>
         {sessionLevel !== "default" && (
           <p className="text-xs text-zinc-500 mt-3">
-            Every skill exercise below is swapped for the {sessionLevel === "easier" ? "easier" : "harder"}{" "}
-            one right next to it in that skill&apos;s progression — reps stay as prescribed for whichever
-            exercise ends up in place. Warm-up and finisher exercises don&apos;t change; everyone can do those.
+            {tx(sessionLevel === "easier"
+              ? "Every skill exercise below is swapped for the easier one right next to it in that skill's progression. Warm-up and finisher exercises don't change; everyone can do those."
+              : "Every skill exercise below is swapped for the harder one right next to it in that skill's progression. Warm-up and finisher exercises don't change; everyone can do those.")}
           </p>
         )}
         <button
           onClick={() => setAdjustOpen(false)}
           className="w-full mt-4 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
         >
-          Done
+          {tx("Done")}
         </button>
       </Modal>
     </div>

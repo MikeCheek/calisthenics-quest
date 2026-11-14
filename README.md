@@ -16,7 +16,12 @@ across sessions), so rest periods and hold targets match the athlete. What the
 athlete *claims* ("10 push-ups", "5s full front lever") is tracked as a claim
 until a Skill Check in a regular session proves it: hit the target and it's
 verified (or raised); miss on two separate days and the baseline is set to
-what was measured or a step back is suggested. Then complete sessions
+what was measured or a step back is suggested. Regular training counts too:
+a logged set of pull-ups or a clean hold of the claimed stage verifies a claim
+(but a tired mid-session set never counts against one). Reps can be logged
+per set from the timer, rest between exercises in guided mode is learned as
+well, a "Coach insights" card shows what's been learned, and the plan page,
+paired sessions and AI coach all use the same history. Then complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
 skill stage — across 50 tracked skills, from Front Lever to Iron Cross, Victorian Cross, and
 Manna, each with its own description in a full skills catalog — and the
@@ -136,7 +141,17 @@ service cloud.firestore {
 }
 ```
 
-## 4. Run
+## 4. Tests
+
+```bash
+npm test
+```
+
+Runs the unit tests in `tests/` (assessment, adaptation, timing filters,
+verification and translations) with Node's built-in test runner — no extra
+dependencies.
+
+## 5. Run
 
 ```bash
 npm run dev

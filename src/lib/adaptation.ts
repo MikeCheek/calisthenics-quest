@@ -96,12 +96,15 @@ export function applyExerciseFeedback(
     const t = fb.timing;
     if (t?.restRatio !== undefined) s.rr = [...(s.rr ?? []), +t.restRatio.toFixed(2)].slice(-TIMING_HISTORY);
     if (t?.holdRatio !== undefined) s.hr = [...(s.hr ?? []), +t.holdRatio.toFixed(2)].slice(-TIMING_HISTORY);
+    if (t?.repRatio !== undefined) s.rp = [...(s.rp ?? []), +t.repRatio.toFixed(2)].slice(-TIMING_HISTORY);
 
     if (fb.outcome === "done") {
       s.done += 1;
       // "done", but the timer shows broken holds or repeated mid-set
       // pauses: count it as done without crediting it toward easing/step-ups
       if (!t?.struggled) s.p = clamp(s.p - 1, P_MIN, P_MAX);
+      // logged clearly more reps than prescribed: progress a step faster
+      if (!t?.struggled && (t?.repRatio ?? 0) >= 1.25) s.p = clamp(s.p - 1, P_MIN, P_MAX);
       if (fb.repDelta) s.rd = clamp((s.rd ?? 0) + fb.repDelta, -REP_DELTA_LIMIT, REP_DELTA_LIMIT);
     } else if (fb.outcome === "skipped") {
       s.skipped += 1;
@@ -389,4 +392,26 @@ export function describeSuggestion(s: StageSuggestion): string {
   return s.direction === "up"
     ? `You've been consistently completing your ${name} work. Ready to move from ${STAGE_LABEL[s.fromStage] ?? s.fromStage} to ${STAGE_LABEL[s.toStage] ?? s.toStage}?`
     : `${name} at ${STAGE_LABEL[s.fromStage] ?? s.fromStage} has been a struggle lately. Step back to ${STAGE_LABEL[s.toStage] ?? s.toStage} for a while to build it properly?`;
+}
+
+// ---- compact history for the AI coach prompts ----
+// A few lines the model can use: what's been a struggle, what's going well,
+// and which claimed levels are proven. Exercise names only — no personal data.
+export function historySummary(
+  stats: Record<string, ExerciseStat> | undefined,
+  claims: Partial<Record<string, { status: string; value: string | number }>> | undefined,
+  nameOf: (key: string) => string = (k) => k
+): string {
+  const parts: string[] = [];
+  const entries = Object.entries(stats ?? {});
+  const struggling = entries.filter(([, s]) => s.p >= EASE_AT).map(([k]) => nameOf(k)).slice(0, 4);
+  const strong = entries.filter(([, s]) => s.p <= VOLUME_AT).map(([k]) => nameOf(k)).slice(0, 4);
+  if (struggling.length) parts.push(`recently too hard or skipped: ${struggling.join(", ")}`);
+  if (strong.length) parts.push(`consistently completed: ${strong.join(", ")}`);
+  const cl = Object.entries(claims ?? {});
+  const verified = cl.filter(([, c]) => c?.status === "verified").map(([k, c]) => `${k}=${c!.value}`).slice(0, 6);
+  const shaky = cl.filter(([, c]) => c?.status === "unconfirmed").map(([k, c]) => `${k}=${c!.value}`).slice(0, 4);
+  if (verified.length) parts.push(`verified in training: ${verified.join(", ")}`);
+  if (shaky.length) parts.push(`claimed but failed a check: ${shaky.join(", ")}`);
+  return parts.join("; ");
 }

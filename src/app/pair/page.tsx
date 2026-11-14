@@ -12,6 +12,9 @@ import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { createPairing, joinPairing, sendPairingInvite, setPairingBarCount, PairingDoc } from "@/lib/store";
 import { generatePairedSession, applyAlternatingBarTurns } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
+import { adaptSession } from "@/lib/adaptation";
+import { useTrainingSession } from "@/context/TrainingSessionContext";
+import type { ExerciseFeedback } from "@/lib/types";
 import { Friend, DEFAULT_EQUIPMENT } from "@/lib/types";
 import { useToast } from "@/context/ToastContext";
 import { Copy, Users } from "lucide-react";
@@ -35,6 +38,7 @@ function PairContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { showReport } = useTrainingSession();
   const [mode, setMode] = useState<Mode>("choose");
   const [code, setCode] = useState("");
   const [joinInput, setJoinInput] = useState("");
@@ -124,7 +128,9 @@ function PairContent() {
 
   const rawMySession = paired ? (isHost ? paired.hostSession : paired.guestSession) : null;
   const rawTheirSession = paired ? (isHost ? paired.guestSession : paired.hostSession) : null;
-  const mySession = rawMySession && barCount === 1 ? applyAlternatingBarTurns(rawMySession) : rawMySession;
+  // my side adapts to my own history (the partner's side to theirs on their device)
+  const adaptedMine = rawMySession ? adaptSession(rawMySession, userDoc.exerciseStats, pairing!.hostEquipment) : null;
+  const mySession = adaptedMine && barCount === 1 ? applyAlternatingBarTurns(adaptedMine) : adaptedMine;
   const theirSession = rawTheirSession && barCount === 1 ? applyAlternatingBarTurns(rawTheirSession) : rawTheirSession;
   const partnerName = isHost ? pairing?.guestName : pairing?.hostName;
 
@@ -137,12 +143,17 @@ function PairContent() {
     }
   };
 
-  const handleComplete = async () => {
+  const handleComplete = async (feedback: ExerciseFeedback[]) => {
     if (!mySession) return;
-    const { celebration: c } = await completeSession(userDoc, mySession, { isPaired: true });
-    setCompleted(true);
-    setCelebration(c);
-    await refreshUserDoc();
+    try {
+      const { celebration: c, report } = await completeSession(userDoc, mySession, { isPaired: true, feedback });
+      setCompleted(true);
+      setCelebration(c);
+      showReport(report);
+      await refreshUserDoc();
+    } catch {
+      toast.error("Couldn't log your session — check your connection and try again.");
+    }
   };
 
   const resetToChoose = () => {
