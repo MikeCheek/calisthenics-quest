@@ -97,6 +97,9 @@ export interface SkillProfile {
   pullUpMaxReps: number;
   archerPullUp: boolean;
   dipMaxReps: number;
+  // Asked separately from dips in the assessment — floor-only athletes have
+  // no dip numbers to give, and the two don't track each other closely.
+  pushUpMaxReps?: number;
 }
 
 export interface BodyProfile {
@@ -202,9 +205,89 @@ export interface Exercise {
   restSeconds: number;
   cue?: string; // short coaching cue, shown during training
   description?: string; // how to actually perform the movement
+  // Set by adaptation.ts when this exercise was changed because of the
+  // athlete's own history — shown as a small "adapted" note in the UI.
+  adaptNote?: string;
+  adaptedFrom?: string; // the exercise name it replaced
+  adaptDir?: "easier" | "harder";
+  // Present on a "Skill Check" exercise: the claim it verifies and the
+  // target that proves it (see verification.ts).
+  check?: CheckSpec;
 }
 
-export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill";
+export type BaselineClaimKey = "pullUpMaxReps" | "pushUpMaxReps" | "dipMaxReps";
+export type ClaimKey = StagedSkillKey | BaselineClaimKey;
+
+export interface CheckSpec {
+  key: ClaimKey;
+  kind: "hold" | "reps" | "pass"; // seconds held / reps done / did-it yes-no
+  target: number; // seconds or reps; 1 for "pass"
+  label: string; // e.g. "Tuck Front Lever"
+}
+
+// Something the athlete said they can do — from the assessment or a profile
+// edit. It stays "claimed" until a Skill Check in training proves it.
+export interface SkillClaim {
+  value: string | number; // stage, or a rep count for baselines
+  status: "claimed" | "verified" | "unconfirmed";
+  claimedAt: string;
+  verifiedAt?: string;
+  lastAttemptAt?: string;
+  fails: number; // failed attempts on separate days since the claim
+  best?: number; // best measured result so far
+}
+
+// Cleaned timing from one exercise's timer, after filtering out
+// interruptions and accidental taps (see timingLearning.ts).
+export interface TimingSummary {
+  restRatio?: number; // median rest actually taken / planned, this session
+  holdRatio?: number; // median seconds held / target, this session
+  repRatio?: number; // median logged reps / prescribed reps, this session
+  bestReps?: number; // most reps logged in one clean set
+  bestHold?: number; // longest clean hold, seconds
+  struggled: boolean; // broke holds early, missed reps, or paused mid-set repeatedly
+  ignored: number; // samples dropped as unreliable
+}
+
+// What happened to one exercise in a finished session — fed back into
+// adaptation.ts so future sessions learn from it.
+export type ExerciseOutcome = "done" | "skipped" | "tooHard";
+
+export interface ExerciseFeedback {
+  name: string;
+  outcome: ExerciseOutcome;
+  setTitle: string;
+  repDelta?: number; // the athlete's own in-session +/- adjustment
+  adaptedFrom?: string;
+  adaptDir?: "easier" | "harder";
+  timing?: TimingSummary;
+  check?: CheckSpec;
+  checkResult?: number | boolean;
+}
+
+// Rolling per-exercise memory. `p` is a "pressure" score: too hard and
+// skips push it up, clean completions pull it down. Thresholds on it decide
+// whether the next session eases off, holds, adds volume or steps up.
+export interface ExerciseStat {
+  p: number;
+  done: number;
+  skipped: number;
+  tooHard: number;
+  rd?: number; // remembered rep/set adjustment the athlete keeps choosing
+  rr?: number[]; // last few sessions' median rest ratio (taken / planned)
+  hr?: number[]; // last few sessions' median hold ratio (held / target)
+  rp?: number[]; // last few sessions' median rep ratio (logged / prescribed)
+  last: string;
+}
+
+// Rolling per-skill signal from every exercise belonging to that skill —
+// drives automatic mastery changes and stage-up/down suggestions.
+export interface SkillProgress {
+  score: number;
+  snoozeUntil?: string; // a declined suggestion isn't re-offered before this
+}
+
+export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill" | "skillCheck";
 
 export interface TrainingSet {
   track: TrainingSetKind;
@@ -298,6 +381,11 @@ export interface UserDoc {
   friendCode: string;
   createdAt: string;
   locale?: Locale;
+  exerciseStats?: Record<string, ExerciseStat>;
+  skillProgress?: Partial<Record<StagedSkillKey, SkillProgress>>;
+  claims?: Partial<Record<ClaimKey, SkillClaim>>;
+  // guided mode: last few sessions' median rest-between-exercises ratio
+  transitionRest?: number[];
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends
@@ -387,6 +475,7 @@ export const DEFAULT_SKILLS: SkillProfile = {
   pullUpMaxReps: 5,
   archerPullUp: false,
   dipMaxReps: 5,
+  pushUpMaxReps: 10,
 };
 
 export const DEFAULT_BODY: BodyProfile = {

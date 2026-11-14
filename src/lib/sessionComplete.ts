@@ -1,4 +1,6 @@
-import { TrainingSession, UserDoc } from "./types";
+import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
+import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
+import { applyCheckResults, syncClaims } from "./verification";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile } from "./store";
 import { effectiveLevel } from "./levelPath";
@@ -15,6 +17,7 @@ export interface Celebration {
 export interface CompleteSessionResult {
   patch: Partial<UserDoc>;
   celebration: Celebration;
+  report: AdaptationReport;
 }
 
 function isToday(dateISO: string): boolean {
@@ -80,8 +83,9 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
-  opts: { isPaired?: boolean } = {}
+  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number } = {}
 ): Promise<CompleteSessionResult> {
+  const feedback = opts.feedback ?? [];
   const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
   const { streak: newStreak, event: streakEvent } = resolveStreak(userDoc, alreadyLoggedToday);
 
@@ -99,7 +103,51 @@ export async function completeSession(
   const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }];
   const trimmedHistory = history.slice(-30);
 
+  // Learn from what actually happened in this session (see adaptation.ts).
+  const exerciseStats = applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback);
+  const learned = applySkillFeedback(
+    userDoc.skills,
+    userDoc.skillMastery ?? {},
+    userDoc.skillProgress ?? {},
+    feedback
+  );
+  // Verify (or question) what the athlete claimed, from any Skill Check.
+  const verified = applyCheckResults(
+    syncClaims(userDoc.claims, userDoc.skills),
+    userDoc.skills,
+    learned.mastery,
+    learned.progress,
+    feedback
+  );
+  const newSkills = verified.skills;
+  const claims = syncClaims(verified.claims, newSkills);
+  const suggestions = [
+    ...verified.suggestions,
+    ...learned.suggestions.filter((s) => !verified.suggestions.some((v) => v.skill === s.skill)),
+  ];
+
+  const report: AdaptationReport = {
+    masteryChanges: learned.masteryChanges,
+    suggestions,
+    verifications: verified.events,
+    ignoredTimingSamples: feedback.reduce((n, f) => n + (f.timing?.ignored ?? 0), 0),
+    feedbackCounts: {
+      done: feedback.filter((f) => f.outcome === "done").length,
+      skipped: feedback.filter((f) => f.outcome === "skipped").length,
+      tooHard: feedback.filter((f) => f.outcome === "tooHard").length,
+    },
+  };
+  const newMastery = verified.mastery;
+
   const patch: Partial<UserDoc> = {
+    exerciseStats,
+    skillProgress: learned.progress,
+    skillMastery: newMastery,
+    skills: newSkills,
+    claims,
+    ...(opts.transitionRestRatio !== undefined
+      ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) }
+      : {}),
     xp: totalXp,
     streak: newStreak,
     lastSessionDateISO: new Date().toISOString(),
@@ -116,22 +164,23 @@ export async function completeSession(
       displayName: userDoc.displayName,
       photoURL: userDoc.photoURL,
       friendCode: userDoc.friendCode,
-      level: effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery),
+      level: effectiveLevel(totalXp, newSkills, newMastery),
       streak: newStreak,
       xp: totalXp,
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
-      skills: userDoc.skills,
-      skillMastery: userDoc.skillMastery,
+      skills: newSkills,
+      skillMastery: newMastery,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });
   }
 
   const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
-  const newLevel = effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery);
+  const newLevel = effectiveLevel(totalXp, newSkills, newMastery);
 
   return {
     patch,
+    report,
     celebration: {
       leveledUp: newLevel > oldLevel,
       newLevel,

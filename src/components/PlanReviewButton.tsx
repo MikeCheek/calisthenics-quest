@@ -5,6 +5,7 @@ import Modal from "@/components/Modal";
 import { useToast } from "@/context/ToastContext";
 import { TrainingSession, SkillProfile, TrainingEquipment } from "@/lib/types";
 import { Sparkles, Star, Check, X, ArrowRight } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Suggestion {
   key: string;
@@ -19,11 +20,12 @@ interface ReviewResult {
   suggestions: Suggestion[];
 }
 
-function summarizeSkills(focusLabel: string, skills: SkillProfile): string {
+function summarizeSkills(focusLabel: string, skills: SkillProfile, history?: string): string {
   // A short, focus-relevant slice of the athlete's profile rather than
   // dumping all 50 skills — the model only needs what's actually relevant
   // to judge today's session.
-  return `training toward ${focusLabel}; pull-ups max ${skills.pullUpMaxReps}, dips max ${skills.dipMaxReps}`;
+  const base = `training toward ${focusLabel}; pull-ups max ${skills.pullUpMaxReps}, dips max ${skills.dipMaxReps}`;
+  return history ? `${base}; ${history}` : base;
 }
 
 const EQUIPMENT_LABEL: Record<keyof TrainingEquipment, string> = {
@@ -47,15 +49,18 @@ function summarizeEquipment(equipment: TrainingEquipment): string {
 export default function PlanReviewButton({
   session,
   skills,
+  history,
   equipment,
   onApply,
 }: {
   session: TrainingSession;
   skills: SkillProfile;
+  history?: string; // learned history (see historySummary) for better advice
   equipment: TrainingEquipment;
   onApply: (next: TrainingSession) => void;
 }) {
   const toast = useToast();
+  const { tx } = useLanguage();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReviewResult | null>(null);
@@ -77,7 +82,7 @@ export default function PlanReviewButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           focusLabel: session.focusLabel,
-          skillsSummary: summarizeSkills(session.focusLabel, skills),
+          skillsSummary: summarizeSkills(session.focusLabel, skills, history),
           equipmentSummary: summarizeEquipment(equipment),
           exercises,
         }),
@@ -145,7 +150,7 @@ export default function PlanReviewButton({
         onClick={runReview}
         className="w-full py-2.5 rounded-lg border border-orange-500/40 text-orange-300 hover:bg-orange-500/10 text-sm flex items-center justify-center gap-2"
       >
-        <Sparkles size={15} /> Review with AI
+        <Sparkles size={15} /> {tx("Review with AI")}
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="AI plan review">

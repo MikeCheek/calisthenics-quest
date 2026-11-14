@@ -12,13 +12,19 @@ import PomodoroTimer from "@/components/PomodoroTimer";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
-import { SkillTrack, TrainingSession } from "@/lib/types";
+import { ExerciseFeedback, SkillTrack, TrainingSession } from "@/lib/types";
+import { adaptSession, adaptedCount, historySummary } from "@/lib/adaptation";
+import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
+import { useToast } from "@/context/ToastContext";
 import { Play, ChevronDown, Timer, CalendarDays, Dices } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const router = useRouter();
-  const { startSession, expand, session: globalSession, completed: globalCompleted } = useTrainingSession();
+  const { startSession, expand, session: globalSession, completed: globalCompleted, showReport } = useTrainingSession();
+  const toast = useToast();
+  const { tx } = useLanguage();
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
@@ -47,10 +53,21 @@ export default function TrainingPage() {
   const options = useMemo(() => (equipment ? availableFocuses(equipment) : []), [equipment]);
   const focus = focusOverride ?? (equipment ? pickFocus(new Date(), equipment, userDoc?.goalTracks ?? []) : null);
 
+  const skillsKey = JSON.stringify(userDoc?.skills ?? null);
+  const equipmentKey = JSON.stringify(userDoc?.equipment ?? null);
   const session = useMemo(() => {
     if (!userDoc || !focus) return null;
-    return generateSession(userDoc.skills, userDoc.equipment, focus);
-  }, [userDoc, focus]);
+    // generated from the athlete's stages, then adapted to their own history
+    // of completing, skipping and struggling with specific exercises
+    const adapted = adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus), userDoc.exerciseStats, userDoc.equipment);
+    // one Skill Check per session, verifying something the athlete claimed
+    const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), userDoc.equipment, focus);
+    return addSkillCheck(adapted, check);
+    // Only re-generate when stages, equipment or focus actually change — not
+    // when exercise stats update after logging, so the session just logged
+    // stays on screen (its adaptations kick in on the next visit).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillsKey, equipmentKey, focus, !!userDoc]);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -65,12 +82,17 @@ export default function TrainingPage() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const handleComplete = async () => {
-    const { patch, celebration: c } = await completeSession(userDoc, displayedSession);
-    setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
-    setCompleted(true);
-    setCelebration(c);
-    await refreshUserDoc();
+  const handleComplete = async (feedback: ExerciseFeedback[]) => {
+    try {
+      const { patch, celebration: c, report } = await completeSession(userDoc, displayedSession, { feedback });
+      setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
+      setCompleted(true);
+      setCelebration(c);
+      showReport(report);
+      await refreshUserDoc();
+    } catch {
+      toast.error("Couldn't log your session — check your connection and try again.");
+    }
   };
 
   return (
@@ -79,12 +101,12 @@ export default function TrainingPage() {
       <CelebrationOverlay celebration={celebration} />
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="heading text-2xl text-zinc-100">Today&apos;s session</h1>
+          <h1 className="heading text-2xl text-zinc-100">{tx("Today's session")}</h1>
           <div className="flex gap-1.5 shrink-0">
             <Link
               href="/plan"
               className="p-2 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
-              aria-label="Plan ahead"
+              aria-label={tx("Plan ahead")}
             >
               <CalendarDays size={16} />
             </Link>
@@ -93,7 +115,7 @@ export default function TrainingPage() {
               className={`p-2 border rounded-lg ${
                 showTimer ? "border-orange-500 text-orange-400" : "border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100"
               }`}
-              aria-label={showTimer ? "Hide focus timer" : "Show focus timer"}
+              aria-label={showTimer ? tx("Hide focus timer") : tx("Show focus timer")}
             >
               <Timer size={16} />
             </button>
@@ -106,10 +128,10 @@ export default function TrainingPage() {
           className="w-full panel px-3.5 py-2.5 flex items-center justify-between text-sm"
         >
           <span className="text-zinc-300">
-            Focus: <span className="text-zinc-100">{FOCUS_LABEL[focus!]}</span>
+            {tx("Focus:")} <span className="text-zinc-100">{tx(FOCUS_LABEL[focus!])}</span>
           </span>
           <span className="text-xs text-zinc-500 flex items-center gap-1">
-            Change <ChevronDown size={14} className={showFocusPicker ? "rotate-180 transition-transform" : "transition-transform"} />
+            {tx("Change")} <ChevronDown size={14} className={showFocusPicker ? "rotate-180 transition-transform" : "transition-transform"} />
           </span>
         </button>
         {showFocusPicker && (
@@ -130,13 +152,13 @@ export default function TrainingPage() {
                       : "border-zinc-700 text-zinc-400 hover:text-zinc-100"
                   }`}
                 >
-                  {FOCUS_LABEL[f]}
+                  {tx(FOCUS_LABEL[f])}
                   {userDoc.goalTracks?.includes(f) && <span className="text-orange-400"> ★</span>}
                 </button>
               ))}
             </div>
             <Link href="/onboarding" className="text-xs text-zinc-500 hover:text-orange-400 mt-2 inline-block">
-              Not seeing a focus? Update your available equipment
+              {tx("Not seeing a focus? Update your available equipment")}
             </Link>
           </div>
         )}
@@ -145,19 +167,27 @@ export default function TrainingPage() {
 
         {globalSession && !globalCompleted && (
           <div className="panel p-3 border-orange-500/40 flex items-center justify-between gap-3">
-            <div className="text-sm text-zinc-100">A training session is already in progress.</div>
+            <div className="text-sm text-zinc-100">{tx("A training session is already in progress.")}</div>
             <button
               onClick={expand}
               className="text-xs px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 shrink-0"
             >
-              Resume it
+              {tx("Resume it")}
             </button>
           </div>
         )}
 
         {completed && xpGained !== null && (
           <div className="panel p-3 border-emerald-600 text-emerald-400 text-sm">
-            Session logged — you earned +{xpGained} XP.
+            {tx("Session logged — you earned +{n} XP.", { n: xpGained })}
+          </div>
+        )}
+
+        {adaptedCount(displayedSession) > 0 && !completed && (
+          <div className="text-xs text-sky-400/90 px-1">
+            {tx("{n} adapted from your recent sessions — based on what you completed, skipped or found too hard.", {
+              n: adaptedCount(displayedSession),
+            })}
           </div>
         )}
 
@@ -173,6 +203,7 @@ export default function TrainingPage() {
           <PlanReviewButton
             session={displayedSession}
             skills={userDoc.skills}
+            history={historySummary(userDoc.exerciseStats, userDoc.claims)}
             equipment={userDoc.equipment}
             onApply={setAiAppliedSession}
           />
@@ -180,7 +211,7 @@ export default function TrainingPage() {
             href="/wheel"
             className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-zinc-100 hover:bg-orange-500/10"
           >
-            <Dices size={15} className="text-orange-400" /> Bonus wheel
+            <Dices size={15} className="text-orange-400" /> {tx("Bonus wheel")}
           </Link>
         </div>
       </main>
@@ -190,7 +221,7 @@ export default function TrainingPage() {
           onClick={() => startSession(displayedSession)}
           className="fixed bottom-20 sm:bottom-6 left-4 z-40 heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2"
         >
-          <Play size={15} /> Start Training
+          <Play size={15} /> {tx("Start Training")}
         </button>
       )}
     </>

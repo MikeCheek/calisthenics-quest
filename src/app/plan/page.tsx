@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
+import { historySummary } from "@/lib/adaptation";
 import { generatePlan, PlanDay, PlanRange } from "@/lib/planGenerator";
 import { TRACK_LABEL } from "@/lib/types";
 import { Sparkles, ChevronDown, ChevronUp, Moon } from "lucide-react";
@@ -52,12 +53,13 @@ export default function PlanPage() {
       `l-sit: ${s.lSit}`,
       `max pull-ups: ${s.pullUpMaxReps}`,
       `max dips: ${s.dipMaxReps}`,
-    ].join(", ");
+      historySummary(userDoc.exerciseStats, userDoc.claims),
+    ].filter(Boolean).join(", ");
   }, [userDoc]);
 
   const handleGenerate = async () => {
     if (!userDoc) return;
-    const newPlan = generatePlan(userDoc.skills, userDoc.equipment, userDoc.goalTracks ?? [], userDoc.body, range);
+    const newPlan = generatePlan(userDoc.skills, userDoc.equipment, userDoc.goalTracks ?? [], userDoc.body, range, new Date(), userDoc.exerciseStats);
     setPlan(newPlan);
     setExpanded(newPlan.find((d) => !d.isRestDay)?.dateISO ?? null);
     setAiIntro(null);

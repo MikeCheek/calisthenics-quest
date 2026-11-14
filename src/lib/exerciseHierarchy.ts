@@ -211,3 +211,27 @@ export function findHarderExercise(currentName: string, equipment: TrainingEquip
   if (!loc || loc.index >= loc.list.length - 1) return null;
   return loc.list[loc.index + 1];
 }
+
+// ---- exercise -> (skill, stage) lookup, for learning from activity ----
+// Which staged skill an exercise trains, and which stage's table it was
+// authored under. adaptation.ts uses this to credit (or debit) the right
+// skill's mastery when an exercise is completed or marked too hard.
+let stageIndexMap: Map<string, { skill: StagedSkillKey; stage: string }> | null = null;
+
+export function exerciseStage(name: string): { skill: StagedSkillKey; stage: string } | null {
+  if (!stageIndexMap) {
+    const map = new Map<string, { skill: StagedSkillKey; stage: string }>();
+    for (const skill of [...CORE_SKILLS, ...ADVANCED_SKILLS]) {
+      for (const preset of [ALL_EQUIPMENT, NO_EQUIPMENT]) {
+        const table = tableForSkill(skill, preset);
+        for (const stage of STAGE_ORDER[skill] ?? []) {
+          for (const ex of table[stage] ?? []) {
+            if (!map.has(ex.name)) map.set(ex.name, { skill, stage });
+          }
+        }
+      }
+    }
+    stageIndexMap = map;
+  }
+  return stageIndexMap.get(name) ?? null;
+}

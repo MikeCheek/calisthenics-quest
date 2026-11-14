@@ -1,12 +1,14 @@
 "use client";
 
 import { XPHistoryPoint } from "@/lib/types";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function XPHistoryChart({ history }: { history: XPHistoryPoint[] }) {
+  const { tx } = useLanguage();
   if (history.length < 2) {
     return (
       <div className="text-sm text-zinc-500 py-8 text-center">
-        Complete a few more sessions to see your XP trend here.
+        {tx("Complete a few more sessions to see your XP trend here.")}
       </div>
     );
   }

@@ -3,9 +3,11 @@
 import { useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
 import ExerciseTimer from "@/components/ExerciseTimer";
-import ExerciseTipButton from "@/components/ExerciseTipButton";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
-import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info } from "lucide-react";
+import SkillCheckPanel from "@/components/SkillCheckPanel";
+import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const SWIPE_THRESHOLD = 55;
 const SWIPE_MAX = 90;
@@ -16,6 +18,7 @@ export default function ExerciseRow({
   isAdjusted,
   isSwapped,
   isDone,
+  isSkipped,
   timerOpen,
   trackLabel,
   onToggleDone,
@@ -23,12 +26,18 @@ export default function ExerciseRow({
   onBump,
   onResetAdjust,
   onCantDo,
+  onSkip,
+  timerLog,
+  onTimerLog,
+  checkValue,
+  onCheckChange,
 }: {
   exercise: Exercise;
   displayedDetail: string;
   isAdjusted: boolean;
   isSwapped?: boolean;
   isDone: boolean;
+  isSkipped?: boolean;
   timerOpen: boolean;
   trackLabel: string;
   onToggleDone: () => void;
@@ -36,10 +45,20 @@ export default function ExerciseRow({
   onBump: (delta: number) => void;
   onResetAdjust: () => void;
   onCantDo?: () => void;
+  onSkip?: () => void;
+  timerLog?: TimerLog;
+  onTimerLog?: (log: TimerLog) => void;
+  checkValue?: number | boolean;
+  onCheckChange?: (v: number | boolean | undefined) => void;
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const { tx } = useLanguage();
+  // once opened, the timer stays mounted (just hidden) so hiding it doesn't
+  // throw away its progress or the timing it has recorded
+  const [timerMounted, setTimerMounted] = useState(false);
+  if (timerOpen && !timerMounted) setTimerMounted(true);
   const start = useRef<{ x: number; y: number } | null>(null);
   const lockedAxis = useRef<"h" | "v" | null>(null);
   const displayedExercise = { ...exercise, detail: displayedDetail };
@@ -81,7 +100,7 @@ export default function ExerciseRow({
   return (
     <li
       className={`relative rounded-lg overflow-hidden border ${
-        isDone ? "border-emerald-600" : "border-zinc-700"
+        isDone ? "border-emerald-600" : isSkipped ? "border-zinc-800 opacity-60" : "border-zinc-700"
       }`}
     >
       {/* swipe hints revealed behind the card as you drag */}
@@ -90,13 +109,13 @@ export default function ExerciseRow({
           className="flex items-center gap-1 text-orange-400 text-xs font-medium transition-opacity"
           style={{ opacity: dragX < -15 ? Math.min(1, -dragX / SWIPE_THRESHOLD) : 0 }}
         >
-          <Minus size={16} /> Easier
+          <Minus size={16} /> {tx("Easier")}
         </div>
         <div
           className="flex items-center gap-1 text-emerald-400 text-xs font-medium transition-opacity"
           style={{ opacity: dragX > 15 ? Math.min(1, dragX / SWIPE_THRESHOLD) : 0 }}
         >
-          Harder <Plus size={16} />
+          {tx("Harder")} <Plus size={16} />
         </div>
       </div>
 
@@ -118,7 +137,7 @@ export default function ExerciseRow({
             className={`mt-0.5 w-5 h-5 shrink-0 rounded-lg border flex items-center justify-center ${
               isDone ? "bg-emerald-500 border-emerald-500" : "border-zinc-600"
             }`}
-            aria-label={isDone ? "Mark not done" : "Mark done"}
+            aria-label={isDone ? tx("Mark not done") : tx("Mark done")}
           >
             {isDone && <Check size={14} className="text-zinc-950" />}
           </button>
@@ -127,15 +146,16 @@ export default function ExerciseRow({
             <div className="flex items-start justify-between gap-2">
               <div className={`text-sm font-medium ${isDone ? "text-zinc-400 line-through" : "text-zinc-100"}`}>
                 {exercise.name}
-                {isSwapped && <span className="text-xs text-orange-400 font-normal"> (swapped, easier)</span>}
+                {isSwapped && <span className="text-xs text-orange-400 font-normal"> ({tx("swapped, easier")})</span>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="text-zinc-500 hover:text-orange-400"
-                  aria-label={`How to do ${exercise.name}`}
+                  className="text-zinc-500 hover:text-orange-400 p-0.5 -m-0.5"
+                  aria-label={`How to do ${exercise.name}, with an AI tip`}
+                  title={tx("How to · AI tip")}
                 >
-                  <Info size={14} />
+                  <Info size={15} />
                 </button>
                 {exercise.restSeconds > 0 && (
                   <div className="text-xs text-zinc-500 flex items-center gap-1">
@@ -146,54 +166,83 @@ export default function ExerciseRow({
             </div>
             <div className="text-xs text-zinc-400">
               {displayedDetail}
-              {isAdjusted && <span className="text-orange-400"> (adjusted)</span>}
+              {isAdjusted && <span className="text-orange-400"> ({tx("adjusted")})</span>}
             </div>
-            {exercise.cue && <div className="text-xs text-orange-400/80 italic">{exercise.cue}</div>}
+            {exercise.cue && <div className="text-xs text-orange-400/80 italic">{tx(exercise.cue)}</div>}
+            {exercise.adaptNote && (
+              <div className="text-[11px] text-sky-400/90 flex items-center gap-1 mt-0.5">
+                <Sparkles size={10} className="shrink-0" /> {tx(exercise.adaptNote)}
+              </div>
+            )}
+            {isSkipped && <div className="text-[11px] text-zinc-500 mt-0.5">{tx("Skipped")}</div>}
 
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            <div className="flex items-center gap-1.5 mt-2">
               <button
                 onClick={onToggleTimer}
-                className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
+                className={`text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-medium ${
+                  timerOpen ? "bg-zinc-800 text-zinc-200" : "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25"
+                }`}
               >
-                <Play size={11} /> {timerOpen ? "Hide timer" : "Start"}
+                <Play size={11} /> {timerOpen ? tx("Hide") : tx("Start")}
               </button>
-              <ExerciseTipButton exerciseName={exercise.name} exerciseDetail={exercise.detail} trackLabel={trackLabel} />
-              {onCantDo && (
+              {onSkip && !isDone && (
                 <button
-                  onClick={onCantDo}
-                  className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-400 hover:border-orange-500 hover:text-orange-400 flex items-center gap-1"
+                  onClick={onSkip}
+                  className={`text-xs px-2 py-1.5 rounded-lg flex items-center gap-1 ${
+                    isSkipped ? "bg-zinc-700 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                  }`}
                 >
-                  <ArrowDownCircle size={11} /> Can&apos;t do this
+                  <SkipForward size={11} /> {isSkipped ? tx("Undo") : tx("Skip")}
                 </button>
               )}
-              <div className="flex items-center gap-1 ml-auto">
+              {onCantDo && !isDone && (
+                <button
+                  onClick={onCantDo}
+                  className="text-xs px-2 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-orange-400 flex items-center gap-1 whitespace-nowrap"
+                >
+                  <ArrowDownCircle size={11} /> {tx("Too hard")}
+                </button>
+              )}
+              <div className="flex items-center ml-auto rounded-lg border border-zinc-700 overflow-hidden" title="Sets — or swipe the card">
                 <button
                   onClick={() => onBump(-1)}
-                  aria-label="Make easier"
-                  className="w-6 h-6 rounded-lg border border-zinc-600 text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 flex items-center justify-center"
+                  aria-label={tx("One set fewer")}
+                  className="w-7 h-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
                 >
                   <Minus size={11} />
                 </button>
                 {isAdjusted && (
                   <button
                     onClick={onResetAdjust}
-                    aria-label="Reset to default"
-                    className="w-6 h-6 rounded-lg border border-zinc-600 text-zinc-500 hover:text-orange-400 flex items-center justify-center"
+                    aria-label={tx("Reset to default")}
+                    className="w-6 h-7 text-orange-400 hover:bg-zinc-800 flex items-center justify-center border-x border-zinc-700"
                   >
                     <RotateCcw size={10} />
                   </button>
                 )}
                 <button
                   onClick={() => onBump(1)}
-                  aria-label="Make harder"
-                  className="w-6 h-6 rounded-lg border border-zinc-600 text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 flex items-center justify-center"
+                  aria-label={tx("One set more")}
+                  className="w-7 h-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
                 >
                   <Plus size={11} />
                 </button>
               </div>
             </div>
 
-            {timerOpen && <ExerciseTimer key={exercise.name} exercise={displayedExercise} />}
+            {timerMounted && (
+              <div className={timerOpen ? "" : "hidden"}>
+                <ExerciseTimer key={exercise.name} exercise={displayedExercise} onLog={onTimerLog} />
+              </div>
+            )}
+            {exercise.check && onCheckChange && (
+              <SkillCheckPanel
+                spec={exercise.check}
+                value={checkValue}
+                timerBest={bestHoldFromLog(timerLog)}
+                onChange={onCheckChange}
+              />
+            )}
           </div>
         </div>
       </div>

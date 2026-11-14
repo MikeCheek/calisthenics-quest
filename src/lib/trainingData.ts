@@ -354,7 +354,10 @@ export function pushStrengthTrack(skills: SkillProfile, equipment: TrainingEquip
       { name: "Planche push-ups", detail: "3 x 5 reps", restSeconds: 150, description: "Starting in a planche lean or tuck planche position (feet off the ground, shoulders well past your hands), bend your elbows to lower your chest and press back up without your feet touching down." },
     ];
   }
-  if (dipMaxReps < 8) {
+  // floor-only: use the push-up baseline when we have one (older profiles
+  // only had the combined dips/push-ups number)
+  const floorBeginner = skills.pushUpMaxReps !== undefined ? skills.pushUpMaxReps < 20 : dipMaxReps < 8;
+  if (floorBeginner) {
     return [
       { name: "Push-ups", detail: "4 x max reps", restSeconds: 90, description: "Starting in a plank with hands under your shoulders, lower your chest toward the ground by bending your elbows, keeping your body in a straight line, then press back up." },
       { name: "Decline push-ups", detail: "3 x 8-10 reps", restSeconds: 90, description: "With your feet elevated on a step or bench, perform a push-up by bending your elbows to lower your chest toward the ground and pressing back up." },
