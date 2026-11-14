@@ -55,6 +55,8 @@ export default function OnboardingStepper({
   const [equipment, setEquipment] = useState<TrainingEquipment>(initialEquipment);
   const [goals, setGoals] = useState<SkillTrack[]>(initialGoals);
   const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(initialMastery);
+  // the per-area assessment has its own Back/Next — hide ours meanwhile
+  const [assessing, setAssessing] = useState(false);
 
   const toggleGoal = (t: SkillTrack) => {
     setGoals((g) => (g.includes(t) ? g.filter((x) => x !== t) : g.length < 4 ? [...g, t] : g));
@@ -156,28 +158,14 @@ export default function OnboardingStepper({
           <SkillAssessmentStep
             skills={skills}
             mastery={mastery}
+            equipment={equipment}
             currentXp={currentXp}
+            onInProgressChange={setAssessing}
             onChange={(nextSkills, nextMastery) => {
               setSkills(nextSkills);
               setMastery(nextMastery);
             }}
           />
-
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
-            <ScrollPicker label="Max pull-ups" value={skills.pullUpMaxReps} min={0} max={40} variant="wheel"
-              onChange={(v) => setSkills({ ...skills, pullUpMaxReps: v })} />
-            <ScrollPicker label="Max dips / push-ups" value={skills.dipMaxReps} min={0} max={50} variant="wheel"
-              onChange={(v) => setSkills({ ...skills, dipMaxReps: v })} />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-zinc-300">
-            <input
-              type="checkbox"
-              checked={skills.archerPullUp}
-              onChange={(e) => setSkills({ ...skills, archerPullUp: e.target.checked })}
-              className="accent-orange-500 w-4 h-4"
-            />
-            I can do archer pull-ups
-          </label>
         </div>
       )}
 
@@ -207,6 +195,7 @@ export default function OnboardingStepper({
         </div>
       )}
 
+      {!(step === 2 && assessing) && (
       <button
         onClick={next}
         disabled={saving}
@@ -214,6 +203,7 @@ export default function OnboardingStepper({
       >
         {step < STEPS.length - 1 ? "Continue" : saving ? "Saving..." : "Save & start training"}
       </button>
+      )}
     </div>
   );
 }

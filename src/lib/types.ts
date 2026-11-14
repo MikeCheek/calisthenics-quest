@@ -97,6 +97,9 @@ export interface SkillProfile {
   pullUpMaxReps: number;
   archerPullUp: boolean;
   dipMaxReps: number;
+  // Asked separately from dips in the assessment — floor-only athletes have
+  // no dip numbers to give, and the two don't track each other closely.
+  pushUpMaxReps?: number;
 }
 
 export interface BodyProfile {
@@ -202,6 +205,43 @@ export interface Exercise {
   restSeconds: number;
   cue?: string; // short coaching cue, shown during training
   description?: string; // how to actually perform the movement
+  // Set by adaptation.ts when this exercise was changed because of the
+  // athlete's own history — shown as a small "adapted" note in the UI.
+  adaptNote?: string;
+  adaptedFrom?: string; // the exercise name it replaced
+  adaptDir?: "easier" | "harder";
+}
+
+// What happened to one exercise in a finished session — fed back into
+// adaptation.ts so future sessions learn from it.
+export type ExerciseOutcome = "done" | "skipped" | "tooHard";
+
+export interface ExerciseFeedback {
+  name: string;
+  outcome: ExerciseOutcome;
+  setTitle: string;
+  repDelta?: number; // the athlete's own in-session +/- adjustment
+  adaptedFrom?: string;
+  adaptDir?: "easier" | "harder";
+}
+
+// Rolling per-exercise memory. `p` is a "pressure" score: too hard and
+// skips push it up, clean completions pull it down. Thresholds on it decide
+// whether the next session eases off, holds, adds volume or steps up.
+export interface ExerciseStat {
+  p: number;
+  done: number;
+  skipped: number;
+  tooHard: number;
+  rd?: number; // remembered rep/set adjustment the athlete keeps choosing
+  last: string;
+}
+
+// Rolling per-skill signal from every exercise belonging to that skill —
+// drives automatic mastery changes and stage-up/down suggestions.
+export interface SkillProgress {
+  score: number;
+  snoozeUntil?: string; // a declined suggestion isn't re-offered before this
 }
 
 export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill";
@@ -298,6 +338,8 @@ export interface UserDoc {
   friendCode: string;
   createdAt: string;
   locale?: Locale;
+  exerciseStats?: Record<string, ExerciseStat>;
+  skillProgress?: Partial<Record<StagedSkillKey, SkillProgress>>;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends
@@ -387,6 +429,7 @@ export const DEFAULT_SKILLS: SkillProfile = {
   pullUpMaxReps: 5,
   archerPullUp: false,
   dipMaxReps: 5,
+  pushUpMaxReps: 10,
 };
 
 export const DEFAULT_BODY: BodyProfile = {

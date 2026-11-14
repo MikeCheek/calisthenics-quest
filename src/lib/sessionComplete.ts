@@ -1,4 +1,5 @@
-import { TrainingSession, UserDoc } from "./types";
+import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
+import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile } from "./store";
 import { effectiveLevel } from "./levelPath";
@@ -15,6 +16,7 @@ export interface Celebration {
 export interface CompleteSessionResult {
   patch: Partial<UserDoc>;
   celebration: Celebration;
+  report: AdaptationReport;
 }
 
 function isToday(dateISO: string): boolean {
@@ -80,8 +82,9 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
-  opts: { isPaired?: boolean } = {}
+  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[] } = {}
 ): Promise<CompleteSessionResult> {
+  const feedback = opts.feedback ?? [];
   const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
   const { streak: newStreak, event: streakEvent } = resolveStreak(userDoc, alreadyLoggedToday);
 
@@ -99,7 +102,29 @@ export async function completeSession(
   const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }];
   const trimmedHistory = history.slice(-30);
 
+  // Learn from what actually happened in this session (see adaptation.ts).
+  const exerciseStats = applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback);
+  const learned = applySkillFeedback(
+    userDoc.skills,
+    userDoc.skillMastery ?? {},
+    userDoc.skillProgress ?? {},
+    feedback
+  );
+  const report: AdaptationReport = {
+    masteryChanges: learned.masteryChanges,
+    suggestions: learned.suggestions,
+    feedbackCounts: {
+      done: feedback.filter((f) => f.outcome === "done").length,
+      skipped: feedback.filter((f) => f.outcome === "skipped").length,
+      tooHard: feedback.filter((f) => f.outcome === "tooHard").length,
+    },
+  };
+  const newMastery = learned.mastery;
+
   const patch: Partial<UserDoc> = {
+    exerciseStats,
+    skillProgress: learned.progress,
+    skillMastery: newMastery,
     xp: totalXp,
     streak: newStreak,
     lastSessionDateISO: new Date().toISOString(),
@@ -116,22 +141,23 @@ export async function completeSession(
       displayName: userDoc.displayName,
       photoURL: userDoc.photoURL,
       friendCode: userDoc.friendCode,
-      level: effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery),
+      level: effectiveLevel(totalXp, userDoc.skills, newMastery),
       streak: newStreak,
       xp: totalXp,
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
       skills: userDoc.skills,
-      skillMastery: userDoc.skillMastery,
+      skillMastery: newMastery,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });
   }
 
   const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
-  const newLevel = effectiveLevel(totalXp, userDoc.skills, userDoc.skillMastery);
+  const newLevel = effectiveLevel(totalXp, userDoc.skills, newMastery);
 
   return {
     patch,
+    report,
     celebration: {
       leveledUp: newLevel > oldLevel,
       newLevel,

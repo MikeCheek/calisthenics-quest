@@ -1,8 +1,15 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
-import { TrainingSession } from "@/lib/types";
+import { ExerciseFeedback, TrainingSession } from "@/lib/types";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
+import {
+  AdaptationReport,
+  StageSuggestion,
+  acceptStageSuggestion,
+  snoozeStageSuggestion,
+} from "@/lib/adaptation";
+import { updateProgress } from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 
@@ -19,8 +26,16 @@ interface TrainingSessionContextValue {
   expand: () => void;
   togglePause: () => void;
   reportCurrentExercise: (name: string) => void;
-  finishSession: () => Promise<void>;
+  finishSession: (feedback?: ExerciseFeedback[]) => Promise<void>;
   discardSession: () => void;
+  report: AdaptationReport | null;
+  showReport: (r: AdaptationReport) => void;
+  clearReport: () => void;
+  resolveSuggestion: (s: StageSuggestion, accept: boolean) => Promise<void>;
+}
+
+function reportIsWorthShowing(r: AdaptationReport): boolean {
+  return r.masteryChanges.length > 0 || r.suggestions.length > 0;
 }
 
 const TrainingSessionContext = createContext<TrainingSessionContextValue | null>(null);
@@ -40,6 +55,40 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   const [currentExerciseName, setCurrentExerciseName] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const clearCelebration = useCallback(() => setCelebration(null), []);
+  const [report, setReport] = useState<AdaptationReport | null>(null);
+  const showReport = useCallback((r: AdaptationReport) => {
+    if (reportIsWorthShowing(r)) setReport(r);
+  }, []);
+  const clearReport = useCallback(() => setReport(null), []);
+
+  // Accepting moves the skill's stage (the athlete's call, since it sets the
+  // level); declining snoozes that suggestion for a week.
+  const resolveSuggestion = useCallback(
+    async (s: StageSuggestion, accept: boolean) => {
+      if (!userDoc) return;
+      try {
+        if (accept) {
+          const next = acceptStageSuggestion(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.skillProgress ?? {}, s);
+          await updateProgress(userDoc.uid, { skills: next.skills, skillMastery: next.mastery, skillProgress: next.progress });
+          toast.success(s.direction === "up" ? "Stage updated — new progressions from your next session." : "Stage eased — next sessions will rebuild it.");
+        } else {
+          await updateProgress(userDoc.uid, { skillProgress: snoozeStageSuggestion(userDoc.skillProgress ?? {}, s) });
+        }
+        await refreshUserDoc();
+      } catch {
+        toast.error("Couldn't save that change — check your connection and try again.");
+        return;
+      }
+      setReport((r) => {
+        if (!r) return r;
+        const rest = r.suggestions.filter((x) => x.skill !== s.skill);
+        const next = { ...r, suggestions: rest };
+        return reportIsWorthShowing(next) ? next : null;
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userDoc]
+  );
 
   const startSession = useCallback((s: TrainingSession) => {
     setSession(s);
@@ -62,10 +111,11 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
     setCurrentExerciseName(null);
   }, []);
 
-  const finishSession = useCallback(async () => {
+  const finishSession = useCallback(async (feedback?: ExerciseFeedback[]) => {
     if (!session || !userDoc || completed) return;
     try {
-      const { patch, celebration: c } = await completeSession(userDoc, session);
+      const { patch, celebration: c, report: r } = await completeSession(userDoc, session, { feedback });
+      showReport(r);
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;
       setCompleted(true);
       await refreshUserDoc();
@@ -102,6 +152,10 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
         reportCurrentExercise,
         finishSession,
         discardSession,
+        report,
+        showReport,
+        clearReport,
+        resolveSuggestion,
       }}
     >
       {children}

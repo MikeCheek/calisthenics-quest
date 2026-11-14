@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrainingSession, TrainingEquipment, Exercise } from "@/lib/types";
+import { TrainingSession, TrainingEquipment, Exercise, ExerciseFeedback } from "@/lib/types";
 import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { useToast } from "@/context/ToastContext";
@@ -31,12 +31,16 @@ export default function SessionView({
 }: {
   session: TrainingSession;
   equipment?: TrainingEquipment;
-  onComplete?: () => void;
+  onComplete?: (feedback: ExerciseFeedback[]) => void;
   completed?: boolean;
   onStartFocusMode?: () => void;
 }) {
   const totalExercises = session.sets.reduce((n, s) => n + s.exercises.length, 0);
   const [done, setDone] = useState<Set<string>>(new Set());
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  // every "too hard" press, in order — the exercise it was pressed on, not
+  // the easier one swapped in for it
+  const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
   const [openTimers, setOpenTimers] = useState<Set<string>>(new Set());
   const [individualDelta, setIndividualDelta] = useState<Record<string, number>>({});
   const [sessionLevel, setSessionLevel] = useState<SessionLevel>("default");
@@ -46,7 +50,21 @@ export default function SessionView({
   const toast = useToast();
   const eq = equipment ?? DEFAULT_LOOKUP_EQUIPMENT;
 
+  const toggleSkip = (key: string) => {
+    setSkipped((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
   const toggleDone = (key: string) => {
+    setSkipped((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
     setDone((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
@@ -82,20 +100,61 @@ export default function SessionView({
     });
   };
 
-  const swapForEasier = (key: string, currentExercise: Exercise) => {
+  const swapForEasier = (key: string, currentExercise: Exercise, setTitle: string) => {
+    setTooHard((prev) => [...prev, { name: currentExercise.name, outcome: "tooHard", setTitle }]);
     const easier = findEasierExercise(currentExercise.name, eq);
     if (!easier) {
-      toast.warning(`No easier variation found for ${currentExercise.name} — try adjusting reps instead.`);
+      toast.warning(`No easier variation for ${currentExercise.name} — noted, future sessions will ease off. Try fewer reps for now.`);
+      bump(key, -1);
       return;
     }
-    setIndividualOverrides((prev) => ({ ...prev, [key]: easier }));
+    setIndividualOverrides((prev) => ({
+      ...prev,
+      [key]: { ...easier, adaptedFrom: currentExercise.name, adaptDir: "easier", adaptNote: undefined },
+    }));
     toast.success(`Swapped in ${easier.name} — one step easier.`);
     // the old exercise's per-row reps adjustment doesn't carry over to a
     // different exercise's own baseline
     resetAdjust(key);
   };
 
-  const allDone = done.size >= totalExercises;
+  // the exercise actually shown in a row: a "too hard" swap wins, else the
+  // whole-session easier/harder step, else what was generated
+  const effectiveFor = (key: string, originalEx: Exercise, exempt: boolean): Exercise => {
+    if (individualOverrides[key]) return individualOverrides[key];
+    if (!exempt && sessionLevel !== "default") {
+      const stepped =
+        sessionLevel === "easier" ? findEasierExercise(originalEx.name, eq) : findHarderExercise(originalEx.name, eq);
+      if (stepped) return stepped;
+    }
+    return originalEx;
+  };
+
+  const collectFeedback = (): ExerciseFeedback[] => {
+    const out: ExerciseFeedback[] = [...tooHard];
+    session.sets.forEach((set) => {
+      const exempt = HIERARCHY_EXEMPT_SETS.has(set.title);
+      set.exercises.forEach((originalEx, i) => {
+        const key = `${set.title}-${i}`;
+        const ex = effectiveFor(key, originalEx, exempt);
+        const isDone = done.has(key);
+        // a row pressed "too hard" with no easier swap and never done is
+        // already recorded as too hard — don't also count it as a skip
+        if (!isDone && !individualOverrides[key] && tooHard.some((t) => t.name === ex.name && t.setTitle === set.title)) return;
+        out.push({
+          name: ex.name,
+          outcome: isDone ? "done" : "skipped",
+          setTitle: set.title,
+          repDelta: isDone ? individualDelta[key] ?? 0 : undefined,
+          adaptedFrom: ex.adaptedFrom,
+          adaptDir: ex.adaptDir,
+        });
+      });
+    });
+    return out;
+  };
+
+  const allDone = done.size + skipped.size >= totalExercises;
   const levelLabel = SESSION_LEVEL_OPTIONS.find((o) => o.value === sessionLevel)?.label;
 
   return (
@@ -152,15 +211,7 @@ export default function SessionView({
                 <ul className="space-y-2">
                   {set.exercises.map((originalEx, i) => {
                     const key = `${set.title}-${i}`;
-                    let effectiveExercise = individualOverrides[key] ?? originalEx;
-
-                    if (!exempt && sessionLevel !== "default" && !(key in individualOverrides)) {
-                      const stepped =
-                        sessionLevel === "easier"
-                          ? findEasierExercise(effectiveExercise.name, eq)
-                          : findHarderExercise(effectiveExercise.name, eq);
-                      if (stepped) effectiveExercise = stepped;
-                    }
+                    const effectiveExercise = effectiveFor(key, originalEx, exempt);
 
                     const totalDelta = individualDelta[key] ?? 0;
                     const displayedDetail = adjustDetail(effectiveExercise.detail, totalDelta);
@@ -174,13 +225,15 @@ export default function SessionView({
                         isAdjusted={totalDelta !== 0}
                         isSwapped={isSwapped}
                         isDone={done.has(key)}
+                        isSkipped={skipped.has(key)}
                         timerOpen={openTimers.has(key)}
                         trackLabel={session.focusLabel}
                         onToggleDone={() => toggleDone(key)}
                         onToggleTimer={() => toggleTimer(key)}
                         onBump={(delta) => bump(key, delta)}
                         onResetAdjust={() => resetAdjust(key)}
-                        onCantDo={exempt ? undefined : () => swapForEasier(key, effectiveExercise)}
+                        onCantDo={exempt ? undefined : () => swapForEasier(key, effectiveExercise, set.title)}
+                        onSkip={() => toggleSkip(key)}
                       />
                     );
                   })}
@@ -194,7 +247,7 @@ export default function SessionView({
       {onComplete && (
         <button
           disabled={completed}
-          onClick={onComplete}
+          onClick={() => onComplete(collectFeedback())}
           className={`mt-5 w-full py-2.5 rounded-lg heading tracking-wide text-sm ${
             completed
               ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"

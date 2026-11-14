@@ -1,8 +1,15 @@
 # BarQuests
 
-A gamified, mobile-first calisthenics training app: an adaptive placement
-quiz gets new athletes to roughly the right level in under a minute instead
-of manually setting 50 skills, then complete sessions
+A gamified, mobile-first calisthenics training app: a per-area placement
+assessment (pulling, pushing, balance, core, legs, levers, mobility) asks for
+rep baselines, the hardest variation of each main skill plus how solid it is,
+and quick not-yet / working / can-do chips for side skills filtered to your
+level in that area — so strong pullers who are new to pushing get placed
+correctly in both. Sessions then learn from you: every exercise you complete,
+skip or mark too hard feeds per-exercise memory (ease to an easier rung, add a
+set, step up a rung, remember your usual rep tweaks) and per-skill mastery,
+with a "Coach update" suggesting stage changes when you're ready (or
+struggling). Then complete sessions
 (warm-up → main focus → accessory → finisher) tailored to your body stats,
 skill stage — across 50 tracked skills, from Front Lever to Iron Cross, Victorian Cross, and
 Manna, each with its own description in a full skills catalog — and the

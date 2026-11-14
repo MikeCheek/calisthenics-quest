@@ -5,7 +5,7 @@ import { Exercise } from "@/lib/types";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseTipButton from "@/components/ExerciseTipButton";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
-import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info } from "lucide-react";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles } from "lucide-react";
 
 const SWIPE_THRESHOLD = 55;
 const SWIPE_MAX = 90;
@@ -16,6 +16,7 @@ export default function ExerciseRow({
   isAdjusted,
   isSwapped,
   isDone,
+  isSkipped,
   timerOpen,
   trackLabel,
   onToggleDone,
@@ -23,12 +24,14 @@ export default function ExerciseRow({
   onBump,
   onResetAdjust,
   onCantDo,
+  onSkip,
 }: {
   exercise: Exercise;
   displayedDetail: string;
   isAdjusted: boolean;
   isSwapped?: boolean;
   isDone: boolean;
+  isSkipped?: boolean;
   timerOpen: boolean;
   trackLabel: string;
   onToggleDone: () => void;
@@ -36,6 +39,7 @@ export default function ExerciseRow({
   onBump: (delta: number) => void;
   onResetAdjust: () => void;
   onCantDo?: () => void;
+  onSkip?: () => void;
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -81,7 +85,7 @@ export default function ExerciseRow({
   return (
     <li
       className={`relative rounded-lg overflow-hidden border ${
-        isDone ? "border-emerald-600" : "border-zinc-700"
+        isDone ? "border-emerald-600" : isSkipped ? "border-zinc-800 opacity-60" : "border-zinc-700"
       }`}
     >
       {/* swipe hints revealed behind the card as you drag */}
@@ -149,6 +153,12 @@ export default function ExerciseRow({
               {isAdjusted && <span className="text-orange-400"> (adjusted)</span>}
             </div>
             {exercise.cue && <div className="text-xs text-orange-400/80 italic">{exercise.cue}</div>}
+            {exercise.adaptNote && (
+              <div className="text-[11px] text-sky-400/90 flex items-center gap-1 mt-0.5">
+                <Sparkles size={10} className="shrink-0" /> {exercise.adaptNote}
+              </div>
+            )}
+            {isSkipped && <div className="text-[11px] text-zinc-500 mt-0.5">Skipped</div>}
 
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <button
@@ -163,7 +173,19 @@ export default function ExerciseRow({
                   onClick={onCantDo}
                   className="text-xs px-2 py-1 rounded-lg border border-zinc-600 text-zinc-400 hover:border-orange-500 hover:text-orange-400 flex items-center gap-1"
                 >
-                  <ArrowDownCircle size={11} /> Can&apos;t do this
+                  <ArrowDownCircle size={11} /> Too hard
+                </button>
+              )}
+              {onSkip && !isDone && (
+                <button
+                  onClick={onSkip}
+                  className={`text-xs px-2 py-1 rounded-lg border flex items-center gap-1 ${
+                    isSkipped
+                      ? "border-zinc-500 text-zinc-300"
+                      : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <SkipForward size={11} /> {isSkipped ? "Undo skip" : "Skip"}
                 </button>
               )}
               <div className="flex items-center gap-1 ml-auto">

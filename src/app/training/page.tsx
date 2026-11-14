@@ -12,13 +12,16 @@ import PomodoroTimer from "@/components/PomodoroTimer";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
-import { SkillTrack, TrainingSession } from "@/lib/types";
+import { ExerciseFeedback, SkillTrack, TrainingSession } from "@/lib/types";
+import { adaptSession, adaptedCount } from "@/lib/adaptation";
+import { useToast } from "@/context/ToastContext";
 import { Play, ChevronDown, Timer, CalendarDays, Dices } from "lucide-react";
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const router = useRouter();
-  const { startSession, expand, session: globalSession, completed: globalCompleted } = useTrainingSession();
+  const { startSession, expand, session: globalSession, completed: globalCompleted, showReport } = useTrainingSession();
+  const toast = useToast();
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
@@ -47,10 +50,18 @@ export default function TrainingPage() {
   const options = useMemo(() => (equipment ? availableFocuses(equipment) : []), [equipment]);
   const focus = focusOverride ?? (equipment ? pickFocus(new Date(), equipment, userDoc?.goalTracks ?? []) : null);
 
+  const skillsKey = JSON.stringify(userDoc?.skills ?? null);
+  const equipmentKey = JSON.stringify(userDoc?.equipment ?? null);
   const session = useMemo(() => {
     if (!userDoc || !focus) return null;
-    return generateSession(userDoc.skills, userDoc.equipment, focus);
-  }, [userDoc, focus]);
+    // generated from the athlete's stages, then adapted to their own history
+    // of completing, skipping and struggling with specific exercises
+    return adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus), userDoc.exerciseStats, userDoc.equipment);
+    // Only re-generate when stages, equipment or focus actually change — not
+    // when exercise stats update after logging, so the session just logged
+    // stays on screen (its adaptations kick in on the next visit).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillsKey, equipmentKey, focus, !!userDoc]);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -65,12 +76,17 @@ export default function TrainingPage() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const handleComplete = async () => {
-    const { patch, celebration: c } = await completeSession(userDoc, displayedSession);
-    setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
-    setCompleted(true);
-    setCelebration(c);
-    await refreshUserDoc();
+  const handleComplete = async (feedback: ExerciseFeedback[]) => {
+    try {
+      const { patch, celebration: c, report } = await completeSession(userDoc, displayedSession, { feedback });
+      setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
+      setCompleted(true);
+      setCelebration(c);
+      showReport(report);
+      await refreshUserDoc();
+    } catch {
+      toast.error("Couldn't log your session — check your connection and try again.");
+    }
   };
 
   return (
@@ -158,6 +174,13 @@ export default function TrainingPage() {
         {completed && xpGained !== null && (
           <div className="panel p-3 border-emerald-600 text-emerald-400 text-sm">
             Session logged — you earned +{xpGained} XP.
+          </div>
+        )}
+
+        {adaptedCount(displayedSession) > 0 && !completed && (
+          <div className="text-xs text-sky-400/90 px-1">
+            {adaptedCount(displayedSession)} exercise{adaptedCount(displayedSession) === 1 ? "" : "s"} adapted from your recent
+            sessions — based on what you completed, skipped or found too hard.
           </div>
         )}
 

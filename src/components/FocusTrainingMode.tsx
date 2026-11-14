@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Exercise } from "@/lib/types";
+import { Exercise, ExerciseFeedback } from "@/lib/types";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -10,7 +10,7 @@ import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles } from "lucide-react";
 
 interface Step {
   key: string;
@@ -44,6 +44,8 @@ export default function FocusTrainingMode() {
   const [allDoneScreen, setAllDoneScreen] = useState(false);
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
+  const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
+  const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // reset internal progress whenever a genuinely new session starts
@@ -53,6 +55,8 @@ export default function FocusTrainingMode() {
     setAllDoneScreen(false);
     setRestSecondsLeft(null);
     setOverrides({});
+    setSkippedSteps(new Set());
+    setTooHard([]);
   }, [session]);
 
   const rawCurrent = steps[index];
@@ -101,6 +105,12 @@ export default function FocusTrainingMode() {
 
   const markCompleteAndAdvance = () => {
     setCompletedSteps((prev) => new Set(prev).add(index));
+    setSkippedSteps((prev) => {
+      if (!prev.has(index)) return prev;
+      const n = new Set(prev);
+      n.delete(index);
+      return n;
+    });
     if (isLastStep) {
       setAllDoneScreen(true);
       return;
@@ -129,6 +139,49 @@ export default function FocusTrainingMode() {
     // Manual "Next" always marks the current exercise done, same as
     // finishing its timer would — the athlete is the judge of "done enough."
     markCompleteAndAdvance();
+  };
+
+  // Skip: move on without the rest period, and remember it was skipped.
+  const handleSkip = () => {
+    setSkippedSteps((prev) => new Set(prev).add(index));
+    if (isLastStep) {
+      setAllDoneScreen(true);
+      return;
+    }
+    setIndex((i) => i + 1);
+  };
+
+  // Too hard: remember it against this exercise, and swap in the next rung
+  // down right away so the athlete can keep going.
+  const handleTooHard = () => {
+    const ex = current.exercise;
+    setTooHard((prev) => [...prev, { name: ex.name, outcome: "tooHard", setTitle: current.setTitle }]);
+    const easier = findEasierExercise(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT);
+    if (easier) {
+      setOverrides((prev) => ({ ...prev, [index]: { ...easier, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
+      toast.success(`Swapped in ${easier.name}. Noted for future sessions.`);
+    } else {
+      toast.info("Nothing easier for this one — noted for future sessions. Skipping ahead.");
+      if (isLastStep) setAllDoneScreen(true);
+      else setIndex((i) => i + 1);
+    }
+  };
+
+  const collectFeedback = (): ExerciseFeedback[] => {
+    const out: ExerciseFeedback[] = [...tooHard];
+    steps.forEach((step, i) => {
+      const ex = overrides[i] ?? step.exercise;
+      const isDone = completedSteps.has(i);
+      if (!isDone && tooHard.some((t) => t.name === ex.name && t.setTitle === step.setTitle)) return;
+      out.push({
+        name: ex.name,
+        outcome: isDone ? "done" : "skipped",
+        setTitle: step.setTitle,
+        adaptedFrom: ex.adaptedFrom,
+        adaptDir: ex.adaptDir,
+      });
+    });
+    return out;
   };
 
   const handleTired = () => {
@@ -185,7 +238,7 @@ export default function FocusTrainingMode() {
             <div
               key={s.key}
               className={`h-1.5 flex-1 rounded-full ${
-                completedSteps.has(i) ? "bg-emerald-500" : i === index ? "bg-orange-500" : "bg-zinc-800"
+                completedSteps.has(i) ? "bg-emerald-500" : skippedSteps.has(i) ? "bg-zinc-600" : i === index ? "bg-orange-500" : "bg-zinc-800"
               }`}
             />
           ))}
@@ -220,9 +273,13 @@ export default function FocusTrainingMode() {
             <Check size={28} className="text-emerald-400" />
           </div>
           <div className="heading text-2xl text-zinc-100 mb-2">Session complete!</div>
-          <p className="text-sm text-zinc-400 mb-6">Every exercise is done. Log it to bank your XP and streak.</p>
+          <p className="text-sm text-zinc-400 mb-6">
+            {skippedSteps.size === 0
+              ? "Every exercise is done. Log it to bank your XP and streak."
+              : `${completedSteps.size} done, ${skippedSteps.size} skipped. Log it to bank your XP. Your next sessions adapt to what you skipped.`}
+          </p>
           <button
-            onClick={finishSession}
+            onClick={() => finishSession(collectFeedback())}
             className="w-full max-w-xs py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
           >
             Finish &amp; log session
@@ -246,8 +303,14 @@ export default function FocusTrainingMode() {
                   <Info size={18} />
                 </button>
               </div>
-              {index in overrides && (
+              {index in overrides ? (
                 <div className="text-xs text-orange-400 mt-0.5">Swapped in — something gentler</div>
+              ) : (
+                current.exercise.adaptNote && (
+                  <div className="text-xs text-sky-400/90 mt-0.5 flex items-center justify-center gap-1">
+                    <Sparkles size={11} /> {current.exercise.adaptNote}
+                  </div>
+                )
               )}
               <div className="text-sm text-zinc-400 mt-1">{current.exercise.detail}</div>
             </div>
@@ -284,6 +347,22 @@ export default function FocusTrainingMode() {
               Next <ChevronRight size={16} />
             </button>
           </div>
+          {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && (
+            <div className="grid grid-cols-2 gap-2 mx-4 mb-2">
+              <button
+                onClick={handleSkip}
+                className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 flex items-center justify-center gap-1.5 text-xs"
+              >
+                <SkipForward size={13} /> Skip
+              </button>
+              <button
+                onClick={handleTooHard}
+                className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
+              >
+                <ArrowDownCircle size={13} /> Too hard
+              </button>
+            </div>
+          )}
           <button
             onClick={handleTired}
             className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-zinc-500 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
