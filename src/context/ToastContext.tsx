@@ -104,7 +104,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: 
             <div className="flex-1 text-sm text-zinc-100 leading-snug">{t.message}</div>
             <button
               onClick={() => onDismiss(t.id)}
-              className="text-zinc-500 hover:text-zinc-300 shrink-0 -mt-0.5"
+              className="text-muted hover:text-zinc-300 shrink-0 -mt-0.5"
               aria-label="Dismiss"
             >
               <X size={15} />

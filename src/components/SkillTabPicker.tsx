@@ -123,7 +123,7 @@ export default function SkillTabPicker({
                 );
               })}
             </div>
-            <div className="text-xs text-zinc-500 mt-1.5">
+            <div className="text-xs text-muted mt-1.5">
               {MASTERY_LABEL[currentMastery]} — {MASTERY_HINT[currentMastery]}
             </div>
             {(() => {
@@ -131,7 +131,7 @@ export default function SkillTabPicker({
               if (!nextLocked) return null;
               const req = requiredLevelForMastery(nodeLevel, nextLocked);
               return (
-                <div className="text-xs text-zinc-600 mt-1">
+                <div className="text-xs text-muted mt-1">
                   {MASTERY_LABEL[nextLocked]} and above unlock around level {req}.
                 </div>
               );

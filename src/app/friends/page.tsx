@@ -193,7 +193,7 @@ function PairContent() {
 
         {!code && mode === "choose" && (
           <div>
-            <div className="text-xs text-zinc-500 mb-2">Or link up with anyone using a one-off code</div>
+            <div className="text-xs text-muted mb-2">Or link up with anyone using a one-off code</div>
             <div className="grid sm:grid-cols-2 gap-4">
               <button
                 onClick={handleCreate}
@@ -233,7 +233,7 @@ function PairContent() {
             >
               Link up
             </button>
-            <button onClick={resetToChoose} className="w-full text-xs text-zinc-500">
+            <button onClick={resetToChoose} className="w-full text-xs text-muted">
               Back
             </button>
           </div>
@@ -258,10 +258,10 @@ function PairContent() {
                 <Copy size={16} />
               </button>
             </div>
-            <div className="text-xs text-zinc-500">
+            <div className="text-xs text-muted">
               Waiting for them to enter this code on their device...
             </div>
-            <button onClick={resetToChoose} className="text-xs text-zinc-500">
+            <button onClick={resetToChoose} className="text-xs text-muted">
               Cancel
             </button>
           </div>
@@ -289,7 +289,7 @@ function PairContent() {
                 </button>
               </div>
             ) : (
-              <div className="text-xs text-zinc-500">Waiting for {pairing?.hostName ?? "the host"} to answer...</div>
+              <div className="text-xs text-muted">Waiting for {pairing?.hostName ?? "the host"} to answer...</div>
             )}
           </div>
         )}

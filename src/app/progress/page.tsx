@@ -11,7 +11,8 @@ import VerifiedSkillsCard from "@/components/VerifiedSkillsCard";
 import CoachInsightsCard from "@/components/CoachInsightsCard";
 import SkillRadarChart from "@/components/SkillRadarChart";
 import SkillWall from "@/components/SkillWall";
-import SkillsByCategory from "@/components/SkillsByCategory";
+import SkillTree from "@/components/SkillTree";
+import NextMilestones from "@/components/NextMilestones";
 import TrophyRoad from "@/components/TrophyRoad";
 import SessionHistory from "@/components/SessionHistory";
 import SkillInfoModal from "@/components/SkillInfoModal";
@@ -38,6 +39,7 @@ export default function ProgressPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
   const [declareOpen, setDeclareOpen] = useState(false);
+  const [fullRoad, setFullRoad] = useState(false);
 
   useEffect(() => {
     const urlTab = new URLSearchParams(window.location.search).get("tab");
@@ -82,7 +84,7 @@ export default function ProgressPage() {
                 aria-selected={tab === x.id}
                 onClick={() => selectTab(x.id)}
                 className={`py-2 rounded-lg text-xs sm:text-sm transition-colors ${
-                  tab === x.id ? "bg-zinc-800 text-zinc-100 shadow" : "text-zinc-500 hover:text-zinc-300"
+                  tab === x.id ? "bg-zinc-800 text-zinc-100 shadow" : "text-muted hover:text-zinc-300"
                 }`}
               >
                 {tx(x.label)}
@@ -145,16 +147,21 @@ export default function ProgressPage() {
               </div>
             )}
 
-            <p className="text-xs text-zinc-500 px-1">
-              {tx("Tap a skill to train it on the bonus wheel; the info icon explains it and shows its progression.")}
-            </p>
-            <SkillsByCategory userDoc={userDoc} onInfo={setActiveSkill} />
+            <SkillTree userDoc={userDoc} playerLevel={progress.level} onInfo={setActiveSkill} />
           </div>
         )}
 
         {tab === "road" && (
-          <div className="animate-overlay-fade-in">
-            <TrophyRoad userDoc={userDoc} />
+          <div className="space-y-4 animate-overlay-fade-in">
+            <NextMilestones playerLevel={progress.level} />
+            <button
+              onClick={() => setFullRoad((v) => !v)}
+              aria-expanded={fullRoad}
+              className="w-full py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-300 hover:border-zinc-500"
+            >
+              {fullRoad ? tx("Hide the full road") : tx("Show the full road")}
+            </button>
+            {fullRoad && <TrophyRoad userDoc={userDoc} />}
           </div>
         )}
 

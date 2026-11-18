@@ -18,7 +18,7 @@ export default function InfoIconButton({
         e.stopPropagation();
         onClick();
       }}
-      className="p-1 -m-1 text-zinc-500 hover:text-orange-400 shrink-0"
+      className="p-1 -m-1 text-muted hover:text-orange-400 shrink-0"
       aria-label={label}
     >
       <Info size={size} />

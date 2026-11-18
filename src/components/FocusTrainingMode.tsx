@@ -8,6 +8,7 @@ import { useToast } from "@/context/ToastContext";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
+import ExerciseDemo from "@/components/ExerciseDemo";
 import { TimerLog, TimerRestSample, summarizeTimerLog, bestHoldFromLog, learnedTransitionRest, cleanSets } from "@/lib/timingLearning";
 import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
@@ -282,18 +283,18 @@ export default function FocusTrainingMode() {
       className={`fixed inset-0 z-50 bg-zinc-950 flex-col safe-top safe-bottom ${expanded ? "flex" : "hidden"}`}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <button onClick={minimize} className="p-1.5 text-zinc-500 hover:text-zinc-200" aria-label={tx("Minimize")}>
+        <button onClick={minimize} className="p-1.5 text-muted hover:text-zinc-200" aria-label={tx("Minimize")}>
           <ChevronDown size={20} />
         </button>
-        <div className="text-xs text-zinc-500 stat-mono">
+        <div className="text-xs text-muted stat-mono">
           {Math.min(index + 1, steps.length)} / {steps.length}
           {!allDoneScreen && (
-            <span className="text-zinc-600"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
+            <span className="text-muted"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
           )}
         </div>
         <button
           onClick={togglePause}
-          className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-zinc-500 hover:text-zinc-200"}`}
+          className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
           aria-label={paused ? tx("Resume training") : tx("Pause training")}
         >
           {paused ? <Play size={18} /> : <Pause size={18} />}
@@ -313,7 +314,7 @@ export default function FocusTrainingMode() {
           ))}
         </div>
         {!allDoneScreen && !isLastStep && (
-          <div className="text-xs text-zinc-500 mt-2 truncate">{tx("Next:")} {next?.exercise.name}</div>
+          <div className="text-xs text-muted mt-2 truncate">{tx("Next:")} {next?.exercise.name}</div>
         )}
       </div>
 
@@ -324,7 +325,7 @@ export default function FocusTrainingMode() {
             {mm}:{ss}
           </div>
           {next && <div className="text-sm text-zinc-400 mb-1">{tx("Up next:")} {next.exercise.name}</div>}
-          <div className="text-[11px] text-zinc-600 mb-6 h-4">{restWasLearned ? tx("Rest adjusted to your usual pace") : ""}</div>
+          <div className="text-xs text-muted mb-6 h-4">{restWasLearned ? tx("Rest adjusted to your usual pace") : ""}</div>
           {paused && (
             <div className="text-xs text-orange-400 flex items-center gap-1.5 mb-4">
               <Pause size={12} /> {tx("Training paused")}
@@ -358,7 +359,7 @@ export default function FocusTrainingMode() {
           >
             {tx("Finish & log session")}
           </button>
-          <button onClick={goBack} className="text-xs text-zinc-500 hover:text-zinc-300 mt-3">
+          <button onClick={goBack} className="text-xs text-muted hover:text-zinc-300 mt-3">
             {tx("Go back and review")}
           </button>
         </div>
@@ -371,7 +372,7 @@ export default function FocusTrainingMode() {
                 <div className="heading text-2xl text-zinc-100">{current.exercise.name}</div>
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="p-1 text-zinc-500 hover:text-orange-400"
+                  className="p-1 text-muted hover:text-orange-400"
                   aria-label={`Details for ${current.exercise.name}`}
                 >
                   <Info size={18} />
@@ -388,7 +389,7 @@ export default function FocusTrainingMode() {
               )}
               <div className="text-sm text-zinc-400 mt-1">{current.exercise.detail}</div>
               {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && userDoc?.exerciseStats?.[statKey(current.exercise.name)]?.lastSets && (
-                <div className="text-xs text-zinc-500 mt-0.5">
+                <div className="text-xs text-muted mt-0.5">
                   {tx("Last time:")}{" "}
                   <span className="text-zinc-300 stat-mono">{userDoc.exerciseStats[statKey(current.exercise.name)].lastSets}</span>
                 </div>
@@ -404,6 +405,7 @@ export default function FocusTrainingMode() {
               </div>
             )}
 
+            <ExerciseDemo exerciseName={current.exercise.name} width={170} className="mb-4" />
             <div className="max-w-sm w-full mx-auto">
               <ExerciseTimer
                 key={`${current.key}-${current.exercise.name}`}
@@ -460,7 +462,7 @@ export default function FocusTrainingMode() {
           )}
           <button
             onClick={handleTired}
-            className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-zinc-500 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
+            className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-muted hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
           >
             <BatteryLow size={13} /> {tx("I'm tired — ease up what's left")}
           </button>

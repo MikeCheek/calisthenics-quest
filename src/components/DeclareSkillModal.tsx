@@ -66,7 +66,7 @@ export default function DeclareSkillModal({
     <>
       <CelebrationOverlay celebration={celebration} />
       <Modal open={open} onClose={close} title="Declare a new skill">
-        <p className="text-xs text-zinc-500 mb-3">
+        <p className="text-xs text-muted mb-3">
           Just hit something new? Update it here — no need to redo the whole assessment.
         </p>
         <SkillTabPicker

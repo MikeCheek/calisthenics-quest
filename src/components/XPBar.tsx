@@ -26,7 +26,7 @@ export default function XPBar({
             <div className="heading text-2xl text-zinc-100">Level {p.level}</div>
             <div className="text-xs text-zinc-400 stat-mono">{rankTitle(p.level)}</div>
           </div>
-          <ChevronRight size={16} className="text-zinc-600" />
+          <ChevronRight size={16} className="text-muted" />
         </div>
         <div className="text-right">
           <div className="stat-mono text-lg text-orange-400">{streak}🔥</div>

@@ -306,7 +306,7 @@ export default function ExerciseTimer({
           {tx("Set {a} of {b}", { a: Math.min(set, timing.sets), b: timing.sets })}
         </span>
         {phase !== "done" && (
-          <button onClick={reset} className="text-xs text-zinc-500 hover:text-zinc-300">
+          <button onClick={reset} className="text-xs text-muted hover:text-zinc-300">
             {tx("Reset")}
           </button>
         )}
@@ -326,7 +326,7 @@ export default function ExerciseTimer({
         </button>
       ) : phase === "countdown" ? (
         <div className="text-center py-2">
-          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">{tx("Get ready")}</div>
+          <div className="text-xs uppercase tracking-wide text-muted mb-1">{tx("Get ready")}</div>
           <div key={countdownValue} className="stat-mono text-5xl text-orange-400 animate-pop-in">
             {countdownValue}
           </div>
@@ -381,7 +381,7 @@ export default function ExerciseTimer({
           >
             −
           </button>
-          <span className={`stat-mono w-8 text-center text-sm ${repLog[repSetIdx] === undefined ? "text-zinc-600" : "text-zinc-100"}`}>
+          <span className={`stat-mono w-8 text-center text-sm ${repLog[repSetIdx] === undefined ? "text-muted" : "text-zinc-100"}`}>
             {repLog[repSetIdx] ?? repDefault}
           </span>
           <button

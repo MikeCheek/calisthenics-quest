@@ -162,16 +162,16 @@ export default function PlanPage() {
         </div>
 
         {aiStatus === "loading" && (
-          <div className="text-xs text-zinc-500">Asking the AI coach for a few notes...</div>
+          <div className="text-xs text-muted">Asking the AI coach for a few notes...</div>
         )}
         {aiStatus === "unconfigured" && (
-          <div className="panel p-3 text-xs text-zinc-500">
+          <div className="panel p-3 text-xs text-muted">
             AI coach notes aren&apos;t set up on this server (missing OPENROUTER_API_KEY) —
             showing your plan without them. It still works fully without this.
           </div>
         )}
         {aiStatus === "error" && (
-          <div className="panel p-3 text-xs text-zinc-500">
+          <div className="panel p-3 text-xs text-muted">
             {aiError} Showing your plan without AI notes.
           </div>
         )}
@@ -183,7 +183,7 @@ export default function PlanPage() {
         )}
 
         {plan.length > 0 && (
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-muted">
             {trainingDays} training day{trainingDays === 1 ? "" : "s"} · {plan.length - trainingDays} rest day
             {plan.length - trainingDays === 1 ? "" : "s"}
           </div>
@@ -201,34 +201,34 @@ export default function PlanPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-center w-10 shrink-0">
-                      <div className="text-[10px] text-zinc-500 uppercase">{d.weekday}</div>
+                      <div className="text-xs text-muted uppercase">{d.weekday}</div>
                       <div className="stat-mono text-sm text-zinc-200">{d.dateISO.slice(8, 10)}</div>
                     </div>
                     <div>
                       {d.isRestDay ? (
-                        <div className="flex items-center gap-1.5 text-sm text-zinc-500">
+                        <div className="flex items-center gap-1.5 text-sm text-muted">
                           <Moon size={14} /> Rest day
                         </div>
                       ) : (
                         <div className="text-sm text-zinc-100">
                           {d.session?.focusLabel}
                           {today && (
-                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400">
+                            <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400">
                               TODAY
                             </span>
                           )}
                         </div>
                       )}
                       {aiNotes[d.dateISO] && (
-                        <div className="text-xs text-zinc-500 mt-0.5">{aiNotes[d.dateISO]}</div>
+                        <div className="text-xs text-muted mt-0.5">{aiNotes[d.dateISO]}</div>
                       )}
                     </div>
                   </div>
                   {!d.isRestDay &&
                     (open ? (
-                      <ChevronUp size={16} className="text-zinc-500" />
+                      <ChevronUp size={16} className="text-muted" />
                     ) : (
-                      <ChevronDown size={16} className="text-zinc-500" />
+                      <ChevronDown size={16} className="text-muted" />
                     ))}
                 </button>
                 {open && d.session && (
@@ -238,7 +238,7 @@ export default function PlanPage() {
                         Open today&apos;s session to start and log it →
                       </Link>
                     ) : (
-                      <div className="text-xs text-zinc-500 mb-2">Preview — come back on this day to log it.</div>
+                      <div className="text-xs text-muted mb-2">Preview — come back on this day to log it.</div>
                     )}
                     <SessionView session={d.session} equipment={userDoc.equipment} />
                   </div>

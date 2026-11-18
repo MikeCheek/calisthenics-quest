@@ -35,7 +35,7 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
       <div className="heading text-base text-zinc-100 flex items-center gap-2 mb-1">
         <Brain size={16} className="text-sky-400" /> {tx("Coach insights")}
       </div>
-      <p className="text-xs text-zinc-500 mb-3">{tx("What your training has taught the coach so far.")}</p>
+      <p className="text-xs text-muted mb-3">{tx("What your training has taught the coach so far.")}</p>
 
       {empty ? (
         <p className="text-sm text-zinc-400">
@@ -92,7 +92,7 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
 function Group({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1 flex items-center gap-1.5">
+      <div className="text-xs uppercase tracking-wide text-muted mb-1 flex items-center gap-1.5">
         {icon} {title}
       </div>
       <div className="space-y-1">{children}</div>
@@ -104,7 +104,7 @@ function Row({ name, detail }: { name: string; detail: string }) {
   return (
     <div className="flex items-center justify-between gap-2 text-sm">
       <span className="text-zinc-200 truncate">{name}</span>
-      <span className="text-xs text-zinc-500 shrink-0">{detail}</span>
+      <span className="text-xs text-muted shrink-0">{detail}</span>
     </div>
   );
 }

@@ -60,9 +60,9 @@ export default function DashboardPage() {
             <Dumbbell size={22} className="text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-zinc-500 uppercase tracking-wide">{t("dashboard", "todaysFocus")}</div>
+            <div className="text-xs text-muted uppercase tracking-wide">{t("dashboard", "todaysFocus")}</div>
             <div className="heading text-xl text-zinc-100 truncate">{todaysFocus}</div>
-            <div className="text-xs text-zinc-500">{t("dashboard", "sessionFlow")}</div>
+            <div className="text-xs text-muted">{t("dashboard", "sessionFlow")}</div>
           </div>
           <div className="shrink-0 heading text-sm bg-orange-500 text-zinc-950 px-4 py-2.5 rounded-lg">
             {t("dashboard", "start")}
@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
         {/* Quick actions grid */}
         <div>
-          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">{t("dashboard", "quickActions")}</div>
+          <div className="text-xs uppercase tracking-wide text-muted mb-2">{t("dashboard", "quickActions")}</div>
           <div className="grid grid-cols-3 gap-3">
             <QuickAction href="/plan" icon={CalendarDays} label={tx("This week")} />
             <QuickAction href="/progress?tab=history" icon={History} label={tx("History")} />
@@ -120,7 +120,7 @@ function StatTile({ href, value, suffix, label }: { href: string; value: string;
         {value}
         {suffix && <span className="text-base">{suffix}</span>}
       </div>
-      <div className="text-xs text-zinc-500">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
     </Link>
   );
 }

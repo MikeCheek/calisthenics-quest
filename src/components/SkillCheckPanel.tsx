@@ -73,7 +73,7 @@ export default function SkillCheckPanel({
             value={effective === undefined ? "" : String(effective)}
             placeholder={String(spec.target)}
             onChange={(e) => onChange(e.target.value === "" ? undefined : Math.max(0, Math.round(Number(e.target.value))))}
-            className="w-20 text-center bg-zinc-900 border border-zinc-700 rounded-lg py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600"
+            className="w-20 text-center bg-zinc-900 border border-zinc-700 rounded-lg py-1.5 text-sm text-zinc-100 placeholder:text-muted"
           />
           <button
             type="button"
@@ -88,13 +88,13 @@ export default function SkillCheckPanel({
       )}
 
       {spec.kind === "hold" && timerBest !== null && value === undefined && (
-        <div className="text-[11px] text-zinc-500 flex items-center gap-1">
+        <div className="text-xs text-muted flex items-center gap-1">
           <Timer size={11} /> {tx("Filled in from the timer's best clean attempt")}
         </div>
       )}
-      {error && <div className="text-[11px] text-orange-400">{tx(error)} — {tx("it won't be applied as is.")}</div>}
+      {error && <div className="text-xs text-orange-400">{tx(error)} — {tx("it won't be applied as is.")}</div>}
       {!error && effective !== undefined && (
-        <div className={`text-[11px] ${hit ? "text-emerald-400" : "text-zinc-400"}`}>
+        <div className={`text-xs ${hit ? "text-emerald-400" : "text-zinc-400"}`}>
           {hit ? tx("Target hit — this will verify your claim.") : tx("Short of the target — logged, and retested on another day.")}
         </div>
       )}

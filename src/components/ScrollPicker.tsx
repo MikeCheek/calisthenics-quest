@@ -79,7 +79,7 @@ export default function ScrollPicker({
         <button
           type="button"
           onClick={() => step1(-1)}
-          className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 text-zinc-500 p-1"
+          className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 text-muted p-1"
           aria-label={`Decrease ${label}`}
         >
           <ChevronUp size={16} />
@@ -125,7 +125,7 @@ export default function ScrollPicker({
         <button
           type="button"
           onClick={() => step1(1)}
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-10 text-zinc-500 p-1"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-10 text-muted p-1"
           aria-label={`Increase ${label}`}
         >
           <ChevronDown size={16} />

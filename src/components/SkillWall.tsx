@@ -49,9 +49,9 @@ export default function SkillWall({
     <div className="panel p-4">
       <div className="flex items-center justify-between mb-1">
         <div className="heading text-base text-zinc-100">Skill wall</div>
-        <div className="text-xs text-zinc-500">{startedCount}/50 lit</div>
+        <div className="text-xs text-muted">{startedCount}/50 lit</div>
       </div>
-      <p className="text-xs text-zinc-500 mb-3">
+      <p className="text-xs text-muted mb-3">
         Every skill, one square each — brighter means further into its progression and more solidly
         claimed. Tap a square for details.
       </p>
@@ -70,7 +70,7 @@ export default function SkillWall({
         })}
       </div>
 
-      <div className="flex items-center justify-end gap-1.5 mt-3 text-xs text-zinc-500">
+      <div className="flex items-center justify-end gap-1.5 mt-3 text-xs text-muted">
         <span>Less</span>
         {[0, 1, 2, 3, 4].map((lvl) => (
           <span key={lvl} className={`w-3 h-3 rounded-sm ${LEVEL_CLASS[lvl]}`} />

@@ -91,7 +91,7 @@ export default function ProfilePage() {
                   {userDoc.displayName.charAt(0).toUpperCase()}
                 </div>
               )}
-              <span className="absolute -bottom-1.5 -right-1.5 stat-mono text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-orange-500 text-zinc-950 border-2 border-zinc-900">
+              <span className="absolute -bottom-1.5 -right-1.5 stat-mono text-xs font-bold px-1.5 py-0.5 rounded-md bg-orange-500 text-zinc-950 border-2 border-zinc-900">
                 {progress.level}
               </span>
             </div>
@@ -101,7 +101,7 @@ export default function ProfilePage() {
               <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${progress.pct}%` }} />
               </div>
-              <div className="text-[11px] text-zinc-500 mt-1 stat-mono">
+              <div className="text-xs text-muted mt-1 stat-mono">
                 {progress.catchingUp
                   ? tx("{p}% to match your skill level", { p: progress.pct })
                   : tx("{a} / {b} XP to level {n}", { a: progress.into, b: progress.span, n: progress.level + 1 })}
@@ -126,7 +126,7 @@ export default function ProfilePage() {
                 aria-selected={tab === x.id}
                 onClick={() => selectTab(x.id)}
                 className={`py-2 rounded-lg text-xs sm:text-sm transition-colors ${
-                  tab === x.id ? "bg-zinc-800 text-zinc-100 shadow" : "text-zinc-500 hover:text-zinc-300"
+                  tab === x.id ? "bg-zinc-800 text-zinc-100 shadow" : "text-muted hover:text-zinc-300"
                 }`}
               >
                 {tx(x.label)}
@@ -151,7 +151,7 @@ export default function ProfilePage() {
                 <Stat label={tx("Height")} value={`${userDoc.body.heightCm} cm`} />
                 <Stat label={tx("Weight")} value={`${userDoc.body.weightKg} kg`} />
               </div>
-              <div className="text-xs text-zinc-500 mt-2">
+              <div className="text-xs text-muted mt-2">
                 {tx("{a} days/week · ~{b} min sessions", { a: userDoc.body.trainingDaysPerWeek ?? 3, b: userDoc.body.sessionLengthMinutes ?? 45 })}
               </div>
             </Link>
@@ -170,7 +170,7 @@ export default function ProfilePage() {
                   <span
                     key={k}
                     className={`text-xs px-2.5 py-1 rounded-full border ${
-                      userDoc.equipment[k] ? "border-emerald-600 text-emerald-400 bg-emerald-600/10" : "border-zinc-800 text-zinc-600 line-through"
+                      userDoc.equipment[k] ? "border-emerald-600 text-emerald-400 bg-emerald-600/10" : "border-zinc-800 text-muted line-through"
                     }`}
                   >
                     {tx(label)}
@@ -183,7 +183,7 @@ export default function ProfilePage() {
               <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
                 <Globe size={16} className="text-orange-400" /> {t("profile", "language")}
               </div>
-              <p className="text-xs text-zinc-500 mb-3">{t("profile", "languageHint")}</p>
+              <p className="text-xs text-muted mb-3">{t("profile", "languageHint")}</p>
               <div className="flex p-1 rounded-xl bg-zinc-800/60 gap-1">
                 {(["en", "it"] as Locale[]).map((l) => (
                   <button
@@ -203,9 +203,9 @@ export default function ProfilePage() {
 
             <Link href="/about" className="panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors">
               <span className="text-sm text-zinc-200 flex items-center gap-2">
-                <Info size={16} className="text-zinc-500" /> {tx("About, privacy & support the developer")}
+                <Info size={16} className="text-muted" /> {tx("About, privacy & support the developer")}
               </span>
-              <ChevronRight size={16} className="text-zinc-500" />
+              <ChevronRight size={16} className="text-muted" />
             </Link>
           </div>
         )}
@@ -228,7 +228,7 @@ function HeroStat({ icon, value, label }: { icon: React.ReactNode; value: number
         {icon}
         {value}
       </div>
-      <div className="text-[10px] text-zinc-500 truncate">{label}</div>
+      <div className="text-xs text-muted truncate">{label}</div>
     </div>
   );
 }
@@ -236,7 +236,7 @@ function HeroStat({ icon, value, label }: { icon: React.ReactNode; value: number
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-zinc-950/60 border border-zinc-800 p-2.5 text-center">
-      <div className="text-[11px] text-zinc-500">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
       <div className="text-zinc-100 stat-mono">{value}</div>
     </div>
   );

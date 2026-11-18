@@ -7,7 +7,7 @@ export default function XPHistoryChart({ history }: { history: XPHistoryPoint[] 
   const { tx } = useLanguage();
   if (history.length < 2) {
     return (
-      <div className="text-sm text-zinc-500 py-8 text-center">
+      <div className="text-sm text-muted py-8 text-center">
         {tx("Complete a few more sessions to see your XP trend here.")}
       </div>
     );
@@ -43,7 +43,7 @@ export default function XPHistoryChart({ history }: { history: XPHistoryPoint[] 
           <circle key={i} cx={x(i)} cy={y(p.xp)} r={2} fill="#f97316" />
         ))}
       </svg>
-      <div className="flex justify-between text-xs text-zinc-500 mt-1">
+      <div className="flex justify-between text-xs text-muted mt-1">
         <span>{new Date(history[0].dateISO).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
         <span>{maxY} XP</span>
         <span>{new Date(history[history.length - 1].dateISO).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>

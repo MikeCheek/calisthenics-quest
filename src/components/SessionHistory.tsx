@@ -102,7 +102,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
 
         <div className="grid grid-cols-7 gap-1 text-center">
           {weekdays.map((w, i) => (
-            <div key={i} className="text-[11px] text-zinc-500 pb-1 uppercase">
+            <div key={i} className="text-xs text-muted pb-1 uppercase">
               {w}
             </div>
           ))}
@@ -125,7 +125,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
                     ? "bg-orange-500 text-zinc-950 font-semibold"
                     : count > 0
                     ? "bg-orange-500/15 text-orange-200 hover:bg-orange-500/25"
-                    : "text-zinc-500"
+                    : "text-muted"
                 } ${isToday && !selected ? "ring-1 ring-zinc-500" : ""}`}
                 aria-label={count ? tx("{n} sessions on this day", { n: count }) : undefined}
               >
@@ -145,7 +145,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
 
       <div className="space-y-2">
         {sessions === null && !error && (
-          <div className="panel p-6 flex justify-center text-zinc-500">
+          <div className="panel p-6 flex justify-center text-muted">
             <Loader2 size={18} className="animate-spin" />
           </div>
         )}
@@ -177,7 +177,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
             {bests.map((b) => (
               <li key={b.name} className="flex items-center justify-between gap-2 text-sm">
                 <span className="text-zinc-200 truncate">{b.name}</span>
-                <span className="text-xs text-zinc-500 shrink-0">
+                <span className="text-xs text-muted shrink-0">
                   <span className="stat-mono text-amber-300">
                     {[b.reps ? tx("{n} reps", { n: b.reps }) : null, b.hold ? `${b.hold}s` : null].filter(Boolean).join(" · ")}
                   </span>{" "}
@@ -199,7 +199,7 @@ function Summary({ icon, value, label }: { icon: React.ReactNode; value: string 
         {icon}
         {value}
       </div>
-      <div className="text-[11px] text-zinc-500">{label}</div>
+      <div className="text-xs text-muted">{label}</div>
     </div>
   );
 }
@@ -226,16 +226,16 @@ function SessionCard({
     <div className="panel overflow-hidden">
       <button onClick={onToggle} className="w-full p-3.5 text-left flex items-center gap-3" aria-expanded={open}>
         <div className="w-11 shrink-0 text-center">
-          <div className="text-[11px] uppercase text-zinc-500">{when.toLocaleDateString(fmtLocale, { weekday: "short" })}</div>
+          <div className="text-xs uppercase text-muted">{when.toLocaleDateString(fmtLocale, { weekday: "short" })}</div>
           <div className="heading text-lg text-zinc-100 leading-none">{when.getDate()}</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm text-zinc-100 truncate flex items-center gap-1.5">
             {tx(session.focusLabel)}
-            {session.paired && <span className="text-[10px] px-1.5 rounded bg-sky-500/15 text-sky-300">{tx("paired")}</span>}
+            {session.paired && <span className="text-xs px-1.5 rounded bg-sky-500/15 text-sky-300">{tx("paired")}</span>}
             {session.records?.length ? <Trophy size={12} className="text-amber-400" /> : null}
           </div>
-          <div className="text-xs text-zinc-500 flex items-center gap-2.5 mt-0.5">
+          <div className="text-xs text-muted flex items-center gap-2.5 mt-0.5">
             {session.durationMin ? (
               <span className="flex items-center gap-1">
                 <Clock size={11} /> {session.durationMin}′
@@ -259,7 +259,7 @@ function SessionCard({
             </span>
           </div>
         </div>
-        <ChevronDown size={16} className={`text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <ul className="border-t border-zinc-800 px-3.5 py-2.5 space-y-1.5">
@@ -289,10 +289,10 @@ function ExerciseLine({ e }: { e: ExerciseRecord }) {
       ) : e.outcome === "tooHard" ? (
         <ArrowDownCircle size={13} className="text-orange-400 shrink-0" />
       ) : (
-        <SkipForward size={13} className="text-zinc-600 shrink-0" />
+        <SkipForward size={13} className="text-muted shrink-0" />
       )}
-      <span className={`truncate ${e.outcome === "done" ? "text-zinc-200" : "text-zinc-500"}`}>{e.name}</span>
-      <span className="ml-auto text-xs text-zinc-500 stat-mono shrink-0">{e.outcome === "done" ? result : tx(e.outcome === "tooHard" ? "Too hard" : "Skipped")}</span>
+      <span className={`truncate ${e.outcome === "done" ? "text-zinc-200" : "text-muted"}`}>{e.name}</span>
+      <span className="ml-auto text-xs text-muted stat-mono shrink-0">{e.outcome === "done" ? result : tx(e.outcome === "tooHard" ? "Too hard" : "Skipped")}</span>
     </li>
   );
 }

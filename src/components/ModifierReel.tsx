@@ -21,7 +21,7 @@ export default function ModifierReel({
 }) {
   if (phase === "idle") {
     return (
-      <div className="h-14 flex items-center justify-center text-center text-xs text-zinc-500 border border-zinc-700 rounded-lg px-2">
+      <div className="h-14 flex items-center justify-center text-center text-xs text-muted border border-zinc-700 rounded-lg px-2">
         {idleLabel}
       </div>
     );

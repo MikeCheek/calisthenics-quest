@@ -25,12 +25,12 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
           <div className="text-sm text-zinc-100 flex items-center gap-1.5">
             <BadgeCheck size={15} className="text-emerald-400" /> {tx("Verified skills")}
           </div>
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-muted">
             {tx("{a} of {b} proven in training", { a: verified, b: total })}
             {unconfirmed > 0 ? ` · ${tx("{n} to retest", { n: unconfirmed })}` : ""}
           </div>
         </div>
-        <ChevronDown size={16} className={`text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden mt-3">
         <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
@@ -48,10 +48,10 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
                 ) : c.status === "unconfirmed" ? (
                   <HelpCircle size={14} className="text-orange-400 shrink-0" />
                 ) : (
-                  <CircleDashed size={14} className="text-zinc-500 shrink-0" />
+                  <CircleDashed size={14} className="text-muted shrink-0" />
                 )}
                 <span className="text-zinc-200 truncate">{tx(claimLabel(k))}</span>
-                <span className="text-xs text-zinc-500 ml-auto shrink-0">
+                <span className="text-xs text-muted ml-auto shrink-0">
                   {tx(String(what))}
                   {spec?.kind === "hold" ? ` · ${spec.target}s` : ""} ·{" "}
                   {tx(c.status === "verified" ? "verified" : c.status === "unconfirmed" ? "retest" : "claimed")}
@@ -59,7 +59,7 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
               </li>
             );
           })}
-          <li className="text-[11px] text-zinc-500 pt-1">
+          <li className="text-xs text-muted pt-1">
             {tx("Each session includes one Skill Check for something you claimed — and regular sets that hit a claimed target count too.")}
           </li>
         </ul>

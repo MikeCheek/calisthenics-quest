@@ -200,7 +200,7 @@ export default function SessionView({
         <div className="text-right">
           <div className="text-xs text-zinc-400">{tx("Est. reward")}</div>
           <div className="stat-mono text-orange-400">+{session.estXp} XP</div>
-          <div className="text-xs text-zinc-500 mt-0.5 flex items-center justify-end gap-1">
+          <div className="text-xs text-muted mt-0.5 flex items-center justify-end gap-1">
             <Clock size={11} /> ~{estimateSessionMinutes(session)} min
           </div>
         </div>
@@ -234,7 +234,7 @@ export default function SessionView({
                 className="w-full flex items-center justify-between text-sm uppercase tracking-wide text-emerald-400 mb-2"
               >
                 <span>
-                  {tx(set.title)} <span className="text-zinc-600 normal-case">({set.exercises.length})</span>
+                  {tx(set.title)} <span className="text-muted normal-case">({set.exercises.length})</span>
                 </span>
                 {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </button>
@@ -289,7 +289,7 @@ export default function SessionView({
           onClick={() => onComplete(collectFeedback(), { durationMin: plausibleDuration(startedAt) })}
           className={`mt-5 w-full py-2.5 rounded-lg heading tracking-wide text-sm ${
             completed
-              ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+              ? "bg-zinc-800 text-muted cursor-not-allowed"
               : allDone
               ? "bg-orange-500 hover:bg-orange-400 text-zinc-950"
               : "bg-zinc-700 hover:bg-zinc-600 text-zinc-100"
@@ -300,7 +300,7 @@ export default function SessionView({
       )}
 
       <Modal open={adjustOpen} onClose={() => setAdjustOpen(false)} title={tx("Adjust today's difficulty")}>
-        <p className="text-xs text-zinc-500 mb-3">
+        <p className="text-xs text-muted mb-3">
           {tx("Drag an exercise left or right in the list for a quick per-exercise easier/harder reps adjustment, or use its own +/- buttons. This sets the difficulty for the whole session at once.")}
         </p>
         <div className="flex gap-1.5">
@@ -319,7 +319,7 @@ export default function SessionView({
           ))}
         </div>
         {sessionLevel !== "default" && (
-          <p className="text-xs text-zinc-500 mt-3">
+          <p className="text-xs text-muted mt-3">
             {tx(sessionLevel === "easier"
               ? "Every skill exercise below is swapped for the easier one right next to it in that skill's progression. Warm-up and finisher exercises don't change; everyone can do those."
               : "Every skill exercise below is swapped for the harder one right next to it in that skill's progression. Warm-up and finisher exercises don't change; everyone can do those.")}

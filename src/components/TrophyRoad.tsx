@@ -40,13 +40,13 @@ export default function TrophyRoad({ userDoc }: { userDoc: UserDoc }) {
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs heading ${
                   level >= chapter.minLevel
                     ? "bg-orange-500 text-zinc-950"
-                    : "bg-zinc-800 text-zinc-500 border border-zinc-700"
+                    : "bg-zinc-800 text-muted border border-zinc-700"
                 }`}
               >
                 {chapter.title} · Lv {chapter.minLevel}
                 {Number.isFinite(chapter.maxLevel) ? `–${chapter.maxLevel}` : "+"}
               </div>
-              <div className="text-xs text-zinc-500 mt-1 ml-1 max-w-xs">{chapter.blurb}</div>
+              <div className="text-xs text-muted mt-1 ml-1 max-w-xs">{chapter.blurb}</div>
             </div>
 
             <div className="space-y-3">
@@ -61,7 +61,7 @@ export default function TrophyRoad({ userDoc }: { userDoc: UserDoc }) {
                 />
               ))}
               {chapter.nodes.length === 0 && (
-                <div className="text-xs text-zinc-600 pl-2 pb-2">Keep going — more ahead.</div>
+                <div className="text-xs text-muted pl-2 pb-2">Keep going — more ahead.</div>
               )}
             </div>
           </div>
@@ -109,7 +109,7 @@ function PathNodeCard({
         {unlocked ? (
           <Check size={12} className="text-zinc-950" />
         ) : (
-          <Sparkle size={11} className="text-zinc-600" />
+          <Sparkle size={11} className="text-muted" />
         )}
       </div>
 
@@ -119,7 +119,7 @@ function PathNodeCard({
         }`}
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <div className="flex items-center gap-1.5 text-xs text-muted">
             {node.isStat ? <Hash size={11} /> : <Dumbbell size={11} />}
             Around level {node.level}
             {isCurrent && (
@@ -133,7 +133,7 @@ function PathNodeCard({
           {node.title}
         </div>
         {skillLabel && stageLabel && (
-          <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
+          <div className="text-xs text-muted mt-0.5 flex items-center gap-1">
             {skillLabel} — {stageLabel}
             {node.skill && <InfoIconButton onClick={() => onInfoClick(node.skill!)} label={`About ${skillLabel}`} />}
           </div>

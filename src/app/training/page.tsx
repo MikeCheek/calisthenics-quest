@@ -115,7 +115,7 @@ export default function TrainingPage() {
           <span className="text-zinc-300">
             {tx("Focus:")} <span className="text-zinc-100">{tx(FOCUS_LABEL[focus!])}</span>
           </span>
-          <span className="text-xs text-zinc-500 flex items-center gap-1">
+          <span className="text-xs text-muted flex items-center gap-1">
             {tx("Change")} <ChevronDown size={14} className={showFocusPicker ? "rotate-180 transition-transform" : "transition-transform"} />
           </span>
         </button>
@@ -142,7 +142,7 @@ export default function TrainingPage() {
                 </button>
               ))}
             </div>
-            <Link href="/onboarding" className="text-xs text-zinc-500 hover:text-orange-400 mt-2 inline-block">
+            <Link href="/onboarding" className="text-xs text-muted hover:text-orange-400 mt-2 inline-block">
               {tx("Not seeing a focus? Update your available equipment")}
             </Link>
           </div>
@@ -168,7 +168,7 @@ export default function TrainingPage() {
         )}
 
         {fitted?.changed && !aiAppliedSession && !completed && (
-          <div className="text-xs text-zinc-500 px-1">
+          <div className="text-xs text-muted px-1">
             {tx("Fitted to your {n} min sessions (was ~{m} min).", {
               n: userDoc.body?.sessionLengthMinutes ?? 45,
               m: fitted.minutesBefore,

@@ -87,7 +87,7 @@ export default function ProfileForm({
     >
       <div className="panel p-4">
         <div className="heading text-base text-zinc-100 mb-1">Where do you train?</div>
-        <p className="text-xs text-zinc-500 mb-3">
+        <p className="text-xs text-muted mb-3">
           This decides which exercises get suggested — ground work always
           shows up, even with nothing else available.
         </p>
@@ -291,7 +291,7 @@ function EquipmentToggle({
       className={`flex items-center gap-2 text-left text-sm px-3 py-2.5 rounded-lg border transition-colors ${
         checked
           ? "border-orange-500 bg-orange-500/10 text-zinc-100"
-          : "border-zinc-700 text-zinc-500"
+          : "border-zinc-700 text-muted"
       }`}
     >
       <span

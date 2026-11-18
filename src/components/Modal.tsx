@@ -55,7 +55,7 @@ export default function Modal({
         </div>
         <div className="sticky top-0 bg-zinc-900 flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="heading text-lg text-zinc-100">{title}</div>
-          <button onClick={onClose} className="p-1 text-zinc-500 hover:text-zinc-200" aria-label="Close">
+          <button onClick={onClose} className="p-1 text-muted hover:text-zinc-200" aria-label="Close">
             <X size={18} />
           </button>
         </div>

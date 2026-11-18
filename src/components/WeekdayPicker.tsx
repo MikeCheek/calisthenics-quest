@@ -41,7 +41,7 @@ export default function WeekdayPicker({
               className={`flex-1 aspect-square rounded-lg text-sm border flex items-center justify-center transition-colors ${
                 active
                   ? "border-orange-500 bg-orange-500/15 text-zinc-100"
-                  : "border-zinc-700 text-zinc-500"
+                  : "border-zinc-700 text-muted"
               }`}
             >
               {d}

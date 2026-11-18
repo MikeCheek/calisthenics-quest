@@ -75,7 +75,7 @@ function StreakCard({ event, streak }: { event: StreakEvent; streak: number }) {
         <div className="heading text-lg text-zinc-100 mb-1">Streak unfrozen!</div>
         <div className="text-xs text-zinc-400 mb-2">Rest days don&apos;t break it — welcome back.</div>
         <div className="stat-mono text-4xl text-orange-400 flex items-center justify-center gap-1">
-          {streak} <Snowflake size={18} className="text-zinc-500" />
+          {streak} <Snowflake size={18} className="text-muted" />
         </div>
       </div>
     );
@@ -83,7 +83,7 @@ function StreakCard({ event, streak }: { event: StreakEvent; streak: number }) {
   if (event === "restarted") {
     return (
       <div className="panel px-8 py-7 text-center animate-pop-in animate-gentle-shake border-zinc-700">
-        <Flame size={40} className="text-zinc-500 mx-auto mb-2" />
+        <Flame size={40} className="text-muted mx-auto mb-2" />
         <div className="heading text-lg text-zinc-100 mb-1">Fresh start</div>
         <div className="text-xs text-zinc-400 mb-2">The streak reset — let&apos;s build it back up.</div>
         <div className="stat-mono text-4xl text-zinc-100">{streak}</div>

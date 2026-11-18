@@ -257,6 +257,27 @@ real (non-dev) environment, you can install it as an app from the browser's
   goals), Road (the trophy road) and History (calendar, month totals, every
   finished session with its sets and outcomes, personal bests). `/skills`
   and `/path` redirect here.
+- **Exercise demonstrations** — 124 of the 129 exercises that appear in
+  sessions (98% of appearances) have a looping stick-figure animation in
+  their info sheet and in guided mode, plus a "Common mistakes" list
+  (`src/lib/demos/`). A small rig with two-bone inverse kinematics keeps
+  hands on the bar and feet on the floor; ~28 movement templates (lever and
+  planche stages, dips, push-ups, handstands, squats…) are matched to
+  exercise names. Rotations (lever raises, skin the cat) sweep around the
+  shoulders in 30° steps. Tests check that every anchored limb reaches its
+  anchor through the whole loop and that the figure stays in frame;
+  reduced-motion users get the key position as a still.
+- **Skill tree** (Progress → Skills) — "Up next" pins the three most
+  worthwhile next stages (goals first, then what's reachable at your level,
+  then closest by mastery); each area lists started skills as a chain of
+  stages (done / current / next / locked) that opens into the full ladder
+  with each stage's approximate level, and folds untouched skills away.
+  Progress → Road leads with the next three milestones; the full road is
+  one tap away.
+- **Contrast** — muted text uses a `muted` color (#909099, ≥4.7:1 on every
+  background) instead of zinc-500/600 (which measured 3.7:1 and 2.3:1 on
+  panels), and nothing is smaller than 12px; `tests/contrast.test.ts`
+  guards both.
 - **Session length** — sessions are fitted to the length chosen in
   onboarding (`src/lib/sessionFit.ts`): bonus work, finisher and accessory
   work are trimmed first, main-skill sets are added when there's room; the

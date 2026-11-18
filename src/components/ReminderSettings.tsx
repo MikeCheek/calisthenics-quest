@@ -48,7 +48,7 @@ export default function ReminderSettings() {
     <div className="panel p-4">
       <div className="flex items-center justify-between mb-1">
         <div className="heading text-base text-zinc-100 flex items-center gap-2">
-          {prefs.enabled ? <Bell size={16} className="text-orange-400" /> : <BellOff size={16} className="text-zinc-500" />}
+          {prefs.enabled ? <Bell size={16} className="text-orange-400" /> : <BellOff size={16} className="text-muted" />}
           Training reminders
         </div>
         <button
@@ -68,7 +68,7 @@ export default function ReminderSettings() {
       </div>
 
       {!supported && (
-        <p className="text-xs text-zinc-500">Notifications aren&apos;t supported in this browser.</p>
+        <p className="text-xs text-muted">Notifications aren&apos;t supported in this browser.</p>
       )}
       {permissionDenied && (
         <p className="text-xs text-orange-400">
@@ -78,7 +78,7 @@ export default function ReminderSettings() {
 
       {supported && (
         <div className="mt-2 space-y-3">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted">
             A different fun nudge every time, Duolingo-style — only fires while the app has been
             opened recently (see the README for guaranteed background push via Firebase Cloud Messaging).
           </p>

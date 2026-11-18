@@ -76,17 +76,17 @@ export default function FriendProfilePage() {
             <div className="stat-mono text-xl text-orange-400 flex items-center justify-center gap-1">
               <Flame size={16} /> {profile.streak}
             </div>
-            <div className="text-xs text-zinc-500 mt-0.5">day streak</div>
+            <div className="text-xs text-muted mt-0.5">day streak</div>
           </div>
           <div className="panel p-3 text-center">
             <div className="stat-mono text-xl text-orange-400 flex items-center justify-center gap-1">
               <Dumbbell size={16} /> {profile.totalSessionsCompleted}
             </div>
-            <div className="text-xs text-zinc-500 mt-0.5">sessions</div>
+            <div className="text-xs text-muted mt-0.5">sessions</div>
           </div>
           <div className="panel p-3 text-center">
             <div className="stat-mono text-xl text-orange-400">{profile.xp}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">total XP</div>
+            <div className="text-xs text-muted mt-0.5">total XP</div>
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export default function FriendProfilePage() {
 
         <SkillWall skills={profile.skills ?? DEFAULT_SKILLS} mastery={profile.skillMastery ?? {}} playerLevel={profile.level} />
 
-        <p className="text-xs text-zinc-600 text-center">
+        <p className="text-xs text-muted text-center">
           Read-only — this is what {profile.displayName.split(" ")[0]} looks like to friends.
         </p>
       </main>

@@ -68,8 +68,8 @@ export default function Nav() {
               <Link
                 key={t.href}
                 href={t.href}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] ${
-                  active ? "text-orange-400" : "text-zinc-500"
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs ${
+                  active ? "text-orange-400" : "text-muted"
                 }`}
               >
                 <Icon size={20} strokeWidth={active ? 2.4 : 2} />

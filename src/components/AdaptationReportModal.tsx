@@ -59,7 +59,7 @@ export default function AdaptationReportModal() {
                   {v.outcome === "verified" || v.outcome === "raised" ? (
                     <BadgeCheck size={15} className="text-emerald-400 shrink-0 mt-0.5" />
                   ) : v.outcome === "ignored" ? (
-                    <Ban size={15} className="text-zinc-500 shrink-0 mt-0.5" />
+                    <Ban size={15} className="text-muted shrink-0 mt-0.5" />
                   ) : (
                     <HelpCircle size={15} className="text-orange-400 shrink-0 mt-0.5" />
                   )}
@@ -82,7 +82,7 @@ export default function AdaptationReportModal() {
                     <TrendingDown size={15} className="text-orange-400" />
                   )}
                   <span className="text-zinc-100">{SKILL_FIELD_LABEL[c.skill]}</span>
-                  <span className="text-zinc-500 text-xs ml-auto">
+                  <span className="text-muted text-xs ml-auto">
                     {tx(MASTERY_LABEL[c.from])} → <span className={up ? "text-emerald-400" : "text-orange-400"}>{tx(MASTERY_LABEL[c.to])}</span>
                   </span>
                 </li>
@@ -114,7 +114,7 @@ export default function AdaptationReportModal() {
         ))}
 
         {report.ignoredTimingSamples > 0 && (
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-xs text-muted">
             {tx("{n} timer readings were left out as unreliable (app in the background, long interruptions or tapped-through sets).", { n: report.ignoredTimingSamples })}
           </p>
         )}
