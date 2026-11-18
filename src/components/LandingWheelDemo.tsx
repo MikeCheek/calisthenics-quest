@@ -65,7 +65,7 @@ export default function LandingWheelDemo() {
       <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
         <Dices size={16} className="text-orange-400" /> Try the bonus wheel
       </div>
-      <p className="text-xs text-zinc-500 mb-3">
+      <p className="text-xs text-muted mb-3">
         No account needed — pick a skill and spin for a real exercise, exactly like the wheel you&apos;ll
         get once you sign in.
       </p>
@@ -136,7 +136,7 @@ export default function LandingWheelDemo() {
             <ExerciseTipButton exerciseName={result.name} exerciseDetail={result.detail} trackLabel={SKILL_FIELD_LABEL[skill]} />
           </div>
           <ExerciseTimer exercise={result} />
-          <div className="text-xs text-zinc-500 mt-3 text-center">
+          <div className="text-xs text-muted mt-3 text-center">
             Sign in to save this, bank bonus XP, and unlock all 50 skills
           </div>
         </div>

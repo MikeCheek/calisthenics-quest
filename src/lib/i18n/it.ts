@@ -12,6 +12,8 @@ const it: TranslationDict = {
     train: "Allena",
     skills: "Abilità",
     pair: "Coppia",
+    progress: "Progressi",
+    friends: "Amici",
     profile: "Profilo",
     signOut: "Esci",
   },

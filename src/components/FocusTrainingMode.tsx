@@ -8,11 +8,16 @@ import { useToast } from "@/context/ToastContext";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
-import { TimerLog, TimerRestSample, summarizeTimerLog, bestHoldFromLog, learnedTransitionRest } from "@/lib/timingLearning";
+import ExerciseDemo from "@/components/ExerciseDemo";
+import { TimerLog, TimerRestSample, summarizeTimerLog, bestHoldFromLog, learnedTransitionRest, cleanSets } from "@/lib/timingLearning";
+import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone } from "lucide-react";
+import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAlive, stopKeepAlive, updateLockScreen } from "@/lib/mediaSession";
+import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
+import type { TimerEvent } from "@/components/ExerciseTimer";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface Step {
@@ -31,7 +36,51 @@ export default function FocusTrainingMode() {
     useTrainingSession();
   const { userDoc } = useAuth();
   const toast = useToast();
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
+
+  // ---- voice coaching ----
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [canSpeak, setCanSpeak] = useState(false);
+  useEffect(() => {
+    setCanSpeak(voiceSupported());
+    setVoiceOn(voiceSupported() && voicePref());
+  }, []);
+  const voiceOnRef = useRef(voiceOn);
+  voiceOnRef.current = voiceOn;
+  const say = (english: string, vars?: Record<string, string | number>, interrupt = false) => {
+    if (voiceOnRef.current) speak(tx(english, vars), locale, { interrupt });
+  };
+  const toggleVoice = () => {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    setVoicePref(next);
+    if (!next) stopSpeaking();
+    else speak(tx("Voice coaching on"), locale, { interrupt: true });
+  };
+  // ---- lock-screen controls (opt-in: keeps silent audio playing) ----
+  const [lockOn, setLockOn] = useState(false);
+  const [canLock, setCanLock] = useState(false);
+  useEffect(() => {
+    setCanLock(mediaSessionSupported());
+    setLockOn(mediaSessionSupported() && lockScreenPref());
+  }, []);
+  const toggleLock = () => {
+    const next = !lockOn;
+    setLockOn(next);
+    setLockScreenPref(next);
+    if (next) {
+      startKeepAlive(); // from this tap, so playback is allowed
+      toast.info("Lock-screen controls on. On some phones this pauses music from other apps.");
+    } else stopKeepAlive();
+  };
+  const lockHandlers = useRef({ togglePause: () => {}, next: () => {}, previous: () => {} });
+
+  const onTimerEvent = (e: TimerEvent) => {
+    if (e.type === "setStart" && e.sets > 1) say(e.set === e.sets ? "Last set" : "Set {a} of {b}", { a: e.set, b: e.sets }, true);
+    else if (e.type === "tenLeft") say("Ten seconds", undefined, true);
+    else if (e.type === "rest") say("Rest {n} seconds", { n: e.seconds });
+    else if (e.type === "done") say("Exercise complete");
+  };
 
   const steps: Step[] = useMemo(() => {
     if (!session) return [];
@@ -52,6 +101,7 @@ export default function FocusTrainingMode() {
   const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
   const [timerLogs, setTimerLogs] = useState<Record<number, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<number, number | boolean | undefined>>({});
+  const [checkVideos, setCheckVideos] = useState<Record<number, string | undefined>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [restWasLearned, setRestWasLearned] = useState(false);
 
@@ -108,6 +158,7 @@ export default function FocusTrainingMode() {
     setTooHard([]);
     setTimerLogs({});
     setCheckResults({});
+    setCheckVideos({});
     transitionSamples.current = [];
     restMeter.current = null;
   }, [session]);
@@ -153,6 +204,49 @@ export default function FocusTrainingMode() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restSecondsLeft]);
 
+  const announced = useRef("");
+  useEffect(() => {
+    if (!session || !current || restSecondsLeft !== null || allDoneScreen) return;
+    const key = `${session.id}:${index}:${current.exercise.name}`;
+    if (announced.current === key) return;
+    announced.current = key;
+    const prefix = current.exercise.check ? `${tx("Skill check.")} ` : "";
+    say(`${prefix}${speakableName(current.exercise.name)}. ${speakableDetail(current.exercise.detail, locale)}`, undefined, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, current, restSecondsLeft, allDoneScreen, index]);
+
+  useEffect(() => {
+    if (restSecondsLeft === 5) say("Get ready");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restSecondsLeft]);
+
+  useEffect(() => {
+    if (allDoneScreen) say("Session complete. Great work!", undefined, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allDoneScreen]);
+
+  useEffect(() => {
+    if (!session) stopSpeaking();
+  }, [session]);
+
+  useEffect(() => {
+    if (!lockOn || !session || !current) return;
+    const resting = restSecondsLeft !== null;
+    updateLockScreen(
+      {
+        title: allDoneScreen ? tx("Session complete!") : resting ? `${tx("Rest")} · ${restSecondsLeft}s` : current.exercise.name,
+        subtitle: resting && next ? `${tx("Up next:")} ${next.exercise.name}` : `${index + 1}/${steps.length} · ${tx(current.setTitle)}`,
+        paused,
+      },
+      {
+        togglePause: () => lockHandlers.current.togglePause(),
+        next: () => lockHandlers.current.next(),
+        previous: () => lockHandlers.current.previous(),
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockOn, session, current, restSecondsLeft, paused, allDoneScreen, index]);
+
   if (!session || !current) return null;
 
   const isLastStep = index === steps.length - 1;
@@ -172,6 +266,7 @@ export default function FocusTrainingMode() {
     const planned = Math.min(MAX_BETWEEN_EXERCISE_REST, Math.max(MIN_BETWEEN_EXERCISE_REST, current.exercise.restSeconds || MIN_BETWEEN_EXERCISE_REST));
     // learned from how long this athlete actually rests between exercises
     const { seconds: rest, learned } = learnedTransitionRest(planned, userDoc?.transitionRest);
+    if (next) say("Rest. Up next: {x}", { x: speakableName(next.exercise.name) }, true);
     setRestWasLearned(learned);
     startRestMeter(rest);
     playRestSound();
@@ -193,6 +288,12 @@ export default function FocusTrainingMode() {
     closeRestMeter(false); // going back isn't a rest decision
     if (restSecondsLeft !== null) return; // step back into the exercise we were resting after
     setIndex((i) => i - 1);
+  };
+
+  lockHandlers.current = {
+    togglePause,
+    next: () => (restSecondsLeft !== null ? skipRest() : goNext()),
+    previous: () => goBack(),
   };
 
   const goNext = () => {
@@ -220,6 +321,7 @@ export default function FocusTrainingMode() {
     if (easier) {
       setOverrides((prev) => ({ ...prev, [index]: { ...easier, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
       toast.success(`Swapped in ${easier.name}. Noted for future sessions.`);
+      say("Swapped in {x}", { x: speakableName(easier.name) }, true);
     } else {
       toast.info("Nothing easier for this one — noted for future sessions. Skipping ahead.");
       if (isLastStep) setAllDoneScreen(true);
@@ -243,8 +345,11 @@ export default function FocusTrainingMode() {
         adaptedFrom: ex.adaptedFrom,
         adaptDir: ex.adaptDir,
         timing: summarizeTimerLog(timerLogs[i]),
+        detail: ex.detail,
+        sets: isDone ? cleanSets(timerLogs[i]) : undefined,
         check: ex.check,
         checkResult,
+        checkVideoKey: ex.check ? checkVideos[i] : undefined,
       });
     });
     return out;
@@ -279,22 +384,45 @@ export default function FocusTrainingMode() {
       className={`fixed inset-0 z-50 bg-zinc-950 flex-col safe-top safe-bottom ${expanded ? "flex" : "hidden"}`}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <button onClick={minimize} className="p-1.5 text-zinc-500 hover:text-zinc-200" aria-label={tx("Minimize")}>
+        <button onClick={minimize} className="p-1.5 text-muted hover:text-zinc-200" aria-label={tx("Minimize")}>
           <ChevronDown size={20} />
         </button>
-        <div className="text-xs text-zinc-500 stat-mono">
+        <div className="text-xs text-muted stat-mono">
           {Math.min(index + 1, steps.length)} / {steps.length}
           {!allDoneScreen && (
-            <span className="text-zinc-600"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
+            <span className="text-muted"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
           )}
         </div>
+        <div className="flex items-center gap-1">
+        {canLock && (
+          <button
+            onClick={toggleLock}
+            className={`p-1.5 rounded-lg ${lockOn ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
+            aria-label={lockOn ? tx("Turn lock-screen controls off") : tx("Turn lock-screen controls on")}
+            aria-pressed={lockOn}
+            title={tx("Lock-screen controls")}
+          >
+            <Smartphone size={18} />
+          </button>
+        )}
+        {canSpeak && (
+          <button
+            onClick={toggleVoice}
+            className={`p-1.5 rounded-lg ${voiceOn ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
+            aria-label={voiceOn ? tx("Turn voice coaching off") : tx("Turn voice coaching on")}
+            aria-pressed={voiceOn}
+          >
+            {voiceOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+        )}
         <button
           onClick={togglePause}
-          className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-zinc-500 hover:text-zinc-200"}`}
+          className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
           aria-label={paused ? tx("Resume training") : tx("Pause training")}
         >
           {paused ? <Play size={18} /> : <Pause size={18} />}
         </button>
+        </div>
       </div>
 
       {/* stepper */}
@@ -310,7 +438,7 @@ export default function FocusTrainingMode() {
           ))}
         </div>
         {!allDoneScreen && !isLastStep && (
-          <div className="text-xs text-zinc-500 mt-2 truncate">{tx("Next:")} {next?.exercise.name}</div>
+          <div className="text-xs text-muted mt-2 truncate">{tx("Next:")} {next?.exercise.name}</div>
         )}
       </div>
 
@@ -321,7 +449,7 @@ export default function FocusTrainingMode() {
             {mm}:{ss}
           </div>
           {next && <div className="text-sm text-zinc-400 mb-1">{tx("Up next:")} {next.exercise.name}</div>}
-          <div className="text-[11px] text-zinc-600 mb-6 h-4">{restWasLearned ? tx("Rest adjusted to your usual pace") : ""}</div>
+          <div className="text-xs text-muted mb-6 h-4">{restWasLearned ? tx("Rest adjusted to your usual pace") : ""}</div>
           {paused && (
             <div className="text-xs text-orange-400 flex items-center gap-1.5 mb-4">
               <Pause size={12} /> {tx("Training paused")}
@@ -355,7 +483,7 @@ export default function FocusTrainingMode() {
           >
             {tx("Finish & log session")}
           </button>
-          <button onClick={goBack} className="text-xs text-zinc-500 hover:text-zinc-300 mt-3">
+          <button onClick={goBack} className="text-xs text-muted hover:text-zinc-300 mt-3">
             {tx("Go back and review")}
           </button>
         </div>
@@ -368,7 +496,7 @@ export default function FocusTrainingMode() {
                 <div className="heading text-2xl text-zinc-100">{current.exercise.name}</div>
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="p-1 text-zinc-500 hover:text-orange-400"
+                  className="p-1 text-muted hover:text-orange-400"
                   aria-label={`Details for ${current.exercise.name}`}
                 >
                   <Info size={18} />
@@ -384,6 +512,12 @@ export default function FocusTrainingMode() {
                 )
               )}
               <div className="text-sm text-zinc-400 mt-1">{current.exercise.detail}</div>
+              {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && userDoc?.exerciseStats?.[statKey(current.exercise.name)]?.lastSets && (
+                <div className="text-xs text-muted mt-0.5">
+                  {tx("Last time:")}{" "}
+                  <span className="text-zinc-300 stat-mono">{userDoc.exerciseStats[statKey(current.exercise.name)].lastSets}</span>
+                </div>
+              )}
               {current.exercise.cue && (
                 <div className="text-xs text-orange-400/80 italic mt-1">{tx(current.exercise.cue)}</div>
               )}
@@ -395,6 +529,7 @@ export default function FocusTrainingMode() {
               </div>
             )}
 
+            <ExerciseDemo exerciseName={current.exercise.name} width={170} className="mb-4" />
             <div className="max-w-sm w-full mx-auto">
               <ExerciseTimer
                 key={`${current.key}-${current.exercise.name}`}
@@ -403,6 +538,7 @@ export default function FocusTrainingMode() {
                 onComplete={current.exercise.check ? undefined : markCompleteAndAdvance}
                 externallyPaused={paused}
                 onLog={(log) => setTimerLogs((prev) => ({ ...prev, [index]: log }))}
+                onEvent={onTimerEvent}
               />
               {current.exercise.check && (
                 <SkillCheckPanel
@@ -410,6 +546,8 @@ export default function FocusTrainingMode() {
                   value={checkResults[index]}
                   timerBest={bestHoldFromLog(timerLogs[index])}
                   onChange={(v) => setCheckResults((prev) => ({ ...prev, [index]: v }))}
+                  videoKey={checkVideos[index]}
+                  onVideo={(v) => setCheckVideos((prev) => ({ ...prev, [index]: v }))}
                 />
               )}
             </div>
@@ -451,7 +589,7 @@ export default function FocusTrainingMode() {
           )}
           <button
             onClick={handleTired}
-            className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-zinc-500 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
+            className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-muted hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
           >
             <BatteryLow size={13} /> {tx("I'm tired — ease up what's left")}
           </button>

@@ -52,7 +52,7 @@ export default function PingsListener() {
     try {
       await joinPairing(invite.pairingCode, userDoc.uid, userDoc.displayName, userDoc.body, userDoc.skills);
       await dismissPing(userDoc.uid, invite.id);
-      router.push(`/pair?code=${invite.pairingCode}`);
+      router.push(`/friends?code=${invite.pairingCode}`);
     } catch {
       toast.error("Couldn't join — try again.");
     } finally {

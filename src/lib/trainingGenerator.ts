@@ -167,7 +167,8 @@ function buildSets(
   equipment: TrainingEquipment,
   focus: SkillTrack,
   dateISO: string,
-  primaryLabel: string
+  primaryLabel: string,
+  accessoryCount = 2
 ): TrainingSet[] {
   const warmup: TrainingSet = {
     track: "warmup",
@@ -191,7 +192,7 @@ function buildSets(
     sets.push({
       track: accessory,
       title: `Accessory — ${FOCUS_LABEL[accessory]}`,
-      exercises: exercisesForTrack(accessory, skills, equipment).slice(0, 2),
+      exercises: exercisesForTrack(accessory, skills, equipment).slice(0, accessoryCount),
     });
   }
 
@@ -211,10 +212,14 @@ export function generateSession(
   skills: SkillProfile,
   equipment: TrainingEquipment,
   focus: SkillTrack,
-  date: Date = new Date()
+  date: Date = new Date(),
+  // Longer sessions get the whole accessory track to work with; the
+  // session fitter (sessionFit.ts) then trims or extends to the minute.
+  targetMinutes?: number
 ): TrainingSession {
   const dateISO = date.toISOString().slice(0, 10);
-  const sets = buildSets(skills, equipment, focus, dateISO, FOCUS_LABEL[focus]);
+  const accessoryCount = targetMinutes && targetMinutes >= 60 ? 4 : 2;
+  const sets = buildSets(skills, equipment, focus, dateISO, FOCUS_LABEL[focus], accessoryCount);
 
   const totalExercises = sets.reduce((n, s) => n + s.exercises.length, 0);
   const estXp = 20 + totalExercises * 8 + stageXpBonus(skills);

@@ -174,7 +174,7 @@ export default function PlanReviewButton({
               </p>
             ) : (
               <div className="space-y-3">
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-muted">
                   {result.suggestions.length} suggested change{result.suggestions.length === 1 ? "" : "s"} — pick which to apply
                 </div>
                 {result.suggestions.map((s) => {
@@ -187,7 +187,7 @@ export default function PlanReviewButton({
                     >
                       <div className="flex items-start justify-between gap-2 text-sm">
                         <div className="flex-1 min-w-0">
-                          <div className="text-zinc-500 line-through truncate">
+                          <div className="text-muted line-through truncate">
                             {original?.name} — {original?.detail}
                           </div>
                           <div className="flex items-center gap-1.5 text-zinc-100 mt-0.5">
@@ -202,14 +202,14 @@ export default function PlanReviewButton({
                           className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center border ${
                             isApproved
                               ? "bg-orange-500 border-orange-500 text-zinc-950"
-                              : "border-zinc-600 text-zinc-500"
+                              : "border-zinc-600 text-muted"
                           }`}
                           aria-label={isApproved ? "Don't apply this change" : "Apply this change"}
                         >
                           {isApproved ? <Check size={14} /> : <X size={14} />}
                         </button>
                       </div>
-                      {s.reason && <p className="text-xs text-zinc-500 mt-1.5">{s.reason}</p>}
+                      {s.reason && <p className="text-xs text-muted mt-1.5">{s.reason}</p>}
                     </div>
                   );
                 })}

@@ -1,8 +1,10 @@
 import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { applyCheckResults, syncClaims } from "./verification";
+import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
+import { addToWeek } from "./leaderboard";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
-import { updateProgress, syncPublicProfile } from "./store";
+import { updateProgress, syncPublicProfile, saveSessionRecord } from "./store";
 import { effectiveLevel } from "./levelPath";
 
 export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
@@ -83,7 +85,7 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
-  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number } = {}
+  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number; durationMin?: number } = {}
 ): Promise<CompleteSessionResult> {
   const feedback = opts.feedback ?? [];
   const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
@@ -104,7 +106,8 @@ export async function completeSession(
   const trimmedHistory = history.slice(-30);
 
   // Learn from what actually happened in this session (see adaptation.ts).
-  const exerciseStats = applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback);
+  const exerciseStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
+  const { records, newRecords } = detectRecords(userDoc.records ?? {}, feedback);
   const learned = applySkillFeedback(
     userDoc.skills,
     userDoc.skillMastery ?? {},
@@ -131,6 +134,7 @@ export async function completeSession(
     suggestions,
     verifications: verified.events,
     ignoredTimingSamples: feedback.reduce((n, f) => n + (f.timing?.ignored ?? 0), 0),
+    records: newRecords,
     feedbackCounts: {
       done: feedback.filter((f) => f.outcome === "done").length,
       skipped: feedback.filter((f) => f.outcome === "skipped").length,
@@ -139,12 +143,21 @@ export async function completeSession(
   };
   const newMastery = verified.mastery;
 
+  // this week's totals, for the friends leaderboard
+  const week = addToWeek(userDoc.week, {
+    minutes: opts.durationMin,
+    xp: totalXp - userDoc.xp,
+    verified: verified.events.filter((e) => e.outcome === "verified" || e.outcome === "raised").length,
+  });
+
   const patch: Partial<UserDoc> = {
+    week,
     exerciseStats,
     skillProgress: learned.progress,
     skillMastery: newMastery,
     skills: newSkills,
     claims,
+    records,
     ...(opts.transitionRestRatio !== undefined
       ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) }
       : {}),
@@ -158,6 +171,17 @@ export async function completeSession(
 
   await updateProgress(userDoc.uid, patch);
 
+  // Keep the session itself for the history view. Best-effort: progress is
+  // already saved, so a failed history write shouldn't fail the whole log.
+  const sessionRecord = buildSessionRecord(session, feedback, {
+    xp: totalXp - userDoc.xp,
+    durationMin: opts.durationMin,
+    paired: opts.isPaired,
+    records: newRecords,
+  });
+  await saveSessionRecord(userDoc.uid, sessionRecord).catch(() => {});
+  report.sessionRecord = sessionRecord; // for the share card
+
   if (userDoc.friendCode) {
     syncPublicProfile({
       uid: userDoc.uid,
@@ -170,6 +194,7 @@ export async function completeSession(
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
       skills: newSkills,
       skillMastery: newMastery,
+      week,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });

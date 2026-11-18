@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +18,13 @@ const FEATURES: { icon: typeof Bot; title: string; body: string }[] = [
 ];
 
 export default function LandingPage() {
-  const { user, userDoc, loading, signIn } = useAuth();
+  const { user, userDoc, loading, signIn, startAsGuest } = useAuth();
+  const [startingGuest, setStartingGuest] = useState(false);
+  const tryAsGuest = async () => {
+    setStartingGuest(true);
+    if (!(await startAsGuest())) setStartingGuest(false);
+    // on success the redirect below sends the new guest to onboarding
+  };
   const router = useRouter();
 
   useEffect(() => {
@@ -45,6 +51,16 @@ export default function LandingPage() {
         >
           Sign in with Google
         </button>
+        <button
+          onClick={tryAsGuest}
+          disabled={startingGuest}
+          className="w-full mt-2 py-3 rounded-lg border border-zinc-700 text-zinc-200 hover:border-zinc-500 text-sm disabled:opacity-60"
+        >
+          {startingGuest ? "Starting…" : "Try it first — no account needed"}
+        </button>
+        <p className="text-xs text-muted mt-2">
+          Take the assessment and train as a guest. Save your progress with Google whenever you like.
+        </p>
       </div>
 
       {/* Try it now — no account needed */}
@@ -84,11 +100,11 @@ export default function LandingPage() {
         >
           Sign in with Google
         </button>
-        <p className="text-xs text-zinc-600 mt-3">Free. Takes about a minute to set up.</p>
+        <p className="text-xs text-muted mt-3">Free. Takes about a minute to set up.</p>
       </div>
 
       <div className="max-w-md mx-auto text-center mt-8">
-        <Link href="/about" className="text-xs text-zinc-600 hover:text-zinc-400">
+        <Link href="/about" className="text-xs text-muted hover:text-zinc-400">
           About &amp; privacy
         </Link>
       </div>

@@ -318,7 +318,7 @@ function WheelContent() {
             </div>
             <button
               onClick={() => setSuggestionDismissed(true)}
-              className="text-zinc-500 hover:text-zinc-300 shrink-0"
+              className="text-muted hover:text-zinc-300 shrink-0"
               aria-label="Dismiss suggestion"
             >
               <X size={14} />
@@ -329,7 +329,7 @@ function WheelContent() {
         <div className="panel p-4">
           {/* modifier reels sit above the wheel — type resolves first, then quantity */}
           <div className="mb-4">
-            <div className="text-xs text-zinc-500 mb-1.5 text-center uppercase tracking-wide">Bonus / malus</div>
+            <div className="text-xs text-muted mb-1.5 text-center uppercase tracking-wide">Bonus / malus</div>
             <div className="grid grid-cols-2 gap-2">
               <ModifierReel
                 phase={typePhase}
@@ -396,7 +396,7 @@ function WheelContent() {
             )}
             {landedExercise && spinPhase === "composed" && (
               <div className="text-center animate-pop-in">
-                <div className="text-xs text-zinc-500 uppercase tracking-wide">Landed on</div>
+                <div className="text-xs text-muted uppercase tracking-wide">Landed on</div>
                 <div className="text-lg text-zinc-100 heading">{landedExercise.name}</div>
               </div>
             )}
@@ -424,7 +424,7 @@ function WheelContent() {
             {composed.cue && <div className="text-xs text-orange-400/80 italic mb-2">{composed.cue}</div>}
             <div className="flex items-center gap-2 mb-2">
               <ExerciseTipButton exerciseName={composed.name} exerciseDetail={composed.detail} trackLabel={SKILL_FIELD_LABEL[track]} />
-              <span className="text-xs text-zinc-500 ml-auto">
+              <span className="text-xs text-muted ml-auto">
                 Worth +
                 {BASE_BONUS_XP * (modifier ? modifierXpMultiplier(modifier) : 1) +
                   (modifier ? modifierFlatXpBonus(modifier) : 0)}{" "}

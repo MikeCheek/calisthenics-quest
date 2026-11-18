@@ -36,7 +36,7 @@ export default function LandingProgressPreview() {
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="panel p-4">
-          <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Example — Level</div>
+          <div className="text-xs text-muted uppercase tracking-wide mb-1">Example — Level</div>
           <div className="heading text-2xl text-zinc-100">Lv {MOCK_LEVEL}</div>
           <div className="text-xs text-orange-400 stat-mono mb-2">{MOCK_RANK}</div>
           <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
@@ -44,21 +44,21 @@ export default function LandingProgressPreview() {
           </div>
         </div>
         <div className="panel p-4">
-          <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Example — Streak</div>
+          <div className="text-xs text-muted uppercase tracking-wide mb-1">Example — Streak</div>
           <div className="heading text-2xl text-zinc-100 flex items-center gap-1.5">
             {MOCK_STREAK} <Flame size={18} className="text-orange-400" />
           </div>
-          <div className="text-xs text-zinc-500">days in a row</div>
+          <div className="text-xs text-muted">days in a row</div>
         </div>
       </div>
 
       <div className="panel p-4">
-        <div className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Example — skill radar</div>
+        <div className="text-xs text-muted uppercase tracking-wide mb-2">Example — skill radar</div>
         <SkillRadarChart skills={MOCK_SKILLS} />
       </div>
 
       <div className="panel p-4">
-        <div className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Example — trophy road</div>
+        <div className="text-xs text-muted uppercase tracking-wide mb-2">Example — trophy road</div>
         <div className="space-y-2">
           {MOCK_MILESTONES.map((m) => (
             <div
@@ -68,7 +68,7 @@ export default function LandingProgressPreview() {
                   ? "border-emerald-800 bg-emerald-600/5 text-emerald-400"
                   : m.current
                   ? "border-orange-500 bg-orange-500/10 text-zinc-100"
-                  : "border-zinc-800 text-zinc-500"
+                  : "border-zinc-800 text-muted"
               }`}
             >
               {m.done ? <Check size={14} /> : <Lock size={12} />}

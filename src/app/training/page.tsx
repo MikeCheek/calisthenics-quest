@@ -8,7 +8,7 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import PlanReviewButton from "@/components/PlanReviewButton";
-import PomodoroTimer from "@/components/PomodoroTimer";
+import TrainSwitcher from "@/components/TrainSwitcher";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
@@ -16,8 +16,9 @@ import { ExerciseFeedback, SkillTrack, TrainingSession } from "@/lib/types";
 import { adaptSession, adaptedCount, historySummary } from "@/lib/adaptation";
 import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
 import { useToast } from "@/context/ToastContext";
-import { Play, ChevronDown, Timer, CalendarDays, Dices } from "lucide-react";
+import { Play, ChevronDown, Dices } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { fitSessionToMinutes } from "@/lib/sessionFit";
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
@@ -27,7 +28,6 @@ export default function TrainingPage() {
   const { tx } = useLanguage();
   const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
-  const [showTimer, setShowTimer] = useState(false);
   const [showFocusPicker, setShowFocusPicker] = useState(false);
   const [showFab, setShowFab] = useState(false);
   const [xpGained, setXpGained] = useState<number | null>(null);
@@ -55,14 +55,15 @@ export default function TrainingPage() {
 
   const skillsKey = JSON.stringify(userDoc?.skills ?? null);
   const equipmentKey = JSON.stringify(userDoc?.equipment ?? null);
-  const session = useMemo(() => {
+  const fitted = useMemo(() => {
     if (!userDoc || !focus) return null;
     // generated from the athlete's stages, then adapted to their own history
     // of completing, skipping and struggling with specific exercises
-    const adapted = adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus), userDoc.exerciseStats, userDoc.equipment);
+    const adapted = adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus, new Date(), userDoc.body?.sessionLengthMinutes), userDoc.exerciseStats, userDoc.equipment);
     // one Skill Check per session, verifying something the athlete claimed
     const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), userDoc.equipment, focus);
-    return addSkillCheck(adapted, check);
+    // finally, fit everything to the athlete's chosen session length
+    return fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes);
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
@@ -76,15 +77,18 @@ export default function TrainingPage() {
     setAiAppliedSession(null);
   }, [focus]);
 
-  const displayedSession = aiAppliedSession ?? session;
+  const displayedSession = aiAppliedSession ?? fitted?.session ?? null;
 
   if (loading || !userDoc || !displayedSession) {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
   }
 
-  const handleComplete = async (feedback: ExerciseFeedback[]) => {
+  const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => {
     try {
-      const { patch, celebration: c, report } = await completeSession(userDoc, displayedSession, { feedback });
+      const { patch, celebration: c, report } = await completeSession(userDoc, displayedSession, {
+        feedback,
+        durationMin: meta.durationMin,
+      });
       setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
       setCompleted(true);
       setCelebration(c);
@@ -100,27 +104,8 @@ export default function TrainingPage() {
       <Nav />
       <CelebrationOverlay celebration={celebration} />
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="heading text-2xl text-zinc-100">{tx("Today's session")}</h1>
-          <div className="flex gap-1.5 shrink-0">
-            <Link
-              href="/plan"
-              className="p-2 border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 rounded-lg"
-              aria-label={tx("Plan ahead")}
-            >
-              <CalendarDays size={16} />
-            </Link>
-            <button
-              onClick={() => setShowTimer((s) => !s)}
-              className={`p-2 border rounded-lg ${
-                showTimer ? "border-orange-500 text-orange-400" : "border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100"
-              }`}
-              aria-label={showTimer ? tx("Hide focus timer") : tx("Show focus timer")}
-            >
-              <Timer size={16} />
-            </button>
-          </div>
-        </div>
+        <TrainSwitcher active="today" />
+        <h1 className="heading text-2xl text-zinc-100">{tx("Today's session")}</h1>
 
         {/* focus — collapsed to a single line by default; expand only to change it */}
         <button
@@ -130,7 +115,7 @@ export default function TrainingPage() {
           <span className="text-zinc-300">
             {tx("Focus:")} <span className="text-zinc-100">{tx(FOCUS_LABEL[focus!])}</span>
           </span>
-          <span className="text-xs text-zinc-500 flex items-center gap-1">
+          <span className="text-xs text-muted flex items-center gap-1">
             {tx("Change")} <ChevronDown size={14} className={showFocusPicker ? "rotate-180 transition-transform" : "transition-transform"} />
           </span>
         </button>
@@ -157,13 +142,12 @@ export default function TrainingPage() {
                 </button>
               ))}
             </div>
-            <Link href="/onboarding" className="text-xs text-zinc-500 hover:text-orange-400 mt-2 inline-block">
+            <Link href="/onboarding" className="text-xs text-muted hover:text-orange-400 mt-2 inline-block">
               {tx("Not seeing a focus? Update your available equipment")}
             </Link>
           </div>
         )}
 
-        {showTimer && <PomodoroTimer />}
 
         {globalSession && !globalCompleted && (
           <div className="panel p-3 border-orange-500/40 flex items-center justify-between gap-3">
@@ -183,6 +167,18 @@ export default function TrainingPage() {
           </div>
         )}
 
+        {fitted?.changed && !aiAppliedSession && !completed && (
+          <div className="text-xs text-muted px-1">
+            {tx("Fitted to your {n} min sessions (was ~{m} min).", {
+              n: userDoc.body?.sessionLengthMinutes ?? 45,
+              m: fitted.minutesBefore,
+            })}{" "}
+            <Link href="/profile?tab=settings" className="text-orange-400 hover:underline">
+              {tx("Change")}
+            </Link>
+          </div>
+        )}
+
         {adaptedCount(displayedSession) > 0 && !completed && (
           <div className="text-xs text-sky-400/90 px-1">
             {tx("{n} adapted from your recent sessions — based on what you completed, skipped or found too hard.", {
@@ -199,7 +195,7 @@ export default function TrainingPage() {
           onStartFocusMode={() => startSession(displayedSession)}
         />
 
-        <div className="grid grid-cols-2 gap-2">
+        {!(completed || globalCompleted) && (
           <PlanReviewButton
             session={displayedSession}
             skills={userDoc.skills}
@@ -207,13 +203,23 @@ export default function TrainingPage() {
             equipment={userDoc.equipment}
             onApply={setAiAppliedSession}
           />
+        )}
+
+        {/* the wheel is a reward for finishing, not a main feature */}
+        {(completed || globalCompleted) && (
           <Link
             href="/wheel"
-            className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-zinc-100 hover:bg-orange-500/10"
+            className="panel p-4 flex items-center gap-3 border-orange-500/40 bg-gradient-to-br from-orange-500/10 to-transparent hover:border-orange-500 transition-colors animate-overlay-fade-in"
           >
-            <Dices size={15} className="text-orange-400" /> {tx("Bonus wheel")}
+            <span className="w-11 h-11 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+              <Dices size={20} className="text-orange-400" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block heading text-base text-zinc-100">{tx("Bonus round unlocked")}</span>
+              <span className="block text-xs text-zinc-400">{tx("Still have energy? Spin the wheel for one extra exercise and bonus XP.")}</span>
+            </span>
           </Link>
-        </div>
+        )}
       </main>
 
       {showFab && !globalSession && (

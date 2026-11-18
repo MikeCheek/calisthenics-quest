@@ -6,7 +6,10 @@ import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
-import { TimerLog, summarizeTimerLog, bestHoldFromLog } from "@/lib/timingLearning";
+import { TimerLog, summarizeTimerLog, bestHoldFromLog, cleanSets } from "@/lib/timingLearning";
+import { useAuth } from "@/context/AuthContext";
+import { statKey } from "@/lib/adaptation";
+import { plausibleDuration } from "@/lib/sessionHistory";
 import Modal from "@/components/Modal";
 import { Play, Clock, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -33,7 +36,7 @@ export default function SessionView({
 }: {
   session: TrainingSession;
   equipment?: TrainingEquipment;
-  onComplete?: (feedback: ExerciseFeedback[]) => void;
+  onComplete?: (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => void;
   completed?: boolean;
   onStartFocusMode?: () => void;
 }) {
@@ -46,6 +49,7 @@ export default function SessionView({
   // raw timer logs and Skill Check results, per row
   const [timerLogs, setTimerLogs] = useState<Record<string, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<string, number | boolean | undefined>>({});
+  const [checkVideos, setCheckVideos] = useState<Record<string, string | undefined>>({});
   const [openTimers, setOpenTimers] = useState<Set<string>>(new Set());
   const [individualDelta, setIndividualDelta] = useState<Record<string, number>>({});
   const [sessionLevel, setSessionLevel] = useState<SessionLevel>("default");
@@ -64,7 +68,20 @@ export default function SessionView({
     });
   };
 
+  // when the athlete first actually did something — the start of the
+  // session for duration purposes (opening the page isn't training)
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const markStarted = () => setStartedAt((t) => t ?? Date.now());
+  const { userDoc } = useAuth();
+  const lastTimeFor = (name: string): string | undefined => {
+    const st = userDoc?.exerciseStats?.[statKey(name)];
+    if (!st?.lastSets || !st.lastAt) return undefined;
+    const when = new Date(st.lastAt).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    return `${st.lastSets} · ${when}`;
+  };
+
   const toggleDone = (key: string) => {
+    markStarted();
     setSkipped((prev) => {
       if (!prev.has(key)) return prev;
       const next = new Set(prev);
@@ -159,8 +176,11 @@ export default function SessionView({
           adaptedFrom: ex.adaptedFrom,
           adaptDir: ex.adaptDir,
           timing: summarizeTimerLog(timerLogs[key]),
+          detail: adjustDetail(ex.detail, individualDelta[key] ?? 0),
+          sets: isDone ? cleanSets(timerLogs[key]) : undefined,
           check: ex.check,
           checkResult,
+          checkVideoKey: ex.check ? checkVideos[key] : undefined,
         });
       });
     });
@@ -182,7 +202,7 @@ export default function SessionView({
         <div className="text-right">
           <div className="text-xs text-zinc-400">{tx("Est. reward")}</div>
           <div className="stat-mono text-orange-400">+{session.estXp} XP</div>
-          <div className="text-xs text-zinc-500 mt-0.5 flex items-center justify-end gap-1">
+          <div className="text-xs text-muted mt-0.5 flex items-center justify-end gap-1">
             <Clock size={11} /> ~{estimateSessionMinutes(session)} min
           </div>
         </div>
@@ -216,7 +236,7 @@ export default function SessionView({
                 className="w-full flex items-center justify-between text-sm uppercase tracking-wide text-emerald-400 mb-2"
               >
                 <span>
-                  {tx(set.title)} <span className="text-zinc-600 normal-case">({set.exercises.length})</span>
+                  {tx(set.title)} <span className="text-muted normal-case">({set.exercises.length})</span>
                 </span>
                 {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </button>
@@ -247,9 +267,15 @@ export default function SessionView({
                         onResetAdjust={() => resetAdjust(key)}
                         onCantDo={exempt || effectiveExercise.check ? undefined : () => swapForEasier(key, effectiveExercise, set.title)}
                         timerLog={timerLogs[key]}
-                        onTimerLog={(log) => setTimerLogs((prev) => ({ ...prev, [key]: log }))}
+                        onTimerLog={(log) => {
+                          markStarted();
+                          setTimerLogs((prev) => ({ ...prev, [key]: log }));
+                        }}
+                        lastTime={exempt ? undefined : lastTimeFor(effectiveExercise.name)}
                         checkValue={checkResults[key]}
                         onCheckChange={(v) => setCheckResults((prev) => ({ ...prev, [key]: v }))}
+                        checkVideoKey={checkVideos[key]}
+                        onCheckVideo={(v) => setCheckVideos((prev) => ({ ...prev, [key]: v }))}
                         onSkip={() => toggleSkip(key)}
                       />
                     );
@@ -264,10 +290,10 @@ export default function SessionView({
       {onComplete && (
         <button
           disabled={completed}
-          onClick={() => onComplete(collectFeedback())}
+          onClick={() => onComplete(collectFeedback(), { durationMin: plausibleDuration(startedAt) })}
           className={`mt-5 w-full py-2.5 rounded-lg heading tracking-wide text-sm ${
             completed
-              ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+              ? "bg-zinc-800 text-muted cursor-not-allowed"
               : allDone
               ? "bg-orange-500 hover:bg-orange-400 text-zinc-950"
               : "bg-zinc-700 hover:bg-zinc-600 text-zinc-100"
@@ -278,7 +304,7 @@ export default function SessionView({
       )}
 
       <Modal open={adjustOpen} onClose={() => setAdjustOpen(false)} title={tx("Adjust today's difficulty")}>
-        <p className="text-xs text-zinc-500 mb-3">
+        <p className="text-xs text-muted mb-3">
           {tx("Drag an exercise left or right in the list for a quick per-exercise easier/harder reps adjustment, or use its own +/- buttons. This sets the difficulty for the whole session at once.")}
         </p>
         <div className="flex gap-1.5">
@@ -297,7 +323,7 @@ export default function SessionView({
           ))}
         </div>
         {sessionLevel !== "default" && (
-          <p className="text-xs text-zinc-500 mt-3">
+          <p className="text-xs text-muted mt-3">
             {tx(sessionLevel === "easier"
               ? "Every skill exercise below is swapped for the easier one right next to it in that skill's progression. Warm-up and finisher exercises don't change; everyone can do those."
               : "Every skill exercise below is swapped for the harder one right next to it in that skill's progression. Warm-up and finisher exercises don't change; everyone can do those.")}

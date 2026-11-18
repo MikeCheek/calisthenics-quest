@@ -53,12 +53,12 @@ export default function SkillInfoModal({
       <p className="text-sm text-zinc-300 mb-3">{SKILL_DESCRIPTIONS[skill]}</p>
 
       {stage !== null && (
-        <div className="text-xs text-zinc-500 mb-3">
+        <div className="text-xs text-muted mb-3">
           Your stage: <span className="text-zinc-200">{STAGE_LABEL[stage] ?? stage}</span>
           {stage !== "none" && (
             <>
               {" "}· <span className="text-zinc-200">{MASTERY_LABEL[mastery]}</span>{" "}
-              <span className="text-zinc-600">
+              <span className="text-muted">
                 ({"●".repeat(mastery)}
                 {"○".repeat(5 - mastery)})
               </span>
@@ -69,7 +69,7 @@ export default function SkillInfoModal({
 
       {arc.length > 0 && (
         <div className="mb-4">
-          <div className="text-xs text-zinc-500 mb-1.5">Suggested arc on the trophy road</div>
+          <div className="text-xs text-muted mb-1.5">Suggested arc on the trophy road</div>
           <div className="flex flex-wrap gap-1.5">
             {arc.map((n) => (
               <span
@@ -77,7 +77,7 @@ export default function SkillInfoModal({
                 className={`text-xs px-2 py-1 rounded-full border ${
                   playerLevel !== undefined && playerLevel >= n.level
                     ? "border-emerald-700 text-emerald-400"
-                    : "border-zinc-700 text-zinc-500"
+                    : "border-zinc-700 text-muted"
                 }`}
               >
                 Lv {n.level} · {STAGE_LABEL[n.stage ?? ""] ?? n.stage}

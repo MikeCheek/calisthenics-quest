@@ -40,7 +40,7 @@ training mode that steps through a
 session hands-free, a unified top-center toast system for every
 info/success/warning/error message, celebration animations, streaks that freeze
 through rest days instead of breaking, weekly missions, skill/XP charts, a
-redesigned dashboard, a pomodoro-style focus timer, day/week/month plan
+redesigned dashboard, a training history with per-set results and personal records, sessions fitted to your chosen length, day/week/month plan
 generation with optional AI coach notes, a friends list with mutual add and
 nudges, daily training reminders with rotating fun
 punch-lines, and paired training via a share
@@ -66,7 +66,11 @@ npm install
 ## 2. Create a Firebase project
 
 1. Go to https://console.firebase.google.com and create a project.
-2. **Authentication** → Sign-in method → enable **Google**.
+2. **Authentication** → Sign-in method → enable **Google**, and also enable
+   **Anonymous** — that's what powers "Try it first — no account needed"
+   (guests get an anonymous account; "Save with Google" links Google to it,
+   keeping everything). Without it, the guest button shows an explanatory
+   error and Google sign-in still works.
 3. **Firestore Database** → create a database (start in production mode).
 4. Project settings → General → "Your apps" → add a **Web app** → copy the config values.
 
@@ -103,6 +107,11 @@ service cloud.firestore {
         // other person's list (auth.uid == friendUid, the doc's own id).
         allow write: if request.auth != null &&
           (request.auth.uid == uid || request.auth.uid == friendUid);
+      }
+
+      // finished-session history, private to its owner
+      match /sessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
       }
 
       match /pings/{pingId} {
@@ -241,20 +250,103 @@ real (non-dev) environment, you can install it as an app from the browser's
   `/training` to actually log it. An optional "Add AI coach notes" toggle
   calls a small OpenRouter model to write a short intro and one line of
   encouragement per day — see below.
-- **Pair Up** (`/pair`) — one person creates a 6-character code from their
+- **Friends** (`/friends`, formerly `/pair` — old links redirect) — the
+  friends list plus pair training: one person creates a 6-character code from their
   profile and the equipment at their spot, the other enters it from their own
   account. Once linked, the app generates a shared-focus session where each
   person gets exercises matched to their own stage, gated by the shared
   location's equipment, with synced set/rest structure.
-- **Focus Timer** (`/pomodoro`, also toggleable inside a training session) is
-  a configurable work/rest interval timer with a 3-2-1 countdown before it
-  starts and a distinct audio cue for each transition (see the "Per-exercise
-  timer" section below for the full sound design, shared with this timer).
+- **Progress** (`/progress`) — Overview (XP chart, verified skills, coach
+  insights, radar, skill wall), Skills (all 50 by category, update skills,
+  goals), Road (the trophy road) and History (calendar, month totals, every
+  finished session with its sets and outcomes, personal bests). `/skills`
+  and `/path` redirect here.
+- **AI coach chat** (Progress → Overview → "Ask your coach") — questions
+  about your own training, answered by the OpenRouter model configured for
+  the other AI features (`/api/coach-chat`). The app sends training data
+  only (skills, what's verified or struggling, equipment, recent sessions —
+  `src/lib/coachContext.ts`), never name, email or body stats; the route
+  caps message sizes and doesn't log message contents. The conversation is
+  kept in the browser tab only.
+- **Friends leaderboard & weekly challenge** (Friends tab) — this week's
+  sessions, minutes, skills proven and XP among you and your friends, plus a
+  challenge that rotates weekly. Each athlete's weekly totals are mirrored
+  to their public profile when they log a session; totals are self-reported
+  by each client, so this is for friendly competition, not anti-cheat.
+- **Video proof** — a Skill Check attempt can be recorded with the camera;
+  clips are stored on the device only (IndexedDB, never uploaded), a passed
+  check recorded on video is marked "on video", and the clip can be shared
+  alongside the card. Resets and account deletion clear the clips.
+- **Lock-screen controls** (opt-in, guided mode) — the current exercise,
+  rest and next/previous/pause on the lock screen via the Media Session API.
+  Phones only show these while audio plays, so a silent loop runs while
+  it's on — which can pause music from other apps on some phones.
+- **Workout export** — any History session with a duration can be exported
+  as a `.tcx` file for platforms that import workout files (e.g. Strava,
+  Garmin Connect). Writing to Apple Health or Android Health Connect isn't
+  possible from a web app; that would need a native wrapper.
+- **Share cards** — after every logged session the Coach update offers
+  "Share your session"; new personal records and verified skills each have
+  a share button too, as do sessions in History and verified rows in
+  Progress. Cards come as a 1080×1920 story or 1080×1080 square, built as
+  SVG (`src/lib/shareCards.ts`, with the stick figure in the exercise's key
+  position) and rasterized to PNG in the browser; phones get the system
+  share sheet, desktops a download. The athlete's name is opt-in — by
+  default a card carries only training numbers.
+- **One headline** — the dashboard leads with your level (and how far to
+  the next) with verified skills beside it as the proof; the header shows
+  the same two numbers. Rank titles live in Progress → Road as your current
+  chapter, missions collapse to one line, and the bonus wheel appears as a
+  "bonus round" after you log a session instead of as a main feature.
+- **Try before signing in** — guests train with an anonymous Firebase
+  account (no friend code or public profile is created for them); "Save
+  with Google" links Google to the same account, so nothing is copied. If
+  that Google account already has progress, the guest is asked before
+  switching (guest progress can't be merged). Friends and pairing ask
+  guests to save first.
+- **Voice coaching** — guided mode speaks the exercise and its sets/reps,
+  set numbers ("Last set"), a ten-second warning on longer holds, rest,
+  "Up next" between exercises, "Get ready" and the finish, in English or
+  Italian, via the browser's speech synthesis (`src/lib/voice.ts`). A
+  speaker toggle in the guided-mode header remembers your choice on the
+  device; speech failures never interrupt the session.
+- **Exercise demonstrations** — 124 of the 129 exercises that appear in
+  sessions (98% of appearances) have a looping stick-figure animation in
+  their info sheet and in guided mode, plus a "Common mistakes" list
+  (`src/lib/demos/`). A small rig with two-bone inverse kinematics keeps
+  hands on the bar and feet on the floor; ~28 movement templates (lever and
+  planche stages, dips, push-ups, handstands, squats…) are matched to
+  exercise names. Rotations (lever raises, skin the cat) sweep around the
+  shoulders in 30° steps. Tests check that every anchored limb reaches its
+  anchor through the whole loop and that the figure stays in frame;
+  reduced-motion users get the key position as a still.
+- **Skill tree** (Progress → Skills) — "Up next" pins the three most
+  worthwhile next stages (goals first, then what's reachable at your level,
+  then closest by mastery); each area lists started skills as a chain of
+  stages (done / current / next / locked) that opens into the full ladder
+  with each stage's approximate level, and folds untouched skills away.
+  Progress → Road leads with the next three milestones; the full road is
+  one tap away.
+- **Contrast** — muted text uses a `muted` color (#909099, ≥4.7:1 on every
+  background) instead of zinc-500/600 (which measured 3.7:1 and 2.3:1 on
+  panels), and nothing is smaller than 12px; `tests/contrast.test.ts`
+  guards both.
+- **Session length** — sessions are fitted to the length chosen in
+  onboarding (`src/lib/sessionFit.ts`): bonus work, finisher and accessory
+  work are trimmed first, main-skill sets are added when there's room; the
+  Skill Check is never cut. Applies to today's session, the plan and
+  paired sessions (paired: the shorter of both partners' preferences).
+- **History** — every finished session is stored at
+  `users/{uid}/sessions/{id}` (see the rules below) with each exercise's
+  outcome, prescribed detail and clean per-set results from the timer.
+  Exercises show "Last time: 12·11·10 reps", and beating a previous best
+  shows up as a new personal record in the Coach update.
 - **Bottom tab bar** is the primary navigation on phones (Home / Train /
-  Skills / Pair / Profile); a slim top bar with a secondary nav row appears
-  on wider screens. The Pomodoro timer and Trophy road moved off the tab
-  bar to make room for Skills — both stay one tap away via Dashboard quick
-  links and (for the trophy road) the clickable level badge.
+  Progress / Friends / Profile); a slim top bar with a secondary nav row
+  appears on wider screens. Train has a Today / This week switch (the
+  plan) and links to the bonus wheel; each tab stays highlighted on its
+  sub-pages. Sign-out lives in Profile → Account. The standalone focus
+  timer was retired (`/pomodoro` redirects to Train).
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first with
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`. `display: "standalone"` plus a
@@ -623,12 +715,9 @@ screen (`src/lib/sound.ts`):
 - `playRestSound` — a single low, sustained tone: rest starts, ease off.
 - `playCompleteSound` — a rising three-note chime: the whole exercise is done.
 
-The same sound set drives the standalone **Pomodoro/focus timer**
-(`src/components/PomodoroTimer.tsx`) too — its first Start press (or any
-press after Reset) gets the same 3-2-1 countdown, and each automatic
-work↔rest phase transition plays the matching go/rest sound. Pausing and
-resuming mid-phase does *not* re-trigger the countdown — that's reserved
-for genuinely fresh starts — so a quick pause to check something doesn't
+In the per-exercise timer, pausing and resuming mid-phase does *not*
+re-trigger the countdown — that's reserved for genuinely fresh starts — so
+a quick pause to check something doesn't
 force you to wait through 3 seconds again.
 
 **Bonus wheel** (`/wheel`, its own screen — linked from the Training page).
@@ -1328,7 +1417,7 @@ it's intentionally left out of this build rather than shipped half-tested —
 the current local-notification version is fully functional and needs zero
 extra setup, it's just not guaranteed-delivery.
 
-**Friends** (Pair page → top section): every account gets a permanent
+**Friends** (Friends tab → top section): every account gets a permanent
 6-character friend code (`users/{uid}.friendCode`, backfilled automatically
 on load if missing). Share it, or enter someone else's, to add each other —
 adding is mutual: it writes to both people's `users/{uid}/friends`
@@ -1521,8 +1610,8 @@ current `:free`-suffixed model ID from https://openrouter.ai/models
   `LandingProgressPreview.tsx`) is hardcoded and intentionally static —
   it's a marketing preview, not a simulation, so it never needs to match
   any real leveling math.
-- The 3-2-1 countdown length (`COUNTDOWN_FROM` — a separate constant in
-  both `ExerciseTimer.tsx` and `PomodoroTimer.tsx`, currently 3 in each) and
+- The 3-2-1 countdown length (`COUNTDOWN_FROM` in `ExerciseTimer.tsx`,
+  currently 3) and
   the sound vocabulary itself (`src/lib/sound.ts`) are both small and
   self-contained if you want to change the count, add a new event sound, or
   swap the actual tones/pitches used.

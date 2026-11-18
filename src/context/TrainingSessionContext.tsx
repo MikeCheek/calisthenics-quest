@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { ExerciseFeedback, TrainingSession } from "@/lib/types";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import {
@@ -12,6 +12,8 @@ import {
 import { updateProgress } from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { plausibleDuration } from "@/lib/sessionHistory";
+import { lockScreenPref, startKeepAlive, stopKeepAlive } from "@/lib/mediaSession";
 
 interface TrainingSessionContextValue {
   session: TrainingSession | null;
@@ -35,7 +37,8 @@ interface TrainingSessionContextValue {
 }
 
 function reportIsWorthShowing(r: AdaptationReport): boolean {
-  return r.masteryChanges.length > 0 || r.suggestions.length > 0 || r.verifications.length > 0;
+  // every logged session now has something to offer: its share card
+  return !!r.sessionRecord || r.masteryChanges.length > 0 || r.suggestions.length > 0 || r.verifications.length > 0 || r.records.length > 0;
 }
 
 const TrainingSessionContext = createContext<TrainingSessionContextValue | null>(null);
@@ -90,7 +93,13 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
     [userDoc]
   );
 
+  // guided mode measures duration from when it was started
+  const startedAtRef = useRef<number | null>(null);
+
   const startSession = useCallback((s: TrainingSession) => {
+    startedAtRef.current = Date.now();
+    // lock-screen controls need audio started from this tap (opt-in)
+    if (lockScreenPref()) startKeepAlive();
     setSession(s);
     setExpanded(true);
     setPaused(false);
@@ -104,6 +113,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   const reportCurrentExercise = useCallback((name: string) => setCurrentExerciseName(name), []);
 
   const discardSession = useCallback(() => {
+    stopKeepAlive();
     setSession(null);
     setExpanded(false);
     setPaused(false);
@@ -117,6 +127,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       const { patch, celebration: c, report: r } = await completeSession(userDoc, session, {
         feedback,
         transitionRestRatio: extras?.transitionRestRatio,
+        durationMin: plausibleDuration(startedAtRef.current),
       });
       showReport(r);
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;
@@ -131,6 +142,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       toast.error("Couldn't log your session — check your connection and try again.");
       return;
     }
+    stopKeepAlive();
     setSession(null);
     setExpanded(false);
     setPaused(false);

@@ -91,14 +91,14 @@ export default function TrainingBubble() {
             e.stopPropagation();
             if (window.confirm("End this training session without logging it?")) discardSession();
           }}
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-zinc-500"
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-muted"
           aria-label="End session"
         >
           <X size={10} />
         </button>
       </div>
       {currentExerciseName && (
-        <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 w-max max-w-[140px] text-center text-[10px] text-zinc-400 truncate pointer-events-none">
+        <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 w-max max-w-[140px] text-center text-xs text-zinc-400 truncate pointer-events-none">
           {currentExerciseName}
         </div>
       )}

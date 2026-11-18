@@ -1,15 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { UserDoc, ClaimKey } from "@/lib/types";
-import { syncClaims, claimCounts, claimLabel, checkSpecFor } from "@/lib/verification";
+import { UserDoc, ClaimKey, SkillClaim, StagedSkillKey } from "@/lib/types";
+import { syncClaims, claimCounts, claimLabel, checkSpecFor, BASELINE_KEYS } from "@/lib/verification";
 import { STAGE_LABEL } from "@/lib/stageOrder";
-import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown } from "lucide-react";
+import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown, Share2, Video } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
+import type { ShareCard } from "@/lib/shareCards";
 import { useLanguage } from "@/context/LanguageContext";
 
 // What the athlete has claimed vs. what training has actually proven.
 export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
   const [open, setOpen] = useState(false);
+  const [shareCard, setShareCard] = useState<ShareCard | null>(null);
+  const cardFor = (k: ClaimKey, c: SkillClaim): ShareCard => {
+    const spec = checkSpecFor(k, c.value);
+    const staged = !(BASELINE_KEYS as string[]).includes(k);
+    const result =
+      spec?.kind === "hold" && c.best ? `${c.best}s` : spec?.kind === "reps" ? `${c.best ?? spec.target} reps` : undefined;
+    return {
+      kind: "verified",
+      label: spec?.label ?? claimLabel(k),
+      result,
+      dateISO: c.verifiedAt ?? new Date().toISOString(),
+      videoKey: c.videoKey,
+      ...(staged ? { skill: k as StagedSkillKey, stage: String(c.value) } : {}),
+    };
+  };
   const { tx } = useLanguage();
   const claims = syncClaims(userDoc.claims, userDoc.skills);
   const { total, verified, unconfirmed } = claimCounts(claims);
@@ -20,17 +37,18 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
 
   return (
     <div className="panel p-4">
+      <ShareSheet card={shareCard} onClose={() => setShareCard(null)} />
       <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between">
         <div className="text-left">
           <div className="text-sm text-zinc-100 flex items-center gap-1.5">
             <BadgeCheck size={15} className="text-emerald-400" /> {tx("Verified skills")}
           </div>
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-muted">
             {tx("{a} of {b} proven in training", { a: verified, b: total })}
             {unconfirmed > 0 ? ` · ${tx("{n} to retest", { n: unconfirmed })}` : ""}
           </div>
         </div>
-        <ChevronDown size={16} className={`text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden mt-3">
         <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
@@ -48,10 +66,21 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
                 ) : c.status === "unconfirmed" ? (
                   <HelpCircle size={14} className="text-orange-400 shrink-0" />
                 ) : (
-                  <CircleDashed size={14} className="text-zinc-500 shrink-0" />
+                  <CircleDashed size={14} className="text-muted shrink-0" />
                 )}
                 <span className="text-zinc-200 truncate">{tx(claimLabel(k))}</span>
-                <span className="text-xs text-zinc-500 ml-auto shrink-0">
+                {c.videoKey && <Video size={12} className="text-red-300 shrink-0" aria-label={tx("On video")} />}
+                {c.status === "verified" && (
+                  <button
+                    onClick={() => setShareCard(cardFor(k, c))}
+                    aria-label={tx("Share this verification")}
+                    title={tx("Share this verification")}
+                    className="p-1 -m-1 text-muted hover:text-orange-400 shrink-0"
+                  >
+                    <Share2 size={13} />
+                  </button>
+                )}
+                <span className="text-xs text-muted ml-auto shrink-0">
                   {tx(String(what))}
                   {spec?.kind === "hold" ? ` · ${spec.target}s` : ""} ·{" "}
                   {tx(c.status === "verified" ? "verified" : c.status === "unconfirmed" ? "retest" : "claimed")}
@@ -59,7 +88,7 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
               </li>
             );
           })}
-          <li className="text-[11px] text-zinc-500 pt-1">
+          <li className="text-xs text-muted pt-1">
             {tx("Each session includes one Skill Check for something you claimed — and regular sets that hit a claimed target count too.")}
           </li>
         </ul>

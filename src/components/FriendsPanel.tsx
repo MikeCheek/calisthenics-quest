@@ -90,7 +90,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
     <div className="space-y-4">
       <div className="panel p-4">
         <div className="heading text-base text-zinc-100 mb-1">Your friend code</div>
-        <p className="text-xs text-zinc-500 mb-3">Share this so friends can add you.</p>
+        <p className="text-xs text-muted mb-3">Share this so friends can add you.</p>
         <div className="flex items-center gap-2">
           <div className="stat-mono text-2xl tracking-[0.25em] text-orange-400 flex-1 text-center py-2 border border-zinc-700 rounded-lg">
             {userDoc.friendCode || "······"}
@@ -137,7 +137,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
           <Users2 size={16} className="text-orange-400" /> Your friends
         </div>
         {friends.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             No friends added yet — share your code or add one above.
           </p>
         ) : (
@@ -166,7 +166,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
                   </button>
                   <button
                     onClick={() => handleRemove(f)}
-                    className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400"
+                    className="p-1.5 rounded-lg text-muted hover:text-red-400"
                     aria-label={`Remove ${f.displayName}`}
                   >
                     <UserMinus size={14} />

@@ -222,7 +222,7 @@ function EquipmentToggle({
       type="button"
       onClick={() => onChange(!checked)}
       className={`flex items-center gap-2 text-left text-sm px-3 py-2.5 rounded-lg border transition-colors ${
-        checked ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-500"
+        checked ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-muted"
       }`}
     >
       <span

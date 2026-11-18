@@ -7,16 +7,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
 import NotificationPrompt from "@/components/NotificationPrompt";
-import XPBar from "@/components/XPBar";
-import MissionList from "@/components/MissionList";
-import VerifiedSkillsCard from "@/components/VerifiedSkillsCard";
-import { claimCounts, syncClaims } from "@/lib/verification";
+import HeadlineCard from "@/components/HeadlineCard";
+import MissionsSummary from "@/components/MissionsSummary";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
 import { pickFocus, FOCUS_LABEL } from "@/lib/trainingGenerator";
-import { SKILL_CATEGORIES } from "@/lib/skillCategories";
-import { Dumbbell, Dices, CalendarDays, Users2, Layers, Timer, ChevronRight } from "lucide-react";
+import { Dumbbell, CalendarDays, Users2, Layers, History } from "lucide-react";
+import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 
-const ALL_50_SKILLS = SKILL_CATEGORIES.flatMap((c) => c.skills);
 
 export default function DashboardPage() {
   const { user, userDoc, loading } = useAuth();
@@ -35,8 +32,6 @@ export default function DashboardPage() {
 
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
   const todaysFocus = FOCUS_LABEL[pickFocus(new Date(), userDoc.equipment, userDoc.goalTracks)];
-  const skillsStarted = ALL_50_SKILLS.filter((s) => userDoc.skills[s] !== "none").length;
-  const { verified: verifiedCount, total: verifiedTotal } = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
 
   return (
     <>
@@ -49,6 +44,8 @@ export default function DashboardPage() {
           <p className="text-zinc-400 text-sm">{t("dashboard", "sessionsLogged", { count: userDoc.totalSessionsCompleted })}</p>
         </div>
 
+        <SaveProgressPrompt compact />
+
         <NotificationPrompt />
 
         {/* Hero: today's session, the primary call to action */}
@@ -60,52 +57,27 @@ export default function DashboardPage() {
             <Dumbbell size={22} className="text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-zinc-500 uppercase tracking-wide">{t("dashboard", "todaysFocus")}</div>
+            <div className="text-xs text-muted uppercase tracking-wide">{t("dashboard", "todaysFocus")}</div>
             <div className="heading text-xl text-zinc-100 truncate">{todaysFocus}</div>
-            <div className="text-xs text-zinc-500">{t("dashboard", "sessionFlow")}</div>
+            <div className="text-xs text-muted">{t("dashboard", "sessionFlow")}</div>
           </div>
           <div className="shrink-0 heading text-sm bg-orange-500 text-zinc-950 px-4 py-2.5 rounded-lg">
             {t("dashboard", "start")}
           </div>
         </Link>
 
-        {/* Stat row */}
-        <div className="grid grid-cols-3 gap-3">
-          {/* streak already shows in the level card below — show proof instead */}
-          <StatTile
-            href="/profile"
-            value={verifiedTotal ? `${verifiedCount}/${verifiedTotal}` : "–"}
-            suffix="✓"
-            label={tx("verified")}
-          />
-          <StatTile
-            href="/skills"
-            value={`${skillsStarted}/50`}
-            label={t("dashboard", "skillsStarted")}
-          />
-          <StatTile
-            href="/profile"
-            value={String(userDoc.totalSessionsCompleted)}
-            label={t("dashboard", "sessions")}
-          />
-        </div>
+        <HeadlineCard userDoc={userDoc} />
 
-        <XPBar xp={userDoc.xp} streak={userDoc.streak} skills={userDoc.skills} mastery={userDoc.skillMastery} />
-
-        <MissionList missions={missions} />
-
-        <VerifiedSkillsCard userDoc={userDoc} />
+        <MissionsSummary missions={missions} />
 
         {/* Quick actions grid */}
         <div>
-          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">{t("dashboard", "quickActions")}</div>
-          <div className="grid grid-cols-3 gap-3">
-            <QuickAction href="/wheel" icon={Dices} label={t("dashboard", "bonusWheel")} />
-            <QuickAction href="/plan" icon={CalendarDays} label={t("dashboard", "planAhead")} />
-            <QuickAction href="/pair" icon={Users2} label={t("dashboard", "pairUp")} />
-            <QuickAction href="/skills" icon={Layers} label={t("dashboard", "skills")} />
-            <QuickAction href="/pomodoro" icon={Timer} label={t("dashboard", "focusTimer")} />
-            <QuickAction href="/path" icon={ChevronRight} label={t("dashboard", "trophyRoad")} />
+          <div className="text-xs uppercase tracking-wide text-muted mb-2">{t("dashboard", "quickActions")}</div>
+          <div className="grid grid-cols-4 gap-2">
+            <QuickAction href="/plan" icon={CalendarDays} label={tx("This week")} />
+            <QuickAction href="/progress?tab=skills" icon={Layers} label={t("dashboard", "skills")} />
+            <QuickAction href="/progress?tab=history" icon={History} label={tx("History")} />
+            <QuickAction href="/friends" icon={Users2} label={tx("Friends")} />
           </div>
         </div>
       </main>
@@ -113,17 +85,6 @@ export default function DashboardPage() {
   );
 }
 
-function StatTile({ href, value, suffix, label }: { href: string; value: string; suffix?: string; label: string }) {
-  return (
-    <Link href={href} className="panel p-3 text-center hover:border-orange-500/50 transition-colors">
-      <div className="stat-mono text-xl text-zinc-100">
-        {value}
-        {suffix && <span className="text-base">{suffix}</span>}
-      </div>
-      <div className="text-xs text-zinc-500">{label}</div>
-    </Link>
-  );
-}
 
 function QuickAction({
   href,
@@ -131,7 +92,7 @@ function QuickAction({
   label,
 }: {
   href: string;
-  icon: typeof Dices;
+  icon: typeof Dumbbell;
   label: string;
 }) {
   return (

@@ -20,7 +20,6 @@ import {
   visibleSides,
 } from "@/lib/assessment";
 import { effectiveLevel } from "@/lib/levelPath";
-import { rankTitle } from "@/lib/xp";
 import SkillTabPicker from "@/components/SkillTabPicker";
 import ScrollPicker from "@/components/ScrollPicker";
 import { Check, Settings2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
@@ -29,7 +28,7 @@ import { useLanguage } from "@/context/LanguageContext";
 type Phase = "intro" | "area" | "summary" | "manual";
 
 const SIDE_STATE: { label: string; cls: string }[] = [
-  { label: "Not yet", cls: "border-zinc-700 text-zinc-500" },
+  { label: "Not yet", cls: "border-zinc-700 text-muted" },
   { label: "Working on it", cls: "border-sky-500/60 bg-sky-500/10 text-sky-200" },
   { label: "Can do it", cls: "border-emerald-500 bg-emerald-500/10 text-emerald-200" },
 ];
@@ -84,7 +83,7 @@ export default function SkillAssessmentStep({
   if (phase === "manual") {
     return (
       <div className="space-y-3">
-        <button onClick={() => setPhase("summary")} className="text-xs text-zinc-500 hover:text-orange-400">
+        <button onClick={() => setPhase("summary")} className="text-xs text-muted hover:text-orange-400">
           ← {tx("Back to assessment")}
         </button>
         <SkillTabPicker
@@ -104,7 +103,7 @@ export default function SkillAssessmentStep({
         <p className="text-sm text-zinc-400">
           {tx("We'll go through each movement area separately — pulling, pushing, balance, core, legs and levers — because most people are strong in some and just starting in others. For each main skill, pick the hardest version you can do and how solid it is. Then tap any side skills you have. About 2–3 minutes.")}
         </p>
-        <ul className="text-xs text-zinc-500 space-y-1">
+        <ul className="text-xs text-muted space-y-1">
           <li>• {tx("Only skills your equipment allows are asked.")}</li>
           <li>• {tx("Side skills adapt to your level in each area — no elite moves for beginners.")}</li>
           <li>• {tx("Not sure? Pick the lower option. Your training adapts as you go.")}</li>
@@ -118,7 +117,7 @@ export default function SkillAssessmentStep({
         </button>
         <button
           onClick={() => setPhase("manual")}
-          className="text-xs text-zinc-500 hover:text-orange-400 flex items-center gap-1"
+          className="text-xs text-muted hover:text-orange-400 flex items-center gap-1"
         >
           <Settings2 size={12} /> {tx("Prefer to set every skill yourself?")}
         </button>
@@ -155,11 +154,11 @@ export default function SkillAssessmentStep({
           </div>
           <div className="flex items-baseline justify-between">
             <div className="heading text-lg text-zinc-100">{tx(area.title)}</div>
-            <div className="text-xs text-zinc-500">
+            <div className="text-xs text-muted">
               {areaIdx + 1} / {areas.length}
             </div>
           </div>
-          <p className="text-xs text-zinc-500">{tx(area.blurb)}</p>
+          <p className="text-xs text-muted">{tx(area.blurb)}</p>
         </div>
 
         {baselines.length > 0 && (
@@ -194,7 +193,7 @@ export default function SkillAssessmentStep({
           return (
             <div key={l.skill} className="panel p-3.5 space-y-2">
               <div className="text-sm text-zinc-100 font-medium">
-                {tx(l.title)} <span className="text-zinc-500 font-normal">— {tx("hardest version you can do")}</span>
+                {tx(l.title)} <span className="text-muted font-normal">— {tx("hardest version you can do")}</span>
               </div>
               <div className="space-y-1.5">
                 {l.options.map((o) => {
@@ -217,7 +216,7 @@ export default function SkillAssessmentStep({
                       </span>
                       <span>
                         {tx(o.label)}
-                        {o.hint && <span className="block text-xs text-zinc-500">{tx(o.hint)}</span>}
+                        {o.hint && <span className="block text-xs text-muted">{tx(o.hint)}</span>}
                       </span>
                     </button>
                   );
@@ -225,7 +224,7 @@ export default function SkillAssessmentStep({
               </div>
               {selected && selected !== "none" && (
                 <div className="pt-1">
-                  <div className="text-xs text-zinc-500 mb-1.5">{tx("How solid is it?")}</div>
+                  <div className="text-xs text-muted mb-1.5">{tx("How solid is it?")}</div>
                   <div className="grid grid-cols-3 gap-1.5">
                     {SOLIDITY_OPTIONS.map((opt) => {
                       const on = (answers.solidity[l.skill] ?? DEFAULT_SOLIDITY) === opt.value;
@@ -254,10 +253,10 @@ export default function SkillAssessmentStep({
           <div className="space-y-2">
             <div>
               <div className="text-sm text-zinc-100 font-medium">{tx("Side skills")}</div>
-              <div className="text-[11px] text-zinc-500">{tx("tap to cycle: not yet → working → can do")}</div>
+              <div className="text-xs text-muted">{tx("tap to cycle: not yet → working → can do")}</div>
             </div>
             {ladders.length + baselines.length > 0 && (
-              <div className="text-[11px] text-zinc-500">
+              <div className="text-xs text-muted">
                 {tx("Shown for your level here:")} <span className="text-orange-400">{tx(TIER_LABEL[tier])}</span>
               </div>
             )}
@@ -275,7 +274,7 @@ export default function SkillAssessmentStep({
                     className={`px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${SIDE_STATE[lvl].cls}`}
                   >
                     {tx(s.label)}
-                    <span className="block text-[10px] opacity-70">
+                    <span className="block text-xs opacity-70">
                       {tx(SIDE_STATE[lvl].label)}
                       {assumed ? ` (${tx("assumed")})` : ""}
                     </span>
@@ -316,9 +315,8 @@ export default function SkillAssessmentStep({
   return (
     <div className="space-y-4">
       <div className="panel p-5 text-center border-orange-500/40">
-        <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">{tx("You're set up around")}</div>
+        <div className="text-xs text-muted uppercase tracking-wide mb-1">{tx("You're set up around")}</div>
         <div className="heading text-4xl text-zinc-100">{tx("Level {n}", { n: level })}</div>
-        <div className="text-sm text-orange-400 stat-mono mt-1">{rankTitle(level)}</div>
       </div>
       {phase === "summary" && (
         <ul className="panel p-3 space-y-1.5">
@@ -330,9 +328,9 @@ export default function SkillAssessmentStep({
               <li key={a.id} className="flex items-center justify-between text-sm">
                 <span className="text-zinc-300">{tx(a.title)}</span>
                 {sidesOnly ? (
-                  <span className="text-zinc-500">{tx(marked === 1 ? "{n} skill marked" : "{n} skills marked", { n: marked })}</span>
+                  <span className="text-muted">{tx(marked === 1 ? "{n} skill marked" : "{n} skills marked", { n: marked })}</span>
                 ) : (
-                  <span className={t === 2 ? "text-emerald-400" : t === 1 ? "text-sky-400" : "text-zinc-500"}>
+                  <span className={t === 2 ? "text-emerald-400" : t === 1 ? "text-sky-400" : "text-muted"}>
                     {tx(TIER_LABEL[t])}
                   </span>
                 )}
@@ -341,7 +339,7 @@ export default function SkillAssessmentStep({
           })}
         </ul>
       )}
-      <p className="text-xs text-zinc-500 text-center">
+      <p className="text-xs text-muted text-center">
         {tx("A starting point, not a lock-in. Sessions adapt as you complete, skip or mark exercises too hard, and Skill Checks verify what you claimed.")}
       </p>
       <div className="flex gap-2">

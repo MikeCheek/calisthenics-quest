@@ -1,4 +1,4 @@
-import { TimingSummary } from "./types";
+import { SetRecord, TimingSummary } from "./types";
 
 // ---------------------------------------------------------------------------
 // Learning from time and pauses.
@@ -161,4 +161,31 @@ export function learnedTransitionRest(planned: number, history: number[] | undef
 
 export function round5(n: number): number {
   return Math.max(15, Math.round(n / 5) * 5);
+}
+
+// Per-set results worth keeping in the session history: only sets that pass
+// the same trust filters as the learning (no backgrounded or interrupted
+// sets, no accidental taps, no implausible rep counts).
+export function cleanSets(log: TimerLog | undefined): SetRecord[] | undefined {
+  if (!log) return undefined;
+  const out: SetRecord[] = [];
+  for (const s of log.sets) {
+    if (!sampleTrustworthy(s)) continue;
+    if (s.kind === "hold") {
+      if (s.activeSec >= MIN_HOLD_SEC) out.push({ holdSec: Math.round(s.activeSec) });
+    } else if (s.reps !== undefined && s.activeSec >= MIN_REP_SET_SEC && s.reps <= Math.max((s.targetReps ?? 0) * 4, 100)) {
+      out.push({ reps: s.reps });
+    }
+  }
+  return out.length ? out : undefined;
+}
+
+// "12·11·10 reps" / "8s·7s·9s" — compact enough for a hint under an exercise.
+export function formatSets(sets: SetRecord[] | undefined): string | undefined {
+  if (!sets?.length) return undefined;
+  const reps = sets.filter((s) => s.reps !== undefined).map((s) => s.reps);
+  const holds = sets.filter((s) => s.holdSec !== undefined).map((s) => `${s.holdSec}s`);
+  if (reps.length) return `${reps.join("·")} reps`;
+  if (holds.length) return holds.join("·");
+  return undefined;
 }

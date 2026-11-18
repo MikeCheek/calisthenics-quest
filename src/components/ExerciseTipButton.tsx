@@ -54,9 +54,9 @@ export default function ExerciseTipButton({
       </button>
 
       {status === "unconfigured" && (
-        <p className="text-xs text-zinc-500 mt-1">AI tips aren&apos;t set up on this server.</p>
+        <p className="text-xs text-muted mt-1">AI tips aren&apos;t set up on this server.</p>
       )}
-      {status === "error" && <p className="text-xs text-zinc-500 mt-1">{error}</p>}
+      {status === "error" && <p className="text-xs text-muted mt-1">{error}</p>}
       {status === "done" && tip && (
         <div className="mt-1.5 text-xs text-zinc-400 space-y-1 bg-zinc-800/50 rounded-lg p-2 border border-zinc-700">
           {tip.tip && (

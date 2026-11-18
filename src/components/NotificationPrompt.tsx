@@ -56,7 +56,7 @@ export default function NotificationPrompt() {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm text-zinc-100 font-medium">Turn on notifications?</div>
-        <p className="text-xs text-zinc-500 mt-0.5 mb-3">
+        <p className="text-xs text-muted mt-0.5 mb-3">
           Get a daily training reminder and know right away when a friend nudges you or invites you
           to train together.
         </p>
@@ -77,7 +77,7 @@ export default function NotificationPrompt() {
           </button>
         </div>
       </div>
-      <button onClick={dismiss} className="text-zinc-600 hover:text-zinc-400 shrink-0" aria-label="Dismiss">
+      <button onClick={dismiss} className="text-muted hover:text-zinc-400 shrink-0" aria-label="Dismiss">
         <X size={14} />
       </button>
     </div>
