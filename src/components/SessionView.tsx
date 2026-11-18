@@ -49,6 +49,7 @@ export default function SessionView({
   // raw timer logs and Skill Check results, per row
   const [timerLogs, setTimerLogs] = useState<Record<string, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<string, number | boolean | undefined>>({});
+  const [checkVideos, setCheckVideos] = useState<Record<string, string | undefined>>({});
   const [openTimers, setOpenTimers] = useState<Set<string>>(new Set());
   const [individualDelta, setIndividualDelta] = useState<Record<string, number>>({});
   const [sessionLevel, setSessionLevel] = useState<SessionLevel>("default");
@@ -179,6 +180,7 @@ export default function SessionView({
           sets: isDone ? cleanSets(timerLogs[key]) : undefined,
           check: ex.check,
           checkResult,
+          checkVideoKey: ex.check ? checkVideos[key] : undefined,
         });
       });
     });
@@ -272,6 +274,8 @@ export default function SessionView({
                         lastTime={exempt ? undefined : lastTimeFor(effectiveExercise.name)}
                         checkValue={checkResults[key]}
                         onCheckChange={(v) => setCheckResults((prev) => ({ ...prev, [key]: v }))}
+                        checkVideoKey={checkVideos[key]}
+                        onCheckVideo={(v) => setCheckVideos((prev) => ({ ...prev, [key]: v }))}
                         onSkip={() => toggleSkip(key)}
                       />
                     );

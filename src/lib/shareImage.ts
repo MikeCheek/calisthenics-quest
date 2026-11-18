@@ -21,7 +21,7 @@ export function svgToPngBlob(svg: string, width: number, height: number): Promis
 export type ShareOutcome = "shared" | "downloaded" | "cancelled";
 
 export async function shareOrDownload(blob: Blob, fileName: string, title: string): Promise<ShareOutcome> {
-  const file = new File([blob], fileName, { type: "image/png" });
+  const file = new File([blob], fileName, { type: blob.type || "image/png" });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {

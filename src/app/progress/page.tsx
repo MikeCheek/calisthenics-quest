@@ -20,7 +20,8 @@ import DeclareSkillModal from "@/components/DeclareSkillModal";
 import { effectiveXpProgress } from "@/lib/levelPath";
 import { claimCounts, syncClaims } from "@/lib/verification";
 import { StagedSkillKey, TRACK_LABEL } from "@/lib/types";
-import { Sparkles, Target } from "lucide-react";
+import { Sparkles, Target, Bot } from "lucide-react";
+import CoachChat from "@/components/CoachChat";
 
 // One home for everything about how the athlete is doing — previously
 // spread over the Skills page, the Trophy road page and the profile.
@@ -40,6 +41,7 @@ export default function ProgressPage() {
   const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
   const [declareOpen, setDeclareOpen] = useState(false);
   const [fullRoad, setFullRoad] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
 
   useEffect(() => {
     const urlTab = new URLSearchParams(window.location.search).get("tab");
@@ -97,6 +99,18 @@ export default function ProgressPage() {
 
         {tab === "overview" && (
           <div className="space-y-4 animate-overlay-fade-in">
+            <button
+              onClick={() => setCoachOpen(true)}
+              className="w-full panel p-4 flex items-center gap-3 text-left border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-transparent hover:border-orange-500 transition-colors"
+            >
+              <span className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+                <Bot size={19} className="text-orange-400" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block heading text-base text-zinc-100">{tx("Ask your coach")}</span>
+                <span className="block text-xs text-zinc-400">{tx("Questions about your training, answered from your own data.")}</span>
+              </span>
+            </button>
             <div className="panel p-4">
               <div className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</div>
               <XPHistoryChart history={userDoc.xpHistory ?? []} />
@@ -181,6 +195,7 @@ export default function ProgressPage() {
         skills={userDoc.skills}
         skillMastery={userDoc.skillMastery}
       />
+      <CoachChat open={coachOpen} onClose={() => setCoachOpen(false)} />
       <DeclareSkillModal open={declareOpen} onClose={() => setDeclareOpen(false)} userDoc={userDoc} onSaved={refreshUserDoc} />
     </>
   );

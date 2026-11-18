@@ -265,6 +265,7 @@ export interface VerificationEvent {
   // for share cards, on verified / raised results
   label?: string; // e.g. "Tuck Front Lever", "Max push-ups"
   result?: string; // e.g. "8s", "12 reps", "done"
+  videoKey?: string; // the attempt was recorded (clip on this device)
 }
 
 export function applyCheckResults(
@@ -320,12 +321,16 @@ export function applyCheckResults(
         c.status = "verified";
         c.verifiedAt = nowISO;
         c.fails = 0;
+        if (fb.checkVideoKey) {
+          c.videoKey = fb.checkVideoKey;
+          c.videoAt = nowISO;
+        }
         if (n > spec.target) {
           c.value = n;
           (skills as unknown as Record<string, number>)[spec.key] = n;
-          events.push({ key: spec.key, outcome: "raised", text: `${spec.label}: claimed ${spec.target}, did ${n} — verified at ${n}`, label: spec.label, result: `${n} reps` });
+          events.push({ key: spec.key, outcome: "raised", text: `${spec.label}: claimed ${spec.target}, did ${n} — verified at ${n}`, label: spec.label, result: `${n} reps`, videoKey: fb.checkVideoKey });
         } else {
-          events.push({ key: spec.key, outcome: "verified", text: `${spec.label}: ${n} verified`, label: spec.label, result: `${n} reps` });
+          events.push({ key: spec.key, outcome: "verified", text: `${spec.label}: ${n} verified`, label: spec.label, result: `${n} reps`, videoKey: fb.checkVideoKey });
         }
       } else {
         if (!sameDayRetry) c.fails += 1;
@@ -354,8 +359,12 @@ export function applyCheckResults(
       c.status = "verified";
       c.verifiedAt = nowISO;
       c.fails = 0;
+      if (fb.checkVideoKey) {
+        c.videoKey = fb.checkVideoKey;
+        c.videoAt = nowISO;
+      }
       if (m < 4) mastery[skill] = 4;
-      events.push({ key: skill, outcome: "verified", text: `${spec.label}: ${fmt(spec, v)} — verified`, label: spec.label, result: fmt(spec, v) });
+      events.push({ key: skill, outcome: "verified", text: `${spec.label}: ${fmt(spec, v)} — verified`, label: spec.label, result: fmt(spec, v), videoKey: fb.checkVideoKey });
       // held double the target: probably ready for the next stage
       if (spec.kind === "hold" && (v as number) >= spec.target * 2 && idx >= 0 && idx < order.length - 1 && !snoozed(skill)) {
         suggestions.push({ skill, direction: "up", fromStage: order[idx], toStage: order[idx + 1] });

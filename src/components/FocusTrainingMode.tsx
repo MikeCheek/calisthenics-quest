@@ -14,7 +14,8 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone } from "lucide-react";
+import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAlive, stopKeepAlive, updateLockScreen } from "@/lib/mediaSession";
 import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
 import type { TimerEvent } from "@/components/ExerciseTimer";
 import { useLanguage } from "@/context/LanguageContext";
@@ -56,6 +57,24 @@ export default function FocusTrainingMode() {
     if (!next) stopSpeaking();
     else speak(tx("Voice coaching on"), locale, { interrupt: true });
   };
+  // ---- lock-screen controls (opt-in: keeps silent audio playing) ----
+  const [lockOn, setLockOn] = useState(false);
+  const [canLock, setCanLock] = useState(false);
+  useEffect(() => {
+    setCanLock(mediaSessionSupported());
+    setLockOn(mediaSessionSupported() && lockScreenPref());
+  }, []);
+  const toggleLock = () => {
+    const next = !lockOn;
+    setLockOn(next);
+    setLockScreenPref(next);
+    if (next) {
+      startKeepAlive(); // from this tap, so playback is allowed
+      toast.info("Lock-screen controls on. On some phones this pauses music from other apps.");
+    } else stopKeepAlive();
+  };
+  const lockHandlers = useRef({ togglePause: () => {}, next: () => {}, previous: () => {} });
+
   const onTimerEvent = (e: TimerEvent) => {
     if (e.type === "setStart" && e.sets > 1) say(e.set === e.sets ? "Last set" : "Set {a} of {b}", { a: e.set, b: e.sets }, true);
     else if (e.type === "tenLeft") say("Ten seconds", undefined, true);
@@ -82,6 +101,7 @@ export default function FocusTrainingMode() {
   const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
   const [timerLogs, setTimerLogs] = useState<Record<number, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<number, number | boolean | undefined>>({});
+  const [checkVideos, setCheckVideos] = useState<Record<number, string | undefined>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [restWasLearned, setRestWasLearned] = useState(false);
 
@@ -138,6 +158,7 @@ export default function FocusTrainingMode() {
     setTooHard([]);
     setTimerLogs({});
     setCheckResults({});
+    setCheckVideos({});
     transitionSamples.current = [];
     restMeter.current = null;
   }, [session]);
@@ -208,6 +229,24 @@ export default function FocusTrainingMode() {
     if (!session) stopSpeaking();
   }, [session]);
 
+  useEffect(() => {
+    if (!lockOn || !session || !current) return;
+    const resting = restSecondsLeft !== null;
+    updateLockScreen(
+      {
+        title: allDoneScreen ? tx("Session complete!") : resting ? `${tx("Rest")} · ${restSecondsLeft}s` : current.exercise.name,
+        subtitle: resting && next ? `${tx("Up next:")} ${next.exercise.name}` : `${index + 1}/${steps.length} · ${tx(current.setTitle)}`,
+        paused,
+      },
+      {
+        togglePause: () => lockHandlers.current.togglePause(),
+        next: () => lockHandlers.current.next(),
+        previous: () => lockHandlers.current.previous(),
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockOn, session, current, restSecondsLeft, paused, allDoneScreen, index]);
+
   if (!session || !current) return null;
 
   const isLastStep = index === steps.length - 1;
@@ -249,6 +288,12 @@ export default function FocusTrainingMode() {
     closeRestMeter(false); // going back isn't a rest decision
     if (restSecondsLeft !== null) return; // step back into the exercise we were resting after
     setIndex((i) => i - 1);
+  };
+
+  lockHandlers.current = {
+    togglePause,
+    next: () => (restSecondsLeft !== null ? skipRest() : goNext()),
+    previous: () => goBack(),
   };
 
   const goNext = () => {
@@ -304,6 +349,7 @@ export default function FocusTrainingMode() {
         sets: isDone ? cleanSets(timerLogs[i]) : undefined,
         check: ex.check,
         checkResult,
+        checkVideoKey: ex.check ? checkVideos[i] : undefined,
       });
     });
     return out;
@@ -348,6 +394,17 @@ export default function FocusTrainingMode() {
           )}
         </div>
         <div className="flex items-center gap-1">
+        {canLock && (
+          <button
+            onClick={toggleLock}
+            className={`p-1.5 rounded-lg ${lockOn ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
+            aria-label={lockOn ? tx("Turn lock-screen controls off") : tx("Turn lock-screen controls on")}
+            aria-pressed={lockOn}
+            title={tx("Lock-screen controls")}
+          >
+            <Smartphone size={18} />
+          </button>
+        )}
         {canSpeak && (
           <button
             onClick={toggleVoice}
@@ -489,6 +546,8 @@ export default function FocusTrainingMode() {
                   value={checkResults[index]}
                   timerBest={bestHoldFromLog(timerLogs[index])}
                   onChange={(v) => setCheckResults((prev) => ({ ...prev, [index]: v }))}
+                  videoKey={checkVideos[index]}
+                  onVideo={(v) => setCheckVideos((prev) => ({ ...prev, [index]: v }))}
                 />
               )}
             </div>

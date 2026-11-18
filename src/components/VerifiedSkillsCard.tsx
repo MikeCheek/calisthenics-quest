@@ -4,7 +4,7 @@ import { useState } from "react";
 import { UserDoc, ClaimKey, SkillClaim, StagedSkillKey } from "@/lib/types";
 import { syncClaims, claimCounts, claimLabel, checkSpecFor, BASELINE_KEYS } from "@/lib/verification";
 import { STAGE_LABEL } from "@/lib/stageOrder";
-import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown, Share2 } from "lucide-react";
+import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown, Share2, Video } from "lucide-react";
 import ShareSheet from "@/components/ShareSheet";
 import type { ShareCard } from "@/lib/shareCards";
 import { useLanguage } from "@/context/LanguageContext";
@@ -23,6 +23,7 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
       label: spec?.label ?? claimLabel(k),
       result,
       dateISO: c.verifiedAt ?? new Date().toISOString(),
+      videoKey: c.videoKey,
       ...(staged ? { skill: k as StagedSkillKey, stage: String(c.value) } : {}),
     };
   };
@@ -68,6 +69,7 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
                   <CircleDashed size={14} className="text-muted shrink-0" />
                 )}
                 <span className="text-zinc-200 truncate">{tx(claimLabel(k))}</span>
+                {c.videoKey && <Video size={12} className="text-red-300 shrink-0" aria-label={tx("On video")} />}
                 {c.status === "verified" && (
                   <button
                     onClick={() => setShareCard(cardFor(k, c))}

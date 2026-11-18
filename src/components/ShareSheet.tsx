@@ -9,7 +9,8 @@ import { buildCardSvg, cardFileName, CardFormat, CARD_SIZE, ShareCard } from "@/
 import { svgToPngBlob, shareOrDownload, downloadBlob } from "@/lib/shareImage";
 import { effectiveLevel } from "@/lib/levelPath";
 import { claimCounts, syncClaims } from "@/lib/verification";
-import { Share2, Download, Loader2 } from "lucide-react";
+import { Share2, Download, Loader2, Video } from "lucide-react";
+import { loadClip } from "@/lib/videoProof";
 
 // Preview + share for a card. The athlete's name is opt-in; the card
 // otherwise carries only training numbers.
@@ -21,6 +22,12 @@ export default function ShareSheet({ card, onClose }: { card: ShareCard | null; 
   const [showName, setShowName] = useState(false);
   const [png, setPng] = useState<{ blob: Blob; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [clip, setClip] = useState<Blob | null>(null);
+  const videoKey = card?.kind === "verified" ? card.videoKey : undefined;
+  useEffect(() => {
+    setClip(null);
+    if (videoKey) loadClip(videoKey).then((b) => setClip(b ?? null));
+  }, [videoKey]);
 
   const svg = useMemo(() => {
     if (!card || !userDoc) return null;
@@ -105,6 +112,14 @@ export default function ShareSheet({ card, onClose }: { card: ShareCard | null; 
           </label>
         </div>
 
+        {clip && videoKey && (
+          <button
+            onClick={() => shareOrDownload(clip, `barquests-${videoKey}`, "BarQuests")}
+            className="w-full py-2.5 rounded-xl border border-red-400/50 text-red-200 hover:bg-red-500/10 text-sm flex items-center justify-center gap-2"
+          >
+            <Video size={15} /> {tx("Share the video too")}
+          </button>
+        )}
         <div className="flex gap-2">
           <button
             onClick={share}

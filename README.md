@@ -261,6 +261,30 @@ real (non-dev) environment, you can install it as an app from the browser's
   goals), Road (the trophy road) and History (calendar, month totals, every
   finished session with its sets and outcomes, personal bests). `/skills`
   and `/path` redirect here.
+- **AI coach chat** (Progress → Overview → "Ask your coach") — questions
+  about your own training, answered by the OpenRouter model configured for
+  the other AI features (`/api/coach-chat`). The app sends training data
+  only (skills, what's verified or struggling, equipment, recent sessions —
+  `src/lib/coachContext.ts`), never name, email or body stats; the route
+  caps message sizes and doesn't log message contents. The conversation is
+  kept in the browser tab only.
+- **Friends leaderboard & weekly challenge** (Friends tab) — this week's
+  sessions, minutes, skills proven and XP among you and your friends, plus a
+  challenge that rotates weekly. Each athlete's weekly totals are mirrored
+  to their public profile when they log a session; totals are self-reported
+  by each client, so this is for friendly competition, not anti-cheat.
+- **Video proof** — a Skill Check attempt can be recorded with the camera;
+  clips are stored on the device only (IndexedDB, never uploaded), a passed
+  check recorded on video is marked "on video", and the clip can be shared
+  alongside the card. Resets and account deletion clear the clips.
+- **Lock-screen controls** (opt-in, guided mode) — the current exercise,
+  rest and next/previous/pause on the lock screen via the Media Session API.
+  Phones only show these while audio plays, so a silent loop runs while
+  it's on — which can pause music from other apps on some phones.
+- **Workout export** — any History session with a duration can be exported
+  as a `.tcx` file for platforms that import workout files (e.g. Strava,
+  Garmin Connect). Writing to Apple Health or Android Health Connect isn't
+  possible from a web app; that would need a native wrapper.
 - **Share cards** — after every logged session the Coach update offers
   "Share your session"; new personal records and verified skills each have
   a share button too, as do sessions in History and verified rows in

@@ -96,6 +96,7 @@ export default function AdaptationReportModal() {
                           kind: "verified",
                           label: v.label!,
                           result: v.result,
+                          videoKey: v.videoKey,
                           dateISO: new Date().toISOString(),
                           ...(isStaged(v.key) ? { skill: v.key, stage: String(userDoc?.skills?.[v.key] ?? "") } : {}),
                         })

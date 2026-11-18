@@ -12,6 +12,7 @@ import {
 import { deleteUser, reauthenticateWithPopup, signOut, User } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase";
 import { syncPublicProfile } from "./store";
+import { clearClips } from "./videoProof";
 import {
   DEFAULT_BODY,
   DEFAULT_EQUIPMENT,
@@ -38,11 +39,13 @@ export async function resetTrainingMemory(uid: string): Promise<void> {
 // Every claim goes back to "claimed" and gets re-checked in future sessions.
 export async function resetVerifications(uid: string): Promise<void> {
   await updateDoc(doc(db, "users", uid), { claims: deleteField() });
+  await clearClips(); // the clips belonged to those verifications
 }
 
 // Wipe skill levels and send the athlete back through the assessment.
 // XP, streak and history are kept.
 export async function resetSkills(userDoc: UserDoc): Promise<void> {
+  await clearClips();
   await updateDoc(doc(db, "users", userDoc.uid), {
     skills: DEFAULT_SKILLS,
     skillMastery: {},
@@ -72,6 +75,7 @@ async function deleteSessionHistory(uid: string): Promise<void> {
 }
 
 export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
+  await clearClips();
   await updateDoc(doc(db, "users", userDoc.uid), {
     body: DEFAULT_BODY,
     skills: DEFAULT_SKILLS,
@@ -178,6 +182,7 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
     // storage unavailable — nothing to clean
   }
 
+  await clearClips();
   onStep?.("account");
   try {
     await deleteUser(user);

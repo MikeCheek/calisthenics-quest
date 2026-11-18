@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import FriendsPanel from "@/components/FriendsPanel";
+import FriendsLeaderboard from "@/components/FriendsLeaderboard";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { createPairing, joinPairing, sendPairingInvite, setPairingBarCount, PairingDoc } from "@/lib/store";
 import { generatePairedSession, applyAlternatingBarTurns } from "@/lib/trainingGenerator";
@@ -203,6 +204,8 @@ function PairContent() {
           <Users size={26} className="text-orange-400" /> {tx("Friends")}
         </h1>
         <p className="text-sm text-zinc-400 -mt-2">{tx("Your training crew — nudge them, or train together with a shared session.")}</p>
+
+        {!code && mode === "choose" && <FriendsLeaderboard />}
 
         {!code && mode === "choose" && <FriendsPanel onTrainTogether={handleTrainTogether} />}
 

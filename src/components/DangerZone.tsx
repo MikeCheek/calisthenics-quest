@@ -49,7 +49,7 @@ const ACTIONS: Action[] = [
     summary: "Re-prove your skills from scratch with new Skill Checks.",
     icon: BadgeCheck,
     severity: "mild",
-    removes: ["Every verified / retest status"],
+    removes: ["Every verified / retest status", "Recorded Skill Check clips on this device"],
     keeps: ["Your skill levels", "XP, streak and history"],
     cta: "Reset verifications",
   },

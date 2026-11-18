@@ -18,7 +18,10 @@ import {
   Loader2,
   CalendarDays,
   Share2,
+  FileDown,
 } from "lucide-react";
+import { buildTcx, canExportTcx, tcxFileName } from "@/lib/workoutExport";
+import { downloadBlob } from "@/lib/shareImage";
 import ShareSheet from "@/components/ShareSheet";
 
 // Monday-first calendar for the visible month, plus that month's sessions
@@ -282,6 +285,14 @@ function SessionCard({
             >
               <Share2 size={13} /> {tx("Share")}
             </button>
+            {canExportTcx(session) && (
+              <button
+                onClick={() => downloadBlob(new Blob([buildTcx(session)], { type: "application/vnd.garmin.tcx+xml" }), tcxFileName(session))}
+                className="w-full mt-1.5 py-2 rounded-xl border border-zinc-800 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 flex items-center justify-center gap-1.5"
+              >
+                <FileDown size={13} /> {tx("Export workout (.tcx) for Strava, Garmin…")}
+              </button>
+            )}
           </li>
         </ul>
       )}

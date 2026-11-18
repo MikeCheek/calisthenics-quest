@@ -2,6 +2,7 @@ import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { applyCheckResults, syncClaims } from "./verification";
 import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
+import { addToWeek } from "./leaderboard";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile, saveSessionRecord } from "./store";
 import { effectiveLevel } from "./levelPath";
@@ -142,7 +143,15 @@ export async function completeSession(
   };
   const newMastery = verified.mastery;
 
+  // this week's totals, for the friends leaderboard
+  const week = addToWeek(userDoc.week, {
+    minutes: opts.durationMin,
+    xp: totalXp - userDoc.xp,
+    verified: verified.events.filter((e) => e.outcome === "verified" || e.outcome === "raised").length,
+  });
+
   const patch: Partial<UserDoc> = {
+    week,
     exerciseStats,
     skillProgress: learned.progress,
     skillMastery: newMastery,
@@ -185,6 +194,7 @@ export async function completeSession(
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
       skills: newSkills,
       skillMastery: newMastery,
+      week,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });

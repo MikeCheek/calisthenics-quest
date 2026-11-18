@@ -13,6 +13,7 @@ import { updateProgress } from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { plausibleDuration } from "@/lib/sessionHistory";
+import { lockScreenPref, startKeepAlive, stopKeepAlive } from "@/lib/mediaSession";
 
 interface TrainingSessionContextValue {
   session: TrainingSession | null;
@@ -97,6 +98,8 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
 
   const startSession = useCallback((s: TrainingSession) => {
     startedAtRef.current = Date.now();
+    // lock-screen controls need audio started from this tap (opt-in)
+    if (lockScreenPref()) startKeepAlive();
     setSession(s);
     setExpanded(true);
     setPaused(false);
@@ -110,6 +113,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   const reportCurrentExercise = useCallback((name: string) => setCurrentExerciseName(name), []);
 
   const discardSession = useCallback(() => {
+    stopKeepAlive();
     setSession(null);
     setExpanded(false);
     setPaused(false);
@@ -138,6 +142,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       toast.error("Couldn't log your session — check your connection and try again.");
       return;
     }
+    stopKeepAlive();
     setSession(null);
     setExpanded(false);
     setPaused(false);

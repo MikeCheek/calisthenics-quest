@@ -203,6 +203,7 @@ export async function fetchPublicProfile(uid: string): Promise<PublicProfile | n
     totalSessionsCompleted: data.totalSessionsCompleted ?? 0,
     skills: data.skills ?? DEFAULT_SKILLS,
     skillMastery: data.skillMastery ?? {},
+    week: data.week,
   };
 }
 

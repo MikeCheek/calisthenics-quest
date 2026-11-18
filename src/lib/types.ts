@@ -235,6 +235,8 @@ export interface SkillClaim {
   lastAttemptAt?: string;
   fails: number; // failed attempts on separate days since the claim
   best?: number; // best measured result so far
+  videoKey?: string; // on-device clip of the attempt that verified it
+  videoAt?: string;
 }
 
 // Cleaned timing from one exercise's timer, after filtering out
@@ -263,6 +265,7 @@ export interface ExerciseFeedback {
   timing?: TimingSummary;
   check?: CheckSpec;
   checkResult?: number | boolean;
+  checkVideoKey?: string; // an on-device clip of the Skill Check attempt
   detail?: string; // what was actually prescribed on screen, after adjustments
   sets?: SetRecord[]; // clean per-set results from the timer, when used
 }
@@ -299,6 +302,16 @@ export interface SessionRecord {
   paired?: boolean;
   exercises: ExerciseRecord[];
   records?: PersonalRecord[];
+}
+
+// This week's running totals, mirrored to the public profile for the
+// friends leaderboard.
+export interface WeekStats {
+  key: string; // ISO week, e.g. "2026-W47"
+  sessions: number;
+  minutes: number;
+  verified: number;
+  xp: number;
 }
 
 export interface ExerciseBest {
@@ -433,6 +446,7 @@ export interface UserDoc {
   transitionRest?: number[];
   // best clean set per exercise (keyed like exerciseStats), for records
   records?: Record<string, ExerciseBest>;
+  week?: WeekStats;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends
@@ -449,6 +463,7 @@ export interface PublicProfile {
   totalSessionsCompleted: number;
   skills: SkillProfile;
   skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>;
+  week?: WeekStats;
 }
 
 export interface Friend {

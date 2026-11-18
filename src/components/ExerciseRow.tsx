@@ -32,6 +32,8 @@ export default function ExerciseRow({
   checkValue,
   onCheckChange,
   lastTime,
+  checkVideoKey,
+  onCheckVideo,
 }: {
   exercise: Exercise;
   displayedDetail: string;
@@ -52,6 +54,8 @@ export default function ExerciseRow({
   checkValue?: number | boolean;
   onCheckChange?: (v: number | boolean | undefined) => void;
   lastTime?: string; // "12·11·10 reps · 12 Nov"
+  checkVideoKey?: string;
+  onCheckVideo?: (key: string | undefined) => void;
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -248,6 +252,8 @@ export default function ExerciseRow({
                 value={checkValue}
                 timerBest={bestHoldFromLog(timerLog)}
                 onChange={onCheckChange}
+                videoKey={checkVideoKey}
+                onVideo={onCheckVideo}
               />
             )}
           </div>

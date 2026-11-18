@@ -16,7 +16,7 @@ export type CardFormat = "story" | "square";
 
 export type ShareCard =
   | { kind: "session"; record: SessionRecord }
-  | { kind: "verified"; label: string; result?: string; dateISO: string; skill?: StagedSkillKey; stage?: string }
+  | { kind: "verified"; label: string; result?: string; dateISO: string; skill?: StagedSkillKey; stage?: string; videoKey?: string }
   | { kind: "record"; record: PersonalRecord; dateISO: string };
 
 export interface CardContext {
@@ -149,6 +149,13 @@ export function buildCardSvg(card: ShareCard, ctx: CardContext): string {
       const r = /^\d+ reps$/.test(card.result) ? tx("{n} reps", { n: card.result.split(" ")[0] }) : tx(card.result);
       parts.push(text(pad, y + 40, r, story ? 150 : 120, EMERALD, { weight: 800 }));
       y += story ? 120 : 90;
+    }
+    if (card.videoKey) {
+      const label = tx("On video");
+      parts.push(`<rect x="${pad}" y="${y + 10}" width="${label.length * 22 + 90}" height="58" rx="29" fill="#ef4444" fill-opacity="0.18"/>`);
+      parts.push(`<circle cx="${pad + 32}" cy="${y + 39}" r="10" fill="#ef4444"/>`);
+      parts.push(text(pad + 56, y + 50, label.toUpperCase(), 28, "#fca5a5", { weight: 700, spacing: 2 }));
+      y += 90;
     }
     // badge
     const bx = W - pad - 120, by = story ? 640 : 520;
