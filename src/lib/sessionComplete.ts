@@ -164,15 +164,14 @@ export async function completeSession(
 
   // Keep the session itself for the history view. Best-effort: progress is
   // already saved, so a failed history write shouldn't fail the whole log.
-  await saveSessionRecord(
-    userDoc.uid,
-    buildSessionRecord(session, feedback, {
-      xp: totalXp - userDoc.xp,
-      durationMin: opts.durationMin,
-      paired: opts.isPaired,
-      records: newRecords,
-    })
-  ).catch(() => {});
+  const sessionRecord = buildSessionRecord(session, feedback, {
+    xp: totalXp - userDoc.xp,
+    durationMin: opts.durationMin,
+    paired: opts.isPaired,
+    records: newRecords,
+  });
+  await saveSessionRecord(userDoc.uid, sessionRecord).catch(() => {});
+  report.sessionRecord = sessionRecord; // for the share card
 
   if (userDoc.friendCode) {
     syncPublicProfile({

@@ -17,7 +17,9 @@ import {
   ChevronDown,
   Loader2,
   CalendarDays,
+  Share2,
 } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
 
 // Monday-first calendar for the visible month, plus that month's sessions
 // and the athlete's personal bests.
@@ -221,9 +223,11 @@ function SessionCard({
   const skipped = main.filter((e) => e.outcome === "skipped").length;
   const hard = main.filter((e) => e.outcome === "tooHard").length;
   const when = new Date(session.finishedAt);
+  const [sharing, setSharing] = useState(false);
 
   return (
     <div className="panel overflow-hidden">
+      <ShareSheet card={sharing ? { kind: "session", record: session } : null} onClose={() => setSharing(false)} />
       <button onClick={onToggle} className="w-full p-3.5 text-left flex items-center gap-3" aria-expanded={open}>
         <div className="w-11 shrink-0 text-center">
           <div className="text-xs uppercase text-muted">{when.toLocaleDateString(fmtLocale, { weekday: "short" })}</div>
@@ -271,6 +275,14 @@ function SessionCard({
           {session.exercises.map((e, i) => (
             <ExerciseLine key={i} e={e} />
           ))}
+          <li className="pt-1.5">
+            <button
+              onClick={() => setSharing(true)}
+              className="w-full py-2 rounded-xl border border-zinc-700 text-xs text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center justify-center gap-1.5"
+            >
+              <Share2 size={13} /> {tx("Share")}
+            </button>
+          </li>
         </ul>
       )}
     </div>

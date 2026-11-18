@@ -261,6 +261,14 @@ real (non-dev) environment, you can install it as an app from the browser's
   goals), Road (the trophy road) and History (calendar, month totals, every
   finished session with its sets and outcomes, personal bests). `/skills`
   and `/path` redirect here.
+- **Share cards** — after every logged session the Coach update offers
+  "Share your session"; new personal records and verified skills each have
+  a share button too, as do sessions in History and verified rows in
+  Progress. Cards come as a 1080×1920 story or 1080×1080 square, built as
+  SVG (`src/lib/shareCards.ts`, with the stick figure in the exercise's key
+  position) and rasterized to PNG in the browser; phones get the system
+  share sheet, desktops a download. The athlete's name is opt-in — by
+  default a card carries only training numbers.
 - **One headline** — the dashboard leads with your level (and how far to
   the next) with verified skills beside it as the proof; the header shows
   the same two numbers. Rank titles live in Progress → Road as your current

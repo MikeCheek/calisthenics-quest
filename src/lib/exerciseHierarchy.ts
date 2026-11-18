@@ -235,3 +235,13 @@ export function exerciseStage(name: string): { skill: StagedSkillKey; stage: str
   }
   return stageIndexMap.get(name) ?? null;
 }
+
+// Exercise names authored under a skill's stage (any equipment) — e.g. to
+// illustrate a verified stage with one of its own exercises.
+export function exercisesForSkillStage(skill: StagedSkillKey, stage: string): string[] {
+  const names = new Set<string>();
+  for (const preset of [ALL_EQUIPMENT, NO_EQUIPMENT]) {
+    for (const ex of tableForSkill(skill, preset)[stage] ?? []) names.add(ex.name);
+  }
+  return [...names];
+}

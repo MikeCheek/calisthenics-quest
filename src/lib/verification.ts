@@ -262,6 +262,9 @@ export interface VerificationEvent {
   key: ClaimKey;
   outcome: "verified" | "raised" | "unconfirmed" | "lowered" | "ignored";
   text: string;
+  // for share cards, on verified / raised results
+  label?: string; // e.g. "Tuck Front Lever", "Max push-ups"
+  result?: string; // e.g. "8s", "12 reps", "done"
 }
 
 export function applyCheckResults(
@@ -320,9 +323,9 @@ export function applyCheckResults(
         if (n > spec.target) {
           c.value = n;
           (skills as unknown as Record<string, number>)[spec.key] = n;
-          events.push({ key: spec.key, outcome: "raised", text: `${spec.label}: claimed ${spec.target}, did ${n} — verified at ${n}` });
+          events.push({ key: spec.key, outcome: "raised", text: `${spec.label}: claimed ${spec.target}, did ${n} — verified at ${n}`, label: spec.label, result: `${n} reps` });
         } else {
-          events.push({ key: spec.key, outcome: "verified", text: `${spec.label}: ${n} verified` });
+          events.push({ key: spec.key, outcome: "verified", text: `${spec.label}: ${n} verified`, label: spec.label, result: `${n} reps` });
         }
       } else {
         if (!sameDayRetry) c.fails += 1;
@@ -352,7 +355,7 @@ export function applyCheckResults(
       c.verifiedAt = nowISO;
       c.fails = 0;
       if (m < 4) mastery[skill] = 4;
-      events.push({ key: skill, outcome: "verified", text: `${spec.label}: ${fmt(spec, v)} — verified` });
+      events.push({ key: skill, outcome: "verified", text: `${spec.label}: ${fmt(spec, v)} — verified`, label: spec.label, result: fmt(spec, v) });
       // held double the target: probably ready for the next stage
       if (spec.kind === "hold" && (v as number) >= spec.target * 2 && idx >= 0 && idx < order.length - 1 && !snoozed(skill)) {
         suggestions.push({ skill, direction: "up", fromStage: order[idx], toStage: order[idx + 1] });
@@ -409,9 +412,10 @@ function passiveEvidence(
     if (c.status === "verified" && reps <= claimed) return null;
     claims[baseKey] = { ...c, value: Math.max(claimed, reps), status: "verified", verifiedAt: nowISO, fails: 0, best: Math.max(c.best ?? 0, reps) };
     (skills as unknown as Record<string, number>)[baseKey] = Math.max(claimed, reps);
+    const card = { label: claimLabel(baseKey), result: `${reps} reps` };
     return reps > claimed
-      ? { key: baseKey, outcome: "raised", text: `${claimLabel(baseKey)}: ${reps} in training — raised from ${claimed}` }
-      : { key: baseKey, outcome: "verified", text: `${claimLabel(baseKey)}: ${reps} in training — verified` };
+      ? { key: baseKey, outcome: "raised", text: `${claimLabel(baseKey)}: ${reps} in training — raised from ${claimed}`, ...card }
+      : { key: baseKey, outcome: "verified", text: `${claimLabel(baseKey)}: ${reps} in training — verified`, ...card };
   }
 
   const hold = fb.timing.bestHold;
@@ -424,7 +428,7 @@ function passiveEvidence(
   if (!spec || spec.kind !== "hold" || hold < spec.target * 0.95 || hold > Math.max(spec.target * 8, 60)) return null;
   claims[loc.skill] = { ...c, status: "verified", verifiedAt: nowISO, fails: 0, best: Math.max(c.best ?? 0, hold) };
   if ((mastery[loc.skill] ?? DEFAULT_MASTERY) < 4) mastery[loc.skill] = 4;
-  return { key: loc.skill, outcome: "verified", text: `${spec.label}: held ${hold}s in training — verified` };
+  return { key: loc.skill, outcome: "verified", text: `${spec.label}: held ${hold}s in training — verified`, label: spec.label, result: `${hold}s` };
 }
 
 export function claimCounts(claims: Partial<Record<ClaimKey, SkillClaim>>) {

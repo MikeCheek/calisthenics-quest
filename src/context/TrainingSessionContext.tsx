@@ -36,7 +36,8 @@ interface TrainingSessionContextValue {
 }
 
 function reportIsWorthShowing(r: AdaptationReport): boolean {
-  return r.masteryChanges.length > 0 || r.suggestions.length > 0 || r.verifications.length > 0 || r.records.length > 0;
+  // every logged session now has something to offer: its share card
+  return !!r.sessionRecord || r.masteryChanges.length > 0 || r.suggestions.length > 0 || r.verifications.length > 0 || r.records.length > 0;
 }
 
 const TrainingSessionContext = createContext<TrainingSessionContextValue | null>(null);

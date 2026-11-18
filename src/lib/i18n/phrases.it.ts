@@ -609,6 +609,26 @@ const IT_PHRASES: [string, string][] = [
   ["Rest. Up next: {x}", "Recupero. A seguire: {x}"],
   ["Swapped in {x}", "Sostituito con {x}"],
 
+  // ---- share cards ----
+  ["Verified in training", "Verificato in allenamento"],
+  ["New personal best", "Nuovo record personale"],
+  ["Session complete", "Sessione completata"],
+  ["minutes", "minuti"],
+  ["exercises", "esercizi"],
+  ["{a}/{b} verified", "{a}/{b} verificate"],
+  ["Share", "Condividi"],
+  ["Share your session", "Condividi la sessione"],
+  ["Share card", "Card da condividere"],
+  ["Story", "Storia"],
+  ["Square", "Quadrato"],
+  ["Show my name", "Mostra il mio nome"],
+  ["Download", "Scarica"],
+  ["Preparing your card…", "Preparazione della card…"],
+  ["Couldn't create the image — try again.", "Impossibile creare l'immagine — riprova."],
+  ["Saved — add it to your story from your photos.", "Salvata — aggiungila alla tua storia dalle foto."],
+  ["Share this verification", "Condividi questa verifica"],
+  ["Share this record", "Condividi questo record"],
+
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

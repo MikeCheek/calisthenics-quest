@@ -5,7 +5,14 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { describeSuggestion } from "@/lib/adaptation";
 import { MASTERY_LABEL, SKILL_FIELD_LABEL } from "@/lib/types";
 import Modal from "@/components/Modal";
-import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban, Trophy } from "lucide-react";
+import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban, Trophy, Share2 } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
+import type { ShareCard } from "@/lib/shareCards";
+import { useAuth } from "@/context/AuthContext";
+import { BASELINE_KEYS } from "@/lib/verification";
+import type { ClaimKey, StagedSkillKey } from "@/lib/types";
+
+const isStaged = (k: ClaimKey): k is StagedSkillKey => !(BASELINE_KEYS as string[]).includes(k);
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 
@@ -15,8 +22,12 @@ import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 export default function AdaptationReportModal() {
   const { report, clearReport, resolveSuggestion } = useTrainingSession();
   const [busy, setBusy] = useState<string | null>(null);
+  const [shareCard, setShareCard] = useState<ShareCard | null>(null);
+  const { userDoc } = useAuth();
   const { tx } = useLanguage();
   if (!report) return null;
+  const hasCoachNews =
+    report.masteryChanges.length + report.suggestions.length + report.verifications.length + report.records.length > 0;
 
   const resolve = async (i: number, accept: boolean) => {
     const s = report.suggestions[i];
@@ -26,12 +37,23 @@ export default function AdaptationReportModal() {
   };
 
   return (
-    <Modal open onClose={clearReport} title={tx("Coach update")}>
+    <>
+    <Modal open onClose={clearReport} title={tx(hasCoachNews ? "Coach update" : "Session logged")}>
       <div className="space-y-4">
-        <p className="text-xs text-zinc-400 flex items-start gap-2">
-          <Brain size={14} className="text-orange-400 shrink-0 mt-0.5" />
-          {tx("Based on what you completed, skipped and marked too hard, your plan has adjusted. Next sessions will reflect this automatically.")}
-        </p>
+        {report.sessionRecord && (
+          <button
+            onClick={() => setShareCard({ kind: "session", record: report.sessionRecord! })}
+            className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium flex items-center justify-center gap-2"
+          >
+            <Share2 size={16} /> {tx("Share your session")}
+          </button>
+        )}
+        {hasCoachNews && (
+          <p className="text-xs text-zinc-400 flex items-start gap-2">
+            <Brain size={14} className="text-orange-400 shrink-0 mt-0.5" />
+            {tx("Based on what you completed, skipped and marked too hard, your plan has adjusted. Next sessions will reflect this automatically.")}
+          </p>
+        )}
 
         {report.records.length > 0 && (
           <div className="rounded-xl border border-amber-400/40 bg-amber-400/5 p-3">
@@ -42,9 +64,10 @@ export default function AdaptationReportModal() {
               {report.records.map((r) => (
                 <li key={r.name + r.kind} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-zinc-100 truncate">{r.name}</span>
-                  <span className="stat-mono text-amber-300 shrink-0">
+                  <span className="stat-mono text-amber-300 shrink-0 ml-auto">
                     {r.kind === "hold" ? `${r.previous}s → ${r.value}s` : tx("{a} → {b} reps", { a: r.previous, b: r.value })}
                   </span>
+                  <ShareIcon label={tx("Share this record")} onClick={() => setShareCard({ kind: "record", record: r, dateISO: new Date().toISOString() })} />
                 </li>
               ))}
             </ul>
@@ -64,7 +87,21 @@ export default function AdaptationReportModal() {
                   ) : (
                     <HelpCircle size={15} className="text-orange-400 shrink-0 mt-0.5" />
                   )}
-                  {tx(v.text)}
+                  <span className="flex-1">{tx(v.text)}</span>
+                  {(v.outcome === "verified" || v.outcome === "raised") && v.label && (
+                    <ShareIcon
+                      label={tx("Share this verification")}
+                      onClick={() =>
+                        setShareCard({
+                          kind: "verified",
+                          label: v.label!,
+                          result: v.result,
+                          dateISO: new Date().toISOString(),
+                          ...(isStaged(v.key) ? { skill: v.key, stage: String(userDoc?.skills?.[v.key] ?? "") } : {}),
+                        })
+                      }
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -130,5 +167,16 @@ export default function AdaptationReportModal() {
         </button>
       </div>
     </Modal>
+    <ShareSheet card={shareCard} onClose={() => setShareCard(null)} />
+    </>
   );
 }
+
+function ShareIcon({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label} className="p-1 -m-1 text-muted hover:text-orange-400 shrink-0">
+      <Share2 size={14} />
+    </button>
+  );
+}
+

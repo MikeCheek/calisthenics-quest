@@ -1,15 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { UserDoc, ClaimKey } from "@/lib/types";
-import { syncClaims, claimCounts, claimLabel, checkSpecFor } from "@/lib/verification";
+import { UserDoc, ClaimKey, SkillClaim, StagedSkillKey } from "@/lib/types";
+import { syncClaims, claimCounts, claimLabel, checkSpecFor, BASELINE_KEYS } from "@/lib/verification";
 import { STAGE_LABEL } from "@/lib/stageOrder";
-import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown } from "lucide-react";
+import { BadgeCheck, HelpCircle, CircleDashed, ChevronDown, Share2 } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
+import type { ShareCard } from "@/lib/shareCards";
 import { useLanguage } from "@/context/LanguageContext";
 
 // What the athlete has claimed vs. what training has actually proven.
 export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
   const [open, setOpen] = useState(false);
+  const [shareCard, setShareCard] = useState<ShareCard | null>(null);
+  const cardFor = (k: ClaimKey, c: SkillClaim): ShareCard => {
+    const spec = checkSpecFor(k, c.value);
+    const staged = !(BASELINE_KEYS as string[]).includes(k);
+    const result =
+      spec?.kind === "hold" && c.best ? `${c.best}s` : spec?.kind === "reps" ? `${c.best ?? spec.target} reps` : undefined;
+    return {
+      kind: "verified",
+      label: spec?.label ?? claimLabel(k),
+      result,
+      dateISO: c.verifiedAt ?? new Date().toISOString(),
+      ...(staged ? { skill: k as StagedSkillKey, stage: String(c.value) } : {}),
+    };
+  };
   const { tx } = useLanguage();
   const claims = syncClaims(userDoc.claims, userDoc.skills);
   const { total, verified, unconfirmed } = claimCounts(claims);
@@ -20,6 +36,7 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
 
   return (
     <div className="panel p-4">
+      <ShareSheet card={shareCard} onClose={() => setShareCard(null)} />
       <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between">
         <div className="text-left">
           <div className="text-sm text-zinc-100 flex items-center gap-1.5">
@@ -51,6 +68,16 @@ export default function VerifiedSkillsCard({ userDoc }: { userDoc: UserDoc }) {
                   <CircleDashed size={14} className="text-muted shrink-0" />
                 )}
                 <span className="text-zinc-200 truncate">{tx(claimLabel(k))}</span>
+                {c.status === "verified" && (
+                  <button
+                    onClick={() => setShareCard(cardFor(k, c))}
+                    aria-label={tx("Share this verification")}
+                    title={tx("Share this verification")}
+                    className="p-1 -m-1 text-muted hover:text-orange-400 shrink-0"
+                  >
+                    <Share2 size={13} />
+                  </button>
+                )}
                 <span className="text-xs text-muted ml-auto shrink-0">
                   {tx(String(what))}
                   {spec?.kind === "hold" ? ` · ${spec.target}s` : ""} ·{" "}
