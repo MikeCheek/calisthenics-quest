@@ -21,6 +21,7 @@ import { adjustDetail } from "./exerciseTiming";
 import { STAGE_ORDER, STAGE_LABEL, stageIndex } from "./stageOrder";
 import { median, scaleHoldDetail, round5 } from "./timingLearning";
 import type { VerificationEvent } from "./verification";
+import type { PersonalRecord } from "./types";
 
 // ---------------------------------------------------------------------------
 // Learning from activity.
@@ -285,6 +286,7 @@ export interface AdaptationReport {
   suggestions: StageSuggestion[];
   feedbackCounts: { done: number; skipped: number; tooHard: number };
   verifications: VerificationEvent[];
+  records: PersonalRecord[]; // new personal bests set this session
   ignoredTimingSamples: number; // timer samples dropped as unreliable
 }
 

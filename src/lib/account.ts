@@ -66,6 +66,11 @@ export async function resetSkills(userDoc: UserDoc): Promise<void> {
 }
 
 // Start over as a brand-new athlete, keeping the account and friends.
+async function deleteSessionHistory(uid: string): Promise<void> {
+  const snap = await getDocs(collection(db, "users", uid, "sessions"));
+  await deleteInChunks(snap.docs.map((d) => ({ col: ["users", uid, "sessions"], id: d.id })));
+}
+
 export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
   await updateDoc(doc(db, "users", userDoc.uid), {
     body: DEFAULT_BODY,
@@ -81,9 +86,11 @@ export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
     totalSessionsCompleted: 0,
     missions: [],
     xpHistory: [],
+    records: deleteField(),
     claims: deleteField(),
     ...LEARNING_FIELDS,
   });
+  await deleteSessionHistory(userDoc.uid);
   await syncPublicProfile({
     uid: userDoc.uid,
     displayName: userDoc.displayName,
@@ -100,11 +107,15 @@ export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
 
 // Everything stored about the athlete, as a downloadable JSON file.
 export async function exportUserData(userDoc: UserDoc): Promise<void> {
-  const friendsSnap = await getDocs(collection(db, "users", userDoc.uid, "friends"));
+  const [friendsSnap, sessionsSnap] = await Promise.all([
+    getDocs(collection(db, "users", userDoc.uid, "friends")),
+    getDocs(collection(db, "users", userDoc.uid, "sessions")),
+  ]);
   const data = {
     exportedAt: new Date().toISOString(),
     profile: userDoc,
     friends: friendsSnap.docs.map((d) => d.data() as Friend),
+    sessions: sessionsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -139,9 +150,10 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
 
   onStep?.("data");
   const uid = userDoc.uid;
-  const [friends, pings, pairings] = await Promise.all([
+  const [friends, pings, sessions, pairings] = await Promise.all([
     getDocs(collection(db, "users", uid, "friends")),
     getDocs(collection(db, "users", uid, "pings")),
+    getDocs(collection(db, "users", uid, "sessions")),
     getDocs(query(collection(db, "pairings"), where("hostUid", "==", uid))),
   ]);
 
@@ -150,6 +162,7 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
     ...friends.docs.map((d) => ({ col: ["users", d.id, "friends"], id: uid })),
     ...friends.docs.map((d) => ({ col: ["users", uid, "friends"], id: d.id })),
     ...pings.docs.map((d) => ({ col: ["users", uid, "pings"], id: d.id })),
+    ...sessions.docs.map((d) => ({ col: ["users", uid, "sessions"], id: d.id })),
   ]);
   // pairings hold body stats + skills; best-effort, needs the host delete rule
   await Promise.all(pairings.docs.map((d) => deleteDoc(d.ref).catch(() => {})));

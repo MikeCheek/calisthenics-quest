@@ -19,7 +19,7 @@ export default function XPBar({
 }) {
   const p = effectiveXpProgress(xp, skills, mastery);
   return (
-    <Link href="/path" className="panel rounded-lg p-4 block hover:border-orange-500/50 transition-colors">
+    <Link href="/progress?tab=road" className="panel rounded-lg p-4 block hover:border-orange-500/50 transition-colors">
       <div className="flex items-baseline justify-between mb-2">
         <div className="flex items-center gap-1">
           <div>

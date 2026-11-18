@@ -14,7 +14,7 @@ import { claimCounts, syncClaims } from "@/lib/verification";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
 import { pickFocus, FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { SKILL_CATEGORIES } from "@/lib/skillCategories";
-import { Dumbbell, Dices, CalendarDays, Users2, Layers, Timer, ChevronRight } from "lucide-react";
+import { Dumbbell, Dices, CalendarDays, Users2, Layers, ChevronRight, History } from "lucide-react";
 
 const ALL_50_SKILLS = SKILL_CATEGORIES.flatMap((c) => c.skills);
 
@@ -73,18 +73,18 @@ export default function DashboardPage() {
         <div className="grid grid-cols-3 gap-3">
           {/* streak already shows in the level card below — show proof instead */}
           <StatTile
-            href="/profile"
+            href="/progress"
             value={verifiedTotal ? `${verifiedCount}/${verifiedTotal}` : "–"}
             suffix="✓"
             label={tx("verified")}
           />
           <StatTile
-            href="/skills"
+            href="/progress?tab=skills"
             value={`${skillsStarted}/50`}
             label={t("dashboard", "skillsStarted")}
           />
           <StatTile
-            href="/profile"
+            href="/progress?tab=history"
             value={String(userDoc.totalSessionsCompleted)}
             label={t("dashboard", "sessions")}
           />
@@ -100,12 +100,12 @@ export default function DashboardPage() {
         <div>
           <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">{t("dashboard", "quickActions")}</div>
           <div className="grid grid-cols-3 gap-3">
+            <QuickAction href="/plan" icon={CalendarDays} label={tx("This week")} />
+            <QuickAction href="/progress?tab=history" icon={History} label={tx("History")} />
+            <QuickAction href="/friends" icon={Users2} label={t("dashboard", "pairUp")} />
+            <QuickAction href="/progress?tab=skills" icon={Layers} label={t("dashboard", "skills")} />
             <QuickAction href="/wheel" icon={Dices} label={t("dashboard", "bonusWheel")} />
-            <QuickAction href="/plan" icon={CalendarDays} label={t("dashboard", "planAhead")} />
-            <QuickAction href="/pair" icon={Users2} label={t("dashboard", "pairUp")} />
-            <QuickAction href="/skills" icon={Layers} label={t("dashboard", "skills")} />
-            <QuickAction href="/pomodoro" icon={Timer} label={t("dashboard", "focusTimer")} />
-            <QuickAction href="/path" icon={ChevronRight} label={t("dashboard", "trophyRoad")} />
+            <QuickAction href="/progress?tab=road" icon={ChevronRight} label={t("dashboard", "trophyRoad")} />
           </div>
         </div>
       </main>

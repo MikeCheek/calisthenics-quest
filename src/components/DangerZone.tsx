@@ -69,7 +69,7 @@ const ACTIONS: Action[] = [
     summary: "Wipe all progress and set up again, keeping your account and friends.",
     icon: RotateCcw,
     severity: "serious",
-    removes: ["XP, level, streak and session count", "XP history and missions", "Skills, goals, body stats, equipment", "Training memory and verifications"],
+    removes: ["XP, level, streak and session count", "Session history and personal records", "XP history and missions", "Skills, goals, body stats, equipment", "Training memory and verifications"],
     keeps: ["Your account, name and friend code", "Friends, reminders and language"],
     confirmWord: "RESET",
     cta: "Start over",

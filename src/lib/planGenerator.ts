@@ -8,6 +8,7 @@ import {
   TrainingSession,
 } from "./types";
 import { generateSession, pickFocus } from "./trainingGenerator";
+import { fitSessionToMinutes } from "./sessionFit";
 
 export interface PlanDay {
   dateISO: string;
@@ -70,7 +71,10 @@ export function generatePlan(
 
     const focus = pickFocus(date, equipment, goalTracks, trainingCounter);
     // planned sessions reflect what training has already learned
-    const session = adaptSession(generateSession(skills, equipment, focus, date), stats, equipment);
+    const session = fitSessionToMinutes(
+      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes), stats, equipment),
+      body.sessionLengthMinutes
+    ).session;
     trainingCounter++;
     days.push({ dateISO, weekday, isRestDay: false, session });
   }

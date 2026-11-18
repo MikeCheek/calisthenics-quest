@@ -6,41 +6,18 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
-import SkillRadarChart from "@/components/SkillRadarChart";
-import SkillWall from "@/components/SkillWall";
-import XPHistoryChart from "@/components/XPHistoryChart";
-import SkillInfoModal from "@/components/SkillInfoModal";
-import DeclareSkillModal from "@/components/DeclareSkillModal";
 import { rankTitle } from "@/lib/xp";
-import { effectiveXpProgress, effectiveLevel } from "@/lib/levelPath";
-import { TRACK_LABEL, SKILL_FIELD_LABEL, StagedSkillKey, Locale } from "@/lib/types";
-import { STAGE_LABEL } from "@/lib/stageOrder";
+import { effectiveXpProgress } from "@/lib/levelPath";
+import { Locale } from "@/lib/types";
 import ReminderSettings from "@/components/ReminderSettings";
 import { updateProgress } from "@/lib/store";
-import VerifiedSkillsCard from "@/components/VerifiedSkillsCard";
-import CoachInsightsCard from "@/components/CoachInsightsCard";
 import DangerZone from "@/components/DangerZone";
 import { claimCounts, syncClaims } from "@/lib/verification";
-import { Globe, Info, Flame, Dumbbell, Zap, BadgeCheck, Pencil, ChevronRight, Sparkles, Ruler, MapPin, Target } from "lucide-react";
+import { Globe, Info, Flame, Dumbbell, Zap, BadgeCheck, Pencil, ChevronRight, Ruler, MapPin } from "lucide-react";
 
-const ALL_SKILL_KEYS: StagedSkillKey[] = [
-  "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
-  "oneArmPullUp", "oneArmPushUp", "oneArmHandstand", "handstandPushUp",
-  "dragonFlag", "elbowLever", "manna", "nordicCurl", "shrimpSquat",
-  "ironCross", "maltese", "impossibleDip",
-  "chestToBarPullUp", "wideGripPullUp", "typewriterPullUp", "toesToBar", "lSitPullUp",
-  "skinTheCat", "germanHang", "flagPullUp", "ringMuscleUp", "ninetyDegreePushUp",
-  "clapPushUp", "kipUp", "handstandWalk", "wallWalk", "pikePress",
-  "supermanHold", "sidePlank", "copenhagenPlank", "bridge", "turkishGetUp",
-  "jumpPistol", "sissySquat", "cossackSquat", "ropeClimb",
-  "backFlip", "frontFlip", "windmill", "aroundTheWorld",
-  "invertedCross", "victorianCross",
-];
 
-type Tab = "progress" | "skills" | "settings" | "account";
+type Tab = "settings" | "account";
 const TABS: { id: Tab; label: string }[] = [
-  { id: "progress", label: "Progress" },
-  { id: "skills", label: "Skills" },
   { id: "settings", label: "Settings" },
   { id: "account", label: "Account" },
 ];
@@ -59,11 +36,8 @@ const EQUIPMENT_LABEL: [keyof import("@/lib/types").TrainingEquipment, string][]
 export default function ProfilePage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const { t, tx, locale, setLocale } = useLanguage();
-  const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
-  const [declareOpen, setDeclareOpen] = useState(false);
-  const [showAllSkills, setShowAllSkills] = useState(false);
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("progress");
+  const [tab, setTab] = useState<Tab>("settings");
 
   // open the tab named in the URL (e.g. /profile?tab=account)
   useEffect(() => {
@@ -74,7 +48,7 @@ export default function ProfilePage() {
   const selectTab = (next: Tab) => {
     setTab(next);
     // deep-linkable (e.g. /profile?tab=account) without adding history entries
-    router.replace(next === "progress" ? "/profile" : `/profile?tab=${next}`, { scroll: false });
+    router.replace(next === "settings" ? "/profile" : `/profile?tab=${next}`, { scroll: false });
   };
 
   useEffect(() => {
@@ -89,8 +63,6 @@ export default function ProfilePage() {
 
   const progress = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery);
   const counts = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
-  const startedKeys = ALL_SKILL_KEYS.filter((k) => (userDoc.skills[k] as string) !== "none");
-  const shownKeys = showAllSkills ? ALL_SKILL_KEYS : startedKeys;
 
   const changeLocale = async (next: Locale) => {
     setLocale(next);
@@ -146,7 +118,7 @@ export default function ProfilePage() {
 
         {/* tabs */}
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">
-          <div role="tablist" className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+          <div role="tablist" className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
             {TABS.map((x) => (
               <button
                 key={x.id}
@@ -162,121 +134,6 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
-
-        {tab === "progress" && (
-          <div className="space-y-4 animate-overlay-fade-in">
-            <div className="panel p-4">
-              <div className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</div>
-              <XPHistoryChart history={userDoc.xpHistory ?? []} />
-            </div>
-            <VerifiedSkillsCard userDoc={userDoc} />
-            <CoachInsightsCard userDoc={userDoc} />
-            <div className="panel p-4">
-              <div className="heading text-base text-zinc-100 mb-2">{t("profile", "skillRadar")}</div>
-              <SkillRadarChart skills={userDoc.skills} />
-            </div>
-          </div>
-        )}
-
-        {tab === "skills" && (
-          <div className="space-y-4 animate-overlay-fade-in">
-            <div className="panel p-4 bg-gradient-to-br from-orange-500/10 to-transparent">
-              <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
-                <Sparkles size={16} className="text-orange-400" /> {t("profile", "updateSkills")}
-              </div>
-              <p className="text-xs text-zinc-400 mb-3">{t("profile", "updateSkillsHint")}</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setDeclareOpen(true)}
-                  className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
-                >
-                  {t("profile", "declareSkill")}
-                </button>
-                <Link
-                  href="/onboarding"
-                  className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 text-sm text-center"
-                >
-                  {t("profile", "retakeAssessment")}
-                </Link>
-              </div>
-            </div>
-
-            {userDoc.goalTracks?.length > 0 && (
-              <div className="panel p-4">
-                <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
-                  <Target size={16} className="text-orange-400" /> {tx("Your goals")}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {userDoc.goalTracks.map((track) => (
-                    <span key={track} className="text-xs px-2.5 py-1 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300">
-                      {tx(TRACK_LABEL[track])}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="panel p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="heading text-base text-zinc-100">
-                  {t("profile", "allSkills")} <span className="text-zinc-500 text-sm font-normal">· {tx("{n} started", { n: startedKeys.length })}</span>
-                </div>
-                <div className="flex p-0.5 rounded-lg bg-zinc-800 text-xs">
-                  {[false, true].map((all) => (
-                    <button
-                      key={String(all)}
-                      onClick={() => setShowAllSkills(all)}
-                      className={`px-2.5 py-1 rounded-md ${showAllSkills === all ? "bg-zinc-950 text-zinc-100" : "text-zinc-400"}`}
-                    >
-                      {all ? tx("All 50") : tx("Started")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {shownKeys.length === 0 ? (
-                <p className="text-xs text-zinc-500">{tx("No skills started yet — switch to “All 50” to explore them.")}</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {shownKeys.map((key) => {
-                    const stage = userDoc.skills[key] as string;
-                    const started = stage !== "none";
-                    const m = userDoc.skillMastery?.[key];
-                    const verified = userDoc.claims?.[key]?.status === "verified";
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setActiveSkill(key)}
-                        className={`text-left px-3 py-2.5 rounded-xl border transition-colors ${
-                          started ? "border-emerald-700/70 bg-emerald-600/5 hover:border-emerald-500" : "border-zinc-800 hover:border-zinc-600"
-                        }`}
-                      >
-                        <div className="text-xs text-zinc-200 truncate flex items-center gap-1">
-                          {SKILL_FIELD_LABEL[key]}
-                          {verified && <BadgeCheck size={11} className="text-emerald-400 shrink-0" aria-label="verified" />}
-                        </div>
-                        <div className={`stat-mono text-[11px] mt-0.5 ${started ? "text-emerald-400" : "text-zinc-600"}`}>
-                          {tx(STAGE_LABEL[stage] ?? stage)}
-                        </div>
-                        {started && m && (
-                          <div className="flex gap-0.5 mt-1.5">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <span key={i} className={`h-1 flex-1 rounded-full ${i <= m ? "bg-emerald-500" : "bg-zinc-800"}`} />
-                            ))}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="text-[11px] text-zinc-600 mt-2 flex items-center gap-1">
-                <Info size={11} /> {tx("Tap a skill for its description and progression.")}
-              </div>
-            </div>
-
-            <SkillWall skills={userDoc.skills} mastery={userDoc.skillMastery} playerLevel={progress.level} />
-          </div>
-        )}
 
         {tab === "settings" && (
           <div className="space-y-4 animate-overlay-fade-in">
@@ -360,19 +217,6 @@ export default function ProfilePage() {
         )}
       </main>
 
-      <SkillInfoModal
-        skill={activeSkill}
-        onClose={() => setActiveSkill(null)}
-        playerLevel={progress.level}
-        skills={userDoc.skills}
-        skillMastery={userDoc.skillMastery}
-      />
-      <DeclareSkillModal
-        open={declareOpen}
-        onClose={() => setDeclareOpen(false)}
-        userDoc={userDoc}
-        onSaved={refreshUserDoc}
-      />
     </>
   );
 }

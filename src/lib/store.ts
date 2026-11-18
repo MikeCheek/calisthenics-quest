@@ -6,11 +6,13 @@ import {
   collection,
   addDoc,
   deleteDoc,
+  getDocs,
   onSnapshot,
   query,
   orderBy,
   limit,
   writeBatch,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import {
@@ -25,6 +27,7 @@ import {
   TrainingEquipment,
   UserDoc,
   DEFAULT_SKILLS,
+  SessionRecord,
 } from "./types";
 
 export async function fetchUserDoc(uid: string): Promise<UserDoc | null> {
@@ -278,4 +281,26 @@ export function listenPings(uid: string, cb: (pings: Ping[]) => void): () => voi
 
 export async function dismissPing(uid: string, pingId: string): Promise<void> {
   await deleteDoc(doc(db, "users", uid, "pings", pingId));
+}
+
+// ---- session history (users/{uid}/sessions) ----
+// Firestore rejects undefined values, so optional fields are stripped first.
+function withoutUndefined<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export async function saveSessionRecord(uid: string, record: SessionRecord): Promise<void> {
+  await addDoc(collection(db, "users", uid, "sessions"), withoutUndefined(record));
+}
+
+// Sessions finished in [fromISO, toISO), newest first.
+export async function fetchSessionsBetween(uid: string, fromISO: string, toISO: string): Promise<SessionRecord[]> {
+  const q = query(
+    collection(db, "users", uid, "sessions"),
+    where("finishedAt", ">=", fromISO),
+    where("finishedAt", "<", toISO),
+    orderBy("finishedAt", "desc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as SessionRecord) }));
 }

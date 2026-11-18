@@ -8,7 +8,8 @@ import { useToast } from "@/context/ToastContext";
 import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
-import { TimerLog, TimerRestSample, summarizeTimerLog, bestHoldFromLog, learnedTransitionRest } from "@/lib/timingLearning";
+import { TimerLog, TimerRestSample, summarizeTimerLog, bestHoldFromLog, learnedTransitionRest, cleanSets } from "@/lib/timingLearning";
+import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
@@ -243,6 +244,8 @@ export default function FocusTrainingMode() {
         adaptedFrom: ex.adaptedFrom,
         adaptDir: ex.adaptDir,
         timing: summarizeTimerLog(timerLogs[i]),
+        detail: ex.detail,
+        sets: isDone ? cleanSets(timerLogs[i]) : undefined,
         check: ex.check,
         checkResult,
       });
@@ -384,6 +387,12 @@ export default function FocusTrainingMode() {
                 )
               )}
               <div className="text-sm text-zinc-400 mt-1">{current.exercise.detail}</div>
+              {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && userDoc?.exerciseStats?.[statKey(current.exercise.name)]?.lastSets && (
+                <div className="text-xs text-zinc-500 mt-0.5">
+                  {tx("Last time:")}{" "}
+                  <span className="text-zinc-300 stat-mono">{userDoc.exerciseStats[statKey(current.exercise.name)].lastSets}</span>
+                </div>
+              )}
               {current.exercise.cue && (
                 <div className="text-xs text-orange-400/80 italic mt-1">{tx(current.exercise.cue)}</div>
               )}

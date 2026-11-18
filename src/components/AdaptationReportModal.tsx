@@ -5,7 +5,7 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { describeSuggestion } from "@/lib/adaptation";
 import { MASTERY_LABEL, SKILL_FIELD_LABEL } from "@/lib/types";
 import Modal from "@/components/Modal";
-import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban } from "lucide-react";
+import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban, Trophy } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 // Shown after a session when what the athlete did actually changed
@@ -31,6 +31,24 @@ export default function AdaptationReportModal() {
           <Brain size={14} className="text-orange-400 shrink-0 mt-0.5" />
           {tx("Based on what you completed, skipped and marked too hard, your plan has adjusted. Next sessions will reflect this automatically.")}
         </p>
+
+        {report.records.length > 0 && (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-400/5 p-3">
+            <div className="text-xs uppercase tracking-wide text-amber-300 mb-1.5 flex items-center gap-1.5">
+              <Trophy size={13} /> {tx("New personal records")}
+            </div>
+            <ul className="space-y-1">
+              {report.records.map((r) => (
+                <li key={r.name + r.kind} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="text-zinc-100 truncate">{r.name}</span>
+                  <span className="stat-mono text-amber-300 shrink-0">
+                    {r.kind === "hold" ? `${r.previous}s → ${r.value}s` : tx("{a} → {b} reps", { a: r.previous, b: r.value })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {report.verifications.length > 0 && (
           <div>

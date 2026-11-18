@@ -10,6 +10,8 @@ import { historySummary } from "@/lib/adaptation";
 import { generatePlan, PlanDay, PlanRange } from "@/lib/planGenerator";
 import { TRACK_LABEL } from "@/lib/types";
 import { Sparkles, ChevronDown, ChevronUp, Moon } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import TrainSwitcher from "@/components/TrainSwitcher";
 
 const RANGE_OPTIONS: { value: PlanRange; label: string }[] = [
   { value: "day", label: "Today" },
@@ -23,6 +25,7 @@ function isToday(dateISO: string) {
 
 export default function PlanPage() {
   const { user, userDoc, loading } = useAuth();
+  const { tx } = useLanguage();
   const router = useRouter();
   const [range, setRange] = useState<PlanRange>("week");
   const [plan, setPlan] = useState<PlanDay[]>([]);
@@ -115,9 +118,10 @@ export default function PlanPage() {
       <Nav />
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div>
-          <h1 className="heading text-2xl text-zinc-100">Training plan</h1>
+          <TrainSwitcher active="week" />
+          <h1 className="heading text-2xl text-zinc-100 mt-4">{tx("Training plan")}</h1>
           <p className="text-zinc-400 text-sm">
-            Lay out sessions ahead of time instead of just today&apos;s.
+            {tx("Lay out sessions ahead of time instead of just today's.")}
           </p>
         </div>
 

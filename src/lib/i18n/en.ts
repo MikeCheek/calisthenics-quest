@@ -10,6 +10,8 @@ export interface TranslationDict {
     train: string;
     skills: string;
     pair: string;
+    progress: string;
+    friends: string;
     profile: string;
     signOut: string;
   };
@@ -61,6 +63,8 @@ const en: TranslationDict = {
     train: "Train",
     skills: "Skills",
     pair: "Pair",
+    progress: "Progress",
+    friends: "Friends",
     profile: "Profile",
     signOut: "Sign out",
   },

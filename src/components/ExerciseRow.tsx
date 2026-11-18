@@ -6,7 +6,7 @@ import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
 import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
-import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles } from "lucide-react";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles, History } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 const SWIPE_THRESHOLD = 55;
@@ -31,6 +31,7 @@ export default function ExerciseRow({
   onTimerLog,
   checkValue,
   onCheckChange,
+  lastTime,
 }: {
   exercise: Exercise;
   displayedDetail: string;
@@ -50,6 +51,7 @@ export default function ExerciseRow({
   onTimerLog?: (log: TimerLog) => void;
   checkValue?: number | boolean;
   onCheckChange?: (v: number | boolean | undefined) => void;
+  lastTime?: string; // "12·11·10 reps · 12 Nov"
 }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -168,6 +170,11 @@ export default function ExerciseRow({
               {displayedDetail}
               {isAdjusted && <span className="text-orange-400"> ({tx("adjusted")})</span>}
             </div>
+            {lastTime && (
+              <div className="text-[11px] text-zinc-500 flex items-center gap-1">
+                <History size={10} className="shrink-0" /> {tx("Last time:")} <span className="text-zinc-300 stat-mono">{lastTime}</span>
+              </div>
+            )}
             {exercise.cue && <div className="text-xs text-orange-400/80 italic">{tx(exercise.cue)}</div>}
             {exercise.adaptNote && (
               <div className="text-[11px] text-sky-400/90 flex items-center gap-1 mt-0.5">

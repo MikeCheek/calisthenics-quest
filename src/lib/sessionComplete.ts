@@ -1,8 +1,9 @@
 import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { applyCheckResults, syncClaims } from "./verification";
+import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
-import { updateProgress, syncPublicProfile } from "./store";
+import { updateProgress, syncPublicProfile, saveSessionRecord } from "./store";
 import { effectiveLevel } from "./levelPath";
 
 export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
@@ -83,7 +84,7 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
-  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number } = {}
+  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number; durationMin?: number } = {}
 ): Promise<CompleteSessionResult> {
   const feedback = opts.feedback ?? [];
   const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
@@ -104,7 +105,8 @@ export async function completeSession(
   const trimmedHistory = history.slice(-30);
 
   // Learn from what actually happened in this session (see adaptation.ts).
-  const exerciseStats = applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback);
+  const exerciseStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
+  const { records, newRecords } = detectRecords(userDoc.records ?? {}, feedback);
   const learned = applySkillFeedback(
     userDoc.skills,
     userDoc.skillMastery ?? {},
@@ -131,6 +133,7 @@ export async function completeSession(
     suggestions,
     verifications: verified.events,
     ignoredTimingSamples: feedback.reduce((n, f) => n + (f.timing?.ignored ?? 0), 0),
+    records: newRecords,
     feedbackCounts: {
       done: feedback.filter((f) => f.outcome === "done").length,
       skipped: feedback.filter((f) => f.outcome === "skipped").length,
@@ -145,6 +148,7 @@ export async function completeSession(
     skillMastery: newMastery,
     skills: newSkills,
     claims,
+    records,
     ...(opts.transitionRestRatio !== undefined
       ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) }
       : {}),
@@ -157,6 +161,18 @@ export async function completeSession(
   };
 
   await updateProgress(userDoc.uid, patch);
+
+  // Keep the session itself for the history view. Best-effort: progress is
+  // already saved, so a failed history write shouldn't fail the whole log.
+  await saveSessionRecord(
+    userDoc.uid,
+    buildSessionRecord(session, feedback, {
+      xp: totalXp - userDoc.xp,
+      durationMin: opts.durationMin,
+      paired: opts.isPaired,
+      records: newRecords,
+    })
+  ).catch(() => {});
 
   if (userDoc.friendCode) {
     syncPublicProfile({

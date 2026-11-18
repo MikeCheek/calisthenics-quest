@@ -263,6 +263,49 @@ export interface ExerciseFeedback {
   timing?: TimingSummary;
   check?: CheckSpec;
   checkResult?: number | boolean;
+  detail?: string; // what was actually prescribed on screen, after adjustments
+  sets?: SetRecord[]; // clean per-set results from the timer, when used
+}
+
+// ---- session history ----
+export interface SetRecord {
+  reps?: number;
+  holdSec?: number;
+}
+
+export interface ExerciseRecord {
+  name: string;
+  setTitle: string;
+  outcome: ExerciseOutcome;
+  detail?: string;
+  sets?: SetRecord[];
+  checkResult?: number | boolean;
+}
+
+export interface PersonalRecord {
+  name: string;
+  kind: "reps" | "hold";
+  value: number;
+  previous: number;
+}
+
+// One finished session, stored at users/{uid}/sessions/{id}.
+export interface SessionRecord {
+  id?: string;
+  finishedAt: string; // ISO timestamp
+  focusLabel: string;
+  durationMin?: number; // only when it could be measured plausibly
+  xp: number;
+  paired?: boolean;
+  exercises: ExerciseRecord[];
+  records?: PersonalRecord[];
+}
+
+export interface ExerciseBest {
+  name?: string;
+  reps?: number;
+  hold?: number;
+  dateISO: string;
 }
 
 // Rolling per-exercise memory. `p` is a "pressure" score: too hard and
@@ -277,6 +320,8 @@ export interface ExerciseStat {
   rr?: number[]; // last few sessions' median rest ratio (taken / planned)
   hr?: number[]; // last few sessions' median hold ratio (held / target)
   rp?: number[]; // last few sessions' median rep ratio (logged / prescribed)
+  lastSets?: string; // "12·11·10 reps" / "8s·7s" / the prescribed detail, from the last time it was done
+  lastAt?: string;
   last: string;
 }
 
@@ -386,6 +431,8 @@ export interface UserDoc {
   claims?: Partial<Record<ClaimKey, SkillClaim>>;
   // guided mode: last few sessions' median rest-between-exercises ratio
   transitionRest?: number[];
+  // best clean set per exercise (keyed like exerciseStats), for records
+  records?: Record<string, ExerciseBest>;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

@@ -6,7 +6,10 @@ import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
-import { TimerLog, summarizeTimerLog, bestHoldFromLog } from "@/lib/timingLearning";
+import { TimerLog, summarizeTimerLog, bestHoldFromLog, cleanSets } from "@/lib/timingLearning";
+import { useAuth } from "@/context/AuthContext";
+import { statKey } from "@/lib/adaptation";
+import { plausibleDuration } from "@/lib/sessionHistory";
 import Modal from "@/components/Modal";
 import { Play, Clock, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -33,7 +36,7 @@ export default function SessionView({
 }: {
   session: TrainingSession;
   equipment?: TrainingEquipment;
-  onComplete?: (feedback: ExerciseFeedback[]) => void;
+  onComplete?: (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => void;
   completed?: boolean;
   onStartFocusMode?: () => void;
 }) {
@@ -64,7 +67,20 @@ export default function SessionView({
     });
   };
 
+  // when the athlete first actually did something — the start of the
+  // session for duration purposes (opening the page isn't training)
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const markStarted = () => setStartedAt((t) => t ?? Date.now());
+  const { userDoc } = useAuth();
+  const lastTimeFor = (name: string): string | undefined => {
+    const st = userDoc?.exerciseStats?.[statKey(name)];
+    if (!st?.lastSets || !st.lastAt) return undefined;
+    const when = new Date(st.lastAt).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    return `${st.lastSets} · ${when}`;
+  };
+
   const toggleDone = (key: string) => {
+    markStarted();
     setSkipped((prev) => {
       if (!prev.has(key)) return prev;
       const next = new Set(prev);
@@ -159,6 +175,8 @@ export default function SessionView({
           adaptedFrom: ex.adaptedFrom,
           adaptDir: ex.adaptDir,
           timing: summarizeTimerLog(timerLogs[key]),
+          detail: adjustDetail(ex.detail, individualDelta[key] ?? 0),
+          sets: isDone ? cleanSets(timerLogs[key]) : undefined,
           check: ex.check,
           checkResult,
         });
@@ -247,7 +265,11 @@ export default function SessionView({
                         onResetAdjust={() => resetAdjust(key)}
                         onCantDo={exempt || effectiveExercise.check ? undefined : () => swapForEasier(key, effectiveExercise, set.title)}
                         timerLog={timerLogs[key]}
-                        onTimerLog={(log) => setTimerLogs((prev) => ({ ...prev, [key]: log }))}
+                        onTimerLog={(log) => {
+                          markStarted();
+                          setTimerLogs((prev) => ({ ...prev, [key]: log }));
+                        }}
+                        lastTime={exempt ? undefined : lastTimeFor(effectiveExercise.name)}
                         checkValue={checkResults[key]}
                         onCheckChange={(v) => setCheckResults((prev) => ({ ...prev, [key]: v }))}
                         onSkip={() => toggleSkip(key)}
@@ -264,7 +286,7 @@ export default function SessionView({
       {onComplete && (
         <button
           disabled={completed}
-          onClick={() => onComplete(collectFeedback())}
+          onClick={() => onComplete(collectFeedback(), { durationMin: plausibleDuration(startedAt) })}
           className={`mt-5 w-full py-2.5 rounded-lg heading tracking-wide text-sm ${
             completed
               ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
