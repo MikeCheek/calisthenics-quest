@@ -4,15 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { rankTitle } from "@/lib/xp";
 import { effectiveXpProgress } from "@/lib/levelPath";
-import { Home, Dumbbell, Users, User, TrendingUp } from "lucide-react";
+import { Home, Dumbbell, Users, User, TrendingUp, BadgeCheck } from "lucide-react";
+import { claimCounts, syncClaims } from "@/lib/verification";
 
 export default function Nav() {
   const { userDoc } = useAuth();
   const { t } = useLanguage();
   const pathname = usePathname();
   const progress = userDoc ? effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery) : null;
+  const claims = userDoc ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
 
   // Each tab owns a group of routes, so it stays highlighted on its
   // sub-pages (the plan and the wheel are part of Train, etc.).
@@ -35,8 +36,13 @@ export default function Nav() {
           </Link>
           {/* sign-out lives in Profile → Account; the header just shows where you stand */}
           {progress && (
-            <Link href="/progress?tab=road" className="text-xs text-zinc-400 stat-mono hover:text-orange-400">
-              LV {progress.level} · {rankTitle(progress.level)}
+            <Link href="/progress" className="text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2">
+              <span>LV {progress.level}</span>
+              {claims.total > 0 && (
+                <span className="flex items-center gap-0.5 text-emerald-400/90">
+                  <BadgeCheck size={12} /> {claims.verified}/{claims.total}
+                </span>
+              )}
             </Link>
           )}
         </div>

@@ -14,7 +14,9 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
+import type { TimerEvent } from "@/components/ExerciseTimer";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface Step {
@@ -33,7 +35,33 @@ export default function FocusTrainingMode() {
     useTrainingSession();
   const { userDoc } = useAuth();
   const toast = useToast();
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
+
+  // ---- voice coaching ----
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [canSpeak, setCanSpeak] = useState(false);
+  useEffect(() => {
+    setCanSpeak(voiceSupported());
+    setVoiceOn(voiceSupported() && voicePref());
+  }, []);
+  const voiceOnRef = useRef(voiceOn);
+  voiceOnRef.current = voiceOn;
+  const say = (english: string, vars?: Record<string, string | number>, interrupt = false) => {
+    if (voiceOnRef.current) speak(tx(english, vars), locale, { interrupt });
+  };
+  const toggleVoice = () => {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    setVoicePref(next);
+    if (!next) stopSpeaking();
+    else speak(tx("Voice coaching on"), locale, { interrupt: true });
+  };
+  const onTimerEvent = (e: TimerEvent) => {
+    if (e.type === "setStart" && e.sets > 1) say(e.set === e.sets ? "Last set" : "Set {a} of {b}", { a: e.set, b: e.sets }, true);
+    else if (e.type === "tenLeft") say("Ten seconds", undefined, true);
+    else if (e.type === "rest") say("Rest {n} seconds", { n: e.seconds });
+    else if (e.type === "done") say("Exercise complete");
+  };
 
   const steps: Step[] = useMemo(() => {
     if (!session) return [];
@@ -155,6 +183,31 @@ export default function FocusTrainingMode() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restSecondsLeft]);
 
+  const announced = useRef("");
+  useEffect(() => {
+    if (!session || !current || restSecondsLeft !== null || allDoneScreen) return;
+    const key = `${session.id}:${index}:${current.exercise.name}`;
+    if (announced.current === key) return;
+    announced.current = key;
+    const prefix = current.exercise.check ? `${tx("Skill check.")} ` : "";
+    say(`${prefix}${speakableName(current.exercise.name)}. ${speakableDetail(current.exercise.detail, locale)}`, undefined, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, current, restSecondsLeft, allDoneScreen, index]);
+
+  useEffect(() => {
+    if (restSecondsLeft === 5) say("Get ready");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restSecondsLeft]);
+
+  useEffect(() => {
+    if (allDoneScreen) say("Session complete. Great work!", undefined, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allDoneScreen]);
+
+  useEffect(() => {
+    if (!session) stopSpeaking();
+  }, [session]);
+
   if (!session || !current) return null;
 
   const isLastStep = index === steps.length - 1;
@@ -174,6 +227,7 @@ export default function FocusTrainingMode() {
     const planned = Math.min(MAX_BETWEEN_EXERCISE_REST, Math.max(MIN_BETWEEN_EXERCISE_REST, current.exercise.restSeconds || MIN_BETWEEN_EXERCISE_REST));
     // learned from how long this athlete actually rests between exercises
     const { seconds: rest, learned } = learnedTransitionRest(planned, userDoc?.transitionRest);
+    if (next) say("Rest. Up next: {x}", { x: speakableName(next.exercise.name) }, true);
     setRestWasLearned(learned);
     startRestMeter(rest);
     playRestSound();
@@ -222,6 +276,7 @@ export default function FocusTrainingMode() {
     if (easier) {
       setOverrides((prev) => ({ ...prev, [index]: { ...easier, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
       toast.success(`Swapped in ${easier.name}. Noted for future sessions.`);
+      say("Swapped in {x}", { x: speakableName(easier.name) }, true);
     } else {
       toast.info("Nothing easier for this one — noted for future sessions. Skipping ahead.");
       if (isLastStep) setAllDoneScreen(true);
@@ -292,6 +347,17 @@ export default function FocusTrainingMode() {
             <span className="text-muted"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
           )}
         </div>
+        <div className="flex items-center gap-1">
+        {canSpeak && (
+          <button
+            onClick={toggleVoice}
+            className={`p-1.5 rounded-lg ${voiceOn ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
+            aria-label={voiceOn ? tx("Turn voice coaching off") : tx("Turn voice coaching on")}
+            aria-pressed={voiceOn}
+          >
+            {voiceOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
+        )}
         <button
           onClick={togglePause}
           className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
@@ -299,6 +365,7 @@ export default function FocusTrainingMode() {
         >
           {paused ? <Play size={18} /> : <Pause size={18} />}
         </button>
+        </div>
       </div>
 
       {/* stepper */}
@@ -414,6 +481,7 @@ export default function FocusTrainingMode() {
                 onComplete={current.exercise.check ? undefined : markCompleteAndAdvance}
                 externallyPaused={paused}
                 onLog={(log) => setTimerLogs((prev) => ({ ...prev, [index]: log }))}
+                onEvent={onTimerEvent}
               />
               {current.exercise.check && (
                 <SkillCheckPanel

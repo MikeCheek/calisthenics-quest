@@ -7,6 +7,7 @@ import { MASTERY_LABEL, SKILL_FIELD_LABEL } from "@/lib/types";
 import Modal from "@/components/Modal";
 import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban, Trophy } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 
 // Shown after a session when what the athlete did actually changed
 // something: a skill's mastery moved, or the engine thinks a stage change
@@ -118,6 +119,8 @@ export default function AdaptationReportModal() {
             {tx("{n} timer readings were left out as unreliable (app in the background, long interruptions or tapped-through sets).", { n: report.ignoredTimingSamples })}
           </p>
         )}
+
+        <SaveProgressPrompt compact reason="Nice session! Save it with Google so your progress isn't tied to this device." />
 
         <button
           onClick={clearReport}

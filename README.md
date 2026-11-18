@@ -66,7 +66,11 @@ npm install
 ## 2. Create a Firebase project
 
 1. Go to https://console.firebase.google.com and create a project.
-2. **Authentication** → Sign-in method → enable **Google**.
+2. **Authentication** → Sign-in method → enable **Google**, and also enable
+   **Anonymous** — that's what powers "Try it first — no account needed"
+   (guests get an anonymous account; "Save with Google" links Google to it,
+   keeping everything). Without it, the guest button shows an explanatory
+   error and Google sign-in still works.
 3. **Firestore Database** → create a database (start in production mode).
 4. Project settings → General → "Your apps" → add a **Web app** → copy the config values.
 
@@ -257,6 +261,23 @@ real (non-dev) environment, you can install it as an app from the browser's
   goals), Road (the trophy road) and History (calendar, month totals, every
   finished session with its sets and outcomes, personal bests). `/skills`
   and `/path` redirect here.
+- **One headline** — the dashboard leads with your level (and how far to
+  the next) with verified skills beside it as the proof; the header shows
+  the same two numbers. Rank titles live in Progress → Road as your current
+  chapter, missions collapse to one line, and the bonus wheel appears as a
+  "bonus round" after you log a session instead of as a main feature.
+- **Try before signing in** — guests train with an anonymous Firebase
+  account (no friend code or public profile is created for them); "Save
+  with Google" links Google to the same account, so nothing is copied. If
+  that Google account already has progress, the guest is asked before
+  switching (guest progress can't be merged). Friends and pairing ask
+  guests to save first.
+- **Voice coaching** — guided mode speaks the exercise and its sets/reps,
+  set numbers ("Last set"), a ten-second warning on longer holds, rest,
+  "Up next" between exercises, "Get ready" and the finish, in English or
+  Italian, via the browser's speech synthesis (`src/lib/voice.ts`). A
+  speaker toggle in the guided-mode header remembers your choice on the
+  device; speech failures never interrupt the session.
 - **Exercise demonstrations** — 124 of the 129 exercises that appear in
   sessions (98% of appearances) have a looping stick-figure animation in
   their info sheet and in guided mode, plus a "Common mistakes" list

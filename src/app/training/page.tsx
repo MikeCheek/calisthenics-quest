@@ -195,7 +195,7 @@ export default function TrainingPage() {
           onStartFocusMode={() => startSession(displayedSession)}
         />
 
-        <div className="grid grid-cols-2 gap-2">
+        {!(completed || globalCompleted) && (
           <PlanReviewButton
             session={displayedSession}
             skills={userDoc.skills}
@@ -203,13 +203,23 @@ export default function TrainingPage() {
             equipment={userDoc.equipment}
             onApply={setAiAppliedSession}
           />
+        )}
+
+        {/* the wheel is a reward for finishing, not a main feature */}
+        {(completed || globalCompleted) && (
           <Link
             href="/wheel"
-            className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-zinc-100 hover:bg-orange-500/10"
+            className="panel p-4 flex items-center gap-3 border-orange-500/40 bg-gradient-to-br from-orange-500/10 to-transparent hover:border-orange-500 transition-colors animate-overlay-fade-in"
           >
-            <Dices size={15} className="text-orange-400" /> {tx("Bonus wheel")}
+            <span className="w-11 h-11 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+              <Dices size={20} className="text-orange-400" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block heading text-base text-zinc-100">{tx("Bonus round unlocked")}</span>
+              <span className="block text-xs text-zinc-400">{tx("Still have energy? Spin the wheel for one extra exercise and bonus XP.")}</span>
+            </span>
           </Link>
-        </div>
+        )}
       </main>
 
       {showFab && !globalSession && (

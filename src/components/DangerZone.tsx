@@ -16,6 +16,7 @@ import {
 } from "@/lib/account";
 import { AlertTriangle, Brain, BadgeCheck, Download, RotateCcw, Trash2, Layers, Loader2, LogOut } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 
 type ActionId = "memory" | "verifications" | "skills" | "all" | "delete";
 
@@ -105,7 +106,7 @@ const DELETE_STEP_LABEL: Record<DeleteStep, string> = {
 };
 
 export default function DangerZone() {
-  const { user, userDoc, refreshUserDoc, signOut } = useAuth();
+  const { user, userDoc, refreshUserDoc, signOut, isGuest } = useAuth();
   const toast = useToast();
   const { tx } = useLanguage();
   const router = useRouter();
@@ -192,6 +193,7 @@ export default function DangerZone() {
 
   return (
     <div className="space-y-4">
+      <SaveProgressPrompt />
       <section className="panel p-4 space-y-3">
         <div>
           <h3 className="heading text-base text-zinc-100">{tx("Your data")}</h3>
@@ -205,12 +207,14 @@ export default function DangerZone() {
           >
             {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {tx("Export data")}
           </button>
+          {!isGuest && (
           <button
             onClick={signOut}
             className="py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-200 hover:border-orange-500 flex items-center justify-center gap-2"
           >
             <LogOut size={15} /> {tx("Sign out")}
           </button>
+          )}
         </div>
       </section>
 

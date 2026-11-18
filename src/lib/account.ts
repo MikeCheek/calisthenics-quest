@@ -9,8 +9,8 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import { deleteUser, reauthenticateWithPopup, User } from "firebase/auth";
-import { db, googleProvider } from "./firebase";
+import { deleteUser, reauthenticateWithPopup, signOut, User } from "firebase/auth";
+import { auth, db, googleProvider } from "./firebase";
 import { syncPublicProfile } from "./store";
 import {
   DEFAULT_BODY,
@@ -51,7 +51,7 @@ export async function resetSkills(userDoc: UserDoc): Promise<void> {
     onboarded: false,
     ...LEARNING_FIELDS,
   });
-  await syncPublicProfile({
+  if (userDoc.friendCode) await syncPublicProfile({
     uid: userDoc.uid,
     displayName: userDoc.displayName,
     photoURL: userDoc.photoURL,
@@ -91,7 +91,7 @@ export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
     ...LEARNING_FIELDS,
   });
   await deleteSessionHistory(userDoc.uid);
-  await syncPublicProfile({
+  if (userDoc.friendCode) await syncPublicProfile({
     uid: userDoc.uid,
     displayName: userDoc.displayName,
     photoURL: userDoc.photoURL,
@@ -146,7 +146,7 @@ export type DeleteStep = "reauth" | "data" | "account";
 // or cancelled sign-in leaves everything untouched instead of half-deleted.
 export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: DeleteStep) => void): Promise<void> {
   onStep?.("reauth");
-  await reauthenticateWithPopup(user, googleProvider);
+  if (!user.isAnonymous) await reauthenticateWithPopup(user, googleProvider);
 
   onStep?.("data");
   const uid = userDoc.uid;
@@ -179,5 +179,12 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
   }
 
   onStep?.("account");
-  await deleteUser(user);
+  try {
+    await deleteUser(user);
+  } catch (err) {
+    // an old guest session can't re-confirm its identity; the data is gone
+    // already, so just end the session
+    if (user.isAnonymous) await signOut(auth);
+    else throw err;
+  }
 }

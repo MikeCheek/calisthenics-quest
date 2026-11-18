@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
 import { parseTiming } from "@/lib/exerciseTiming";
 import { TimerLog, EMPTY_TIMER_LOG } from "@/lib/timingLearning";
+
+export type TimerEvent =
+  | { type: "setStart"; set: number; sets: number }
+  | { type: "tenLeft" }
+  | { type: "rest"; seconds: number }
+  | { type: "done" };
 import { playCountdownTick, playGoSound, playRestSound, playCompleteSound } from "@/lib/sound";
 import { Play, Pause, SkipForward, Check } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -17,6 +23,7 @@ export default function ExerciseTimer({
   onComplete,
   externallyPaused,
   onLog,
+  onEvent,
 }: {
   exercise: Exercise;
   onComplete?: () => void;
@@ -27,6 +34,8 @@ export default function ExerciseTimer({
   // used by the "Pause Training" control in the full-screen guided mode,
   // which needs to stop a running countdown from outside this component.
   externallyPaused?: boolean;
+  // Coaching moments (for voice cues in guided mode).
+  onEvent?: (e: TimerEvent) => void;
 }) {
   const timing = parseTiming(exercise.detail);
   const { tx } = useLanguage();
@@ -48,6 +57,15 @@ export default function ExerciseTimer({
   const logRef = useRef<TimerLog>({ ...EMPTY_TIMER_LOG, sets: [], rests: [] });
   const onLogRef = useRef(onLog);
   onLogRef.current = onLog;
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
+  // state updaters can run twice in development — emit each moment once
+  const lastEvent = useRef("");
+  const emitEvent = (e: TimerEvent, key: string) => {
+    if (lastEvent.current === key) return;
+    lastEvent.current = key;
+    onEventRef.current?.(e);
+  };
   const meter = useRef({ start: 0, pausedMs: 0, maxPauseMs: 0, pauseStart: null as number | null, hiddenMs: 0, hiddenStart: null as number | null });
 
   const startMeter = () => {
@@ -194,12 +212,14 @@ export default function ExerciseTimer({
     recordWork(remaining);
     if (isLastSet) {
       playCompleteSound();
+      emitEvent({ type: "done" }, `done-${set}`);
       setPhase("done");
       setRunning(false);
       return;
     }
     playRestSound();
     startMeter();
+    emitEvent({ type: "rest", seconds: exercise.restSeconds || 30 }, `rest-${set}`);
     setPhase("rest");
     setSecondsLeft(exercise.restSeconds || 30);
     setRunning(true);
@@ -207,6 +227,7 @@ export default function ExerciseTimer({
 
   const advanceAfterRest = () => {
     recordRest();
+    emitEvent({ type: "setStart", set: set + 1, sets: timing.sets }, `set-${set + 1}`);
     setSet((s) => s + 1);
     // Fully hands-free from here: rest rolls straight into the next set's
     // 3-2-1 countdown rather than waiting for another tap, so a timed
@@ -240,6 +261,8 @@ export default function ExerciseTimer({
     intervalRef.current = setInterval(() => {
       setSecondsLeft((s) => {
         if (s === null) return s;
+        // a heads-up on longer holds, ten seconds out
+        if (phase === "work" && s === 11 && (timing.workSeconds ?? 0) >= 20) emitEvent({ type: "tenLeft" }, `ten-${set}`);
         if (s > 1) return s - 1;
         if (phase === "work") advanceAfterWork(0);
         else advanceAfterRest();
@@ -255,6 +278,7 @@ export default function ExerciseTimer({
   const start = () => {
     if (externallyPaused) return;
     if (phase === "idle") {
+      emitEvent({ type: "setStart", set: 1, sets: timing.sets }, "set-1");
       beginCountdown();
     } else {
       setRunning(true);
@@ -274,6 +298,7 @@ export default function ExerciseTimer({
     firedComplete.current = false;
     // a reset means "start over" — the aborted attempt isn't representative
     logRef.current = { sets: [], rests: [], workPauses: 0 };
+    lastEvent.current = "";
     setRepLog([]);
     emitLog();
   };

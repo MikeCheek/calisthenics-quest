@@ -20,6 +20,7 @@ import { useToast } from "@/context/ToastContext";
 import { Copy, Users } from "lucide-react";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { useLanguage } from "@/context/LanguageContext";
+import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 
 type Mode = "choose" | "create" | "join";
 
@@ -36,7 +37,7 @@ export default function FriendsPage() {
 }
 
 function PairContent() {
-  const { user, userDoc, loading, refreshUserDoc } = useAuth();
+  const { user, userDoc, loading, refreshUserDoc, isGuest } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
@@ -178,6 +179,20 @@ function PairContent() {
     setInvitedName(null);
     setCompleted(false);
   };
+
+  if (isGuest) {
+    return (
+      <>
+        <Nav />
+        <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+          <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
+            <Users size={26} className="text-orange-400" /> {tx("Friends")}
+          </h1>
+          <SaveProgressPrompt reason="Friends, nudges and training together need an account, so others can find you. Save your progress with Google — nothing you've done so far is lost." />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
-import { rankTitle } from "@/lib/xp";
 import { effectiveXpProgress } from "@/lib/levelPath";
 import { Locale } from "@/lib/types";
 import ReminderSettings from "@/components/ReminderSettings";
@@ -97,7 +96,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="heading text-xl text-zinc-100 truncate">{userDoc.displayName}</h1>
-              <div className="text-sm text-orange-400">{tx(rankTitle(progress.level))}</div>
+              <div className="text-sm text-zinc-400">{tx("Level {n}", { n: progress.level })}</div>
               <div className="mt-2 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${progress.pct}%` }} />
               </div>

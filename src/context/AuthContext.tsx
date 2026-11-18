@@ -10,11 +10,16 @@ import {
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInAnonymously,
+  linkWithPopup,
+  signInWithCredential,
+  GoogleAuthProvider,
+  AuthCredential,
   signOut as firebaseSignOut,
   User,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { fetchUserDoc, createUserDoc, ensureFriendCode } from "@/lib/store";
+import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
 import { useToast } from "@/context/ToastContext";
 import {
   DEFAULT_BODY,
@@ -31,7 +36,17 @@ interface AuthContextValue {
   refreshUserDoc: () => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  // Guest mode: an anonymous Firebase account, so everything works before
+  // signing up; saveWithGoogle links Google to that same account.
+  isGuest: boolean;
+  startAsGuest: () => Promise<boolean>;
+  saveWithGoogle: () => Promise<SaveResult>;
+  switchToExistingAccount: () => Promise<void>;
 }
+
+// "exists": that Google account already has BarQuests progress — the
+// caller asks before switching (the guest progress can't be merged in).
+export type SaveResult = "saved" | "exists" | "cancelled" | "error";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -40,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingCredential, setPendingCredential] = useState<AuthCredential | null>(null);
 
   const loadUserDoc = async (u: User) => {
     let doc = await fetchUserDoc(u.uid);
@@ -49,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!doc) {
       doc = {
         uid: u.uid,
-        displayName: u.displayName ?? "Athlete",
+        displayName: u.displayName ?? (u.isAnonymous ? "Guest" : "Athlete"),
         email: u.email ?? "",
         photoURL: u.photoURL ?? undefined,
         body: DEFAULT_BODY,
@@ -72,6 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Backfills a friend code + public profile for pre-existing accounts too,
     // and keeps the public profile's level/streak in sync on every load.
+    // Guests get no friend code or public profile: those are for people
+    // others can find, and guest accounts are often thrown away.
+    if (u.isAnonymous) {
+      setUserDoc(doc);
+      return;
+    }
     try {
       const code = await ensureFriendCode(doc.uid, doc.displayName, doc.photoURL, doc.level, doc.streak);
       doc = { ...doc, friendCode: code };
@@ -110,6 +132,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const startAsGuest = async (): Promise<boolean> => {
+    try {
+      await signInAnonymously(auth);
+      return true;
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      toast.error(
+        code === "auth/operation-not-allowed" || code === "auth/admin-restricted-operation"
+          ? "Guest mode isn't enabled on this server yet — sign in with Google instead."
+          : "Couldn't start a guest session — check your connection and try again."
+      );
+      return false;
+    }
+  };
+
+  // Links Google to the guest account: same uid, so every bit of progress
+  // simply stays where it is — nothing to copy.
+  const saveWithGoogle = async (): Promise<SaveResult> => {
+    if (!auth.currentUser) return "error";
+    try {
+      const result = await linkWithPopup(auth.currentUser, googleProvider);
+      const g = result.user.providerData.find((p) => p.providerId === "google.com");
+      await updateProgress(result.user.uid, {
+        displayName: g?.displayName ?? result.user.displayName ?? "Athlete",
+        email: g?.email ?? result.user.email ?? "",
+        ...(g?.photoURL ? { photoURL: g.photoURL } : {}),
+      });
+      await result.user.reload();
+      setUser(auth.currentUser);
+      if (auth.currentUser) await loadUserDoc(auth.currentUser); // now gets a friend code too
+      toast.success("Progress saved to your Google account.");
+      return "saved";
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return "cancelled";
+      if (code === "auth/credential-already-in-use" || code === "auth/email-already-in-use") {
+        setPendingCredential(GoogleAuthProvider.credentialFromError(err as never));
+        return "exists";
+      }
+      toast.error("Couldn't link your Google account — check your connection and try again.");
+      return "error";
+    }
+  };
+
+  // The Google account already had BarQuests progress: switch to it. The
+  // guest progress on this device is left behind (it can't be merged).
+  const switchToExistingAccount = async () => {
+    if (!pendingCredential) return;
+    try {
+      await signInWithCredential(auth, pendingCredential);
+      setPendingCredential(null);
+      toast.success("Signed in to your existing account.");
+    } catch {
+      toast.error("Couldn't sign in — check your connection and try again.");
+    }
+  };
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -120,7 +199,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, userDoc, loading, refreshUserDoc, signIn, signOut }}
+      value={{
+        user,
+        userDoc,
+        loading,
+        refreshUserDoc,
+        signIn,
+        signOut,
+        isGuest: !!user?.isAnonymous,
+        startAsGuest,
+        saveWithGoogle,
+        switchToExistingAccount,
+      }}
     >
       {children}
     </AuthContext.Provider>

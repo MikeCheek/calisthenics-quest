@@ -18,7 +18,7 @@ import SessionHistory from "@/components/SessionHistory";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import DeclareSkillModal from "@/components/DeclareSkillModal";
 import { effectiveXpProgress } from "@/lib/levelPath";
-import { rankTitle } from "@/lib/xp";
+import { claimCounts, syncClaims } from "@/lib/verification";
 import { StagedSkillKey, TRACK_LABEL } from "@/lib/types";
 import { Sparkles, Target } from "lucide-react";
 
@@ -57,6 +57,7 @@ export default function ProgressPage() {
   }
 
   const progress = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const claims = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
 
   const selectTab = (next: Tab) => {
     setTab(next);
@@ -71,7 +72,8 @@ export default function ProgressPage() {
         <div>
           <h1 className="heading text-2xl text-zinc-100">{tx("Progress")}</h1>
           <p className="text-sm text-zinc-400">
-            {tx("Level {n}", { n: progress.level })} · <span className="text-orange-400">{tx(rankTitle(progress.level))}</span>
+            {tx("Level {n}", { n: progress.level })} ·{" "}
+            <span className="text-emerald-400/90">{tx("{a} of {b} proven in training", { a: claims.verified, b: claims.total })}</span>
           </p>
         </div>
 

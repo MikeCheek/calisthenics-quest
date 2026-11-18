@@ -8,7 +8,6 @@ import SkillRadarChart from "@/components/SkillRadarChart";
 import SkillWall from "@/components/SkillWall";
 import { fetchPublicProfile } from "@/lib/store";
 import { PublicProfile, DEFAULT_SKILLS } from "@/lib/types";
-import { rankTitle } from "@/lib/xp";
 import { ChevronLeft, Flame, Dumbbell } from "lucide-react";
 
 export default function FriendProfilePage() {
@@ -66,7 +65,7 @@ export default function FriendProfilePage() {
           <div>
             <h1 className="heading text-2xl text-zinc-100">{profile.displayName}</h1>
             <p className="text-zinc-400 text-sm">
-              Level {profile.level} · {rankTitle(profile.level)}
+              Level {profile.level}
             </p>
           </div>
         </div>

@@ -20,7 +20,6 @@ import {
   visibleSides,
 } from "@/lib/assessment";
 import { effectiveLevel } from "@/lib/levelPath";
-import { rankTitle } from "@/lib/xp";
 import SkillTabPicker from "@/components/SkillTabPicker";
 import ScrollPicker from "@/components/ScrollPicker";
 import { Check, Settings2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
@@ -318,7 +317,6 @@ export default function SkillAssessmentStep({
       <div className="panel p-5 text-center border-orange-500/40">
         <div className="text-xs text-muted uppercase tracking-wide mb-1">{tx("You're set up around")}</div>
         <div className="heading text-4xl text-zinc-100">{tx("Level {n}", { n: level })}</div>
-        <div className="text-sm text-orange-400 stat-mono mt-1">{rankTitle(level)}</div>
       </div>
       {phase === "summary" && (
         <ul className="panel p-3 space-y-1.5">
