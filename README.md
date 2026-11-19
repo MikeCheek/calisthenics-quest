@@ -43,6 +43,28 @@ and forget how your last session went. BarQuests is built around four ideas:
 - **Made for the bar park.** Sessions use only the equipment you have, pairs can
   train together on one bar, and friends get a weekly challenge.
 
+## Who it's for — and what it isn't
+
+BarQuests is for people who train outdoors and are looking for challenges: skills to
+unlock, sessions that keep up with them, and friends to compete with.
+
+It is **not a replacement for a proper calisthenics course or a coach**:
+
+- **The training plans aren't certified.** Sessions are generated from progressions
+  common in calisthenics; they haven't been written or reviewed by a certified coach,
+  trainer or physiotherapist.
+- **Nobody checks what you're actually doing.** A trainer at the gym watches your
+  technique and corrects it on the spot. The app only knows what you tap and what the
+  timer measures: a Skill Check confirms you reached a number of reps or seconds, not
+  that your form was right.
+- **It doesn't know your body.** Pain, injuries, mobility limits and health conditions
+  aren't taken into account beyond what you tell it.
+
+If you're starting out, coming back from an injury, or working toward demanding skills
+like the planche or iron cross, learning the basics from a qualified coach is the safer
+route. Warm up, stop when something hurts, and check with a doctor before starting if
+you have any health concerns.
+
 ## Features
 
 ### Getting started
