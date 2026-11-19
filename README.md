@@ -13,6 +13,7 @@ front lever, planche, muscle-up, handstand and 46 more skills.
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38bdf8?logo=tailwindcss&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5a0fc8)
 ![Languages](https://img.shields.io/badge/languages-EN%20%7C%20IT-orange)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
 <br/>
 
@@ -317,6 +318,10 @@ docs/
 ## Documentation
 
 - [Developer notes](docs/DEVELOPER_NOTES.md) — how individual features work and why.
+
+## License
+
+[MIT](LICENSE) © 2026 Michele Pulvirenti
 
 ## Author
 

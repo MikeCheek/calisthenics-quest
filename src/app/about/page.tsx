@@ -89,29 +89,39 @@ export default function AboutPage() {
           <div className="text-sm text-zinc-300 space-y-3">
             <p>
               <span className="text-zinc-100 font-medium">What&apos;s collected.</span> When you sign in
-              with Google, BarQuests stores your name, email address, and profile photo. Beyond that,
-              it stores what you enter directly: your body stats, which equipment you have, your skill
-              stages and self-assessed mastery, training sessions and streaks, XP and level, weekly
-              missions progress, friend connections, and your notification and language preferences.
+              with Google, BarQuests stores your name, email address, and profile photo. If you train as
+              a guest, none of those exist — just an anonymous account until you choose to save with
+              Google. Beyond that, it stores what you enter or log: your body stats, which equipment you
+              have, your skill stages and mastery, your assessment answers and which of them have been
+              verified in Skill Checks, a history of every session you finish (exercises, sets, reps,
+              hold times and duration), personal records, what the app has learned from your training
+              (which exercises felt too hard, your usual rest), XP, level, streaks, missions, weekly
+              totals, friend connections, and your notification and language preferences.
             </p>
             <p>
               <span className="text-zinc-100 font-medium">What it&apos;s used for.</span> Exclusively to
-              run the app: generating training sessions matched to your level and equipment, tracking
-              your progress, and enabling the social features (friend codes, nudges, paired training)
-              you choose to use.
+              run the app: generating training sessions matched to your level, equipment and history,
+              tracking your progress, and enabling the social features (friend codes, nudges, paired
+              training, the weekly leaderboard) you choose to use.
             </p>
             <p>
               <span className="text-zinc-100 font-medium">Where it lives.</span> Your data is stored in
               Google Firebase (Firestore and Authentication), Google&apos;s cloud infrastructure. If you
-              use the optional AI features (exercise tips, plan coaching, AI plan review), the relevant
-              exercise names and a short skill/equipment summary — never your name, email, or photo —
-              are sent to OpenRouter to generate that response. Friends you add can see a public summary
-              of your profile (name, photo, level, streak, XP, skills) — nothing else.
+              use the optional AI features, training data is sent to OpenRouter to generate the
+              response — never your name, email, photo or body stats. For exercise tips, plan coaching
+              and plan review that&apos;s the exercises involved and a short skill/equipment summary. For
+              &ldquo;Ask your coach&rdquo; it&apos;s your skill levels, what you&apos;ve verified or found
+              hard, your equipment, your recent sessions and the questions you type; the conversation
+              itself isn&apos;t stored on a server. A public summary of your profile is readable by other
+              signed-in users (they find you through your friend code): name, photo, level, streak, XP,
+              session count, skills and mastery, and this week&apos;s totals for the leaderboard
+              (sessions, minutes, skills proven, XP) — nothing else. Guests have no public profile.
             </p>
             <p>
               <span className="text-zinc-100 font-medium">Your control.</span> You can remove a friend,
-              turn off notifications, or change your language at any time from your profile. To request
-              a copy of your data or full account deletion, reach out through the GitHub link above.
+              turn off notifications, or change your language at any time from your profile. Under
+              Profile &rarr; Account you can download a copy of your data, reset parts of it, or
+              permanently delete your account — which also removes you from your friends&apos; lists.
             </p>
           </div>
         </div>
@@ -126,13 +136,18 @@ export default function AboutPage() {
               BarQuests doesn&apos;t use tracking or advertising cookies — there are no ads, no
               analytics trackers, and nothing here is sold or shared with advertisers.
             </p>
-            <p>What the app does store locally on your device, all functional and non-personal:</p>
+            <p>What the app does store locally on your device — all of it functional, and none of it sent anywhere by the app:</p>
             <ul className="list-disc list-inside space-y-1 text-zinc-400">
               <li>Your signed-in session, via Firebase Authentication&apos;s own browser storage</li>
               <li>Your chosen language (English/Italiano), so it persists across visits</li>
               <li>Which reminder message was shown last, so they rotate instead of repeating</li>
+              <li>Whether you turned voice coaching and lock-screen controls on</li>
+              <li>Your &ldquo;Ask your coach&rdquo; conversation, only until you close the tab</li>
+              <li>
+                Skill Check videos you choose to record — kept only on this device, never uploaded
+              </li>
             </ul>
-            <p>Clearing your browser&apos;s site data removes all of it.</p>
+            <p>Clearing your browser&apos;s site data removes all of it, including any recorded videos.</p>
           </div>
         </div>
 
