@@ -19,6 +19,7 @@ import { useToast } from "@/context/ToastContext";
 import { Play, ChevronDown, Dices } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
+import PageLoading from "@/components/PageLoading";
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
@@ -80,7 +81,7 @@ export default function TrainingPage() {
   const displayedSession = aiAppliedSession ?? fitted?.session ?? null;
 
   if (loading || !userDoc || !displayedSession) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => {

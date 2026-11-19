@@ -13,6 +13,7 @@ import { Sparkles, ChevronDown, ChevronUp, Moon } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import TrainSwitcher from "@/components/TrainSwitcher";
 import { authedFetch } from "@/lib/apiClient";
+import PageLoading from "@/components/PageLoading";
 
 const RANGE_OPTIONS: { value: PlanRange; label: string }[] = [
   { value: "day", label: "Today" },
@@ -109,7 +110,7 @@ export default function PlanPage() {
   };
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const trainingDays = plan.filter((d) => !d.isRestDay).length;

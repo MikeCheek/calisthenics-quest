@@ -31,6 +31,7 @@ import { playBeep } from "@/lib/sound";
 import { Sparkles, X, Shuffle } from "lucide-react";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
+import PageLoading from "@/components/PageLoading";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -74,7 +75,7 @@ export default function WheelPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>
+        <PageLoading />
       }
     >
       <WheelContent />
@@ -129,7 +130,7 @@ function WheelContent() {
   }, [userDoc, track, difficulty, spinPhase]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const playerLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);

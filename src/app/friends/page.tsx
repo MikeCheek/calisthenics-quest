@@ -22,6 +22,7 @@ import { Copy, Users } from "lucide-react";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
+import PageLoading from "@/components/PageLoading";
 
 type Mode = "choose" | "create" | "join";
 
@@ -29,7 +30,7 @@ export default function FriendsPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>
+        <PageLoading />
       }
     >
       <PairContent />
@@ -74,7 +75,7 @@ function PairContent() {
   }, [code]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const handleCreate = async () => {

@@ -20,6 +20,7 @@ import OnboardingStepper from "@/components/OnboardingStepper";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { Celebration } from "@/lib/sessionComplete";
 import { useToast } from "@/context/ToastContext";
+import PageLoading from "@/components/PageLoading";
 
 const CELEBRATION_MS = 2600;
 
@@ -35,7 +36,7 @@ export default function OnboardingPage() {
   }, [loading, user, router]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const handleSave = async (

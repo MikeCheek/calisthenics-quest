@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { guardAiRequest } from "@/lib/server/aiGuard";
+import { guardAiRequest, upstreamFailure } from "@/lib/server/aiGuard";
 
 export const runtime = "nodejs";
 
@@ -74,7 +74,7 @@ ${context || "(no data available)"}`;
     });
     if (!res.ok) {
       console.log(`${LOG_TAG} request failed`, { status: res.status, model });
-      return NextResponse.json({ error: `The coach couldn't answer right now (${res.status}).` }, { status: 502 });
+      return upstreamFailure(res.status);
     }
     const data = await res.json();
     const reply = extractContentText(data?.choices?.[0]?.message)

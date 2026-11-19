@@ -7,6 +7,7 @@ import { levelForSkillStage, requiredLevelForMastery, canClaimMastery } from "@/
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
 import { Lock } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -39,6 +40,7 @@ export default function SkillTabPicker({
 }) {
   const [active, setActive] = useState<StagedSkillKey>("frontLever");
   const [infoSkill, setInfoSkill] = useState<StagedSkillKey | null>(null);
+  const { tx } = useLanguage();
   const stages = STAGE_ORDER[active] ?? ["none"];
   const currentStage = skills[active] as string;
   const currentMastery = mastery[active] ?? DEFAULT_MASTERY;
@@ -63,7 +65,7 @@ export default function SkillTabPicker({
                   : "border-zinc-700 text-zinc-400"
               }`}
             >
-              {SKILL_FIELD_LABEL[s]}
+              {tx(SKILL_FIELD_LABEL[s])}
             </button>
           );
         })}
@@ -72,10 +74,10 @@ export default function SkillTabPicker({
       <div className="panel p-3 mt-1">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <div className="heading text-sm text-zinc-100">{SKILL_FIELD_LABEL[active]}</div>
-            <InfoIconButton onClick={() => setInfoSkill(active)} label={`About ${SKILL_FIELD_LABEL[active]}`} />
+            <div className="heading text-sm text-zinc-100">{tx(SKILL_FIELD_LABEL[active])}</div>
+            <InfoIconButton onClick={() => setInfoSkill(active)} label={tx("About {skill}", { skill: tx(SKILL_FIELD_LABEL[active]) })} />
           </div>
-          <div className="stat-mono text-xs text-orange-400">{STAGE_LABEL[currentStage] ?? currentStage}</div>
+          <div className="stat-mono text-xs text-orange-400">{tx(STAGE_LABEL[currentStage] ?? currentStage)}</div>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
           {stages.map((stage) => (
@@ -89,7 +91,7 @@ export default function SkillTabPicker({
                   : "border-zinc-700 text-zinc-400"
               }`}
             >
-              {STAGE_LABEL[stage] ?? stage}
+              {tx(STAGE_LABEL[stage] ?? stage)}
             </button>
           ))}
         </div>
@@ -97,7 +99,7 @@ export default function SkillTabPicker({
         {currentStage !== "none" && (
           <div className="mt-3 pt-3 border-t border-zinc-800">
             <div className="text-xs text-zinc-400 mb-1.5">
-              How solid is your {STAGE_LABEL[currentStage] ?? currentStage}?
+              {tx("How solid is your {stage}?", { stage: tx(STAGE_LABEL[currentStage] ?? currentStage) })}
             </div>
             <div className="flex gap-1.5">
               {MASTERY_VALUES.map((m) => {
@@ -124,7 +126,7 @@ export default function SkillTabPicker({
               })}
             </div>
             <div className="text-xs text-muted mt-1.5">
-              {MASTERY_LABEL[currentMastery]} — {MASTERY_HINT[currentMastery]}
+              {tx(MASTERY_LABEL[currentMastery])} — {tx(MASTERY_HINT[currentMastery])}
             </div>
             {(() => {
               const nextLocked = MASTERY_VALUES.find((m) => !canClaimMastery(nodeLevel, m, liveLevel));
@@ -132,7 +134,7 @@ export default function SkillTabPicker({
               const req = requiredLevelForMastery(nodeLevel, nextLocked);
               return (
                 <div className="text-xs text-muted mt-1">
-                  {MASTERY_LABEL[nextLocked]} and above unlock around level {req}.
+                  {tx("{mastery} and above unlock around level {n}.", { mastery: tx(MASTERY_LABEL[nextLocked]), n: req })}
                 </div>
               );
             })()}

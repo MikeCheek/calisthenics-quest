@@ -6,11 +6,10 @@ import { wheelPoolWeighted } from "@/lib/wheelPool";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizedDescription } from "@/lib/exerciseTiming";
 import ExerciseTimer from "@/components/ExerciseTimer";
-import ExerciseTipButton from "@/components/ExerciseTipButton";
 import { playBeep } from "@/lib/sound";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
-import { Dices } from "lucide-react";
+import { Dices, Sparkles } from "lucide-react";
 
 // A curated slice of the full 50-skill roster — enough variety to show
 // range (beginner-friendly through absurd) without listing all 50 on a
@@ -131,8 +130,10 @@ export default function LandingWheelDemo() {
           <div className="text-sm font-medium text-zinc-100">{result.name}</div>
           <div className="text-xs text-zinc-400 mb-2">{result.detail}</div>
           {result.description && <p className="text-xs text-zinc-300 mb-2">{localizedDescription(result, locale)}</p>}
-          <div className="mb-2">
-            <ExerciseTipButton exerciseName={result.name} exerciseDetail={result.detail} trackLabel={SKILL_FIELD_LABEL[skill]} />
+          {/* the AI routes need an account, so visitors get a pointer instead of a button that would refuse */}
+          <div className="mb-2 text-xs text-zinc-400 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-orange-400 shrink-0" />
+            {tx("AI technique tips for every exercise unlock when you sign in — or try it as a guest.")}
           </div>
           <ExerciseTimer exercise={result} />
           <div className="text-xs text-muted mt-3 text-center">
