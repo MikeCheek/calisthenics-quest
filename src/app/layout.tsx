@@ -10,6 +10,7 @@ import ReminderScheduler from "@/components/ReminderScheduler";
 import PingsListener from "@/components/PingsListener";
 import TrainingSessionOverlays from "@/components/TrainingSessionOverlays";
 import LocaleSync from "@/components/LocaleSync";
+import DemoBadge from "@/components/DemoBadge";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -72,6 +73,7 @@ export default function RootLayout({
           </LanguageProvider>
         </ToastProvider>
         <PWARegister />
+        <DemoBadge />
       </body>
     </html>
   );

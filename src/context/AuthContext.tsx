@@ -20,6 +20,7 @@ import {
   User,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
+import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
 import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -112,6 +113,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // the inline NODE_ENV check lets production builds drop this branch entirely
+    if (process.env.NODE_ENV === "development" && DEMO_MODE) {
+      // example athlete, no Firebase (see lib/demoMode)
+      const demoUser = {
+        uid: DEMO_UID,
+        isAnonymous: false,
+        displayName: "Alex Demo",
+        email: "demo@example.com",
+        photoURL: null,
+        providerData: [],
+        getIdToken: async () => "",
+      } as unknown as User;
+      setUser(demoUser);
+      loadUserDoc(demoUser).finally(() => setLoading(false));
+      return;
+    }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {

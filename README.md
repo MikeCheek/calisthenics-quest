@@ -249,10 +249,17 @@ service cloud.firestore {
 
 ```bash
 npm run dev        # http://localhost:3000
+npm run demo       # same, signed in as an example athlete — no Firebase needed
 npm test           # unit tests
 npm run lint
 npm run build && npm start   # production build
 ```
+
+**Demo mode** (`npm run demo`) signs in a fictional athlete with three weeks of example
+training, friends and Skill Checks, all kept in memory, so you can try every signed-in
+screen without a Firebase project. A "DEMO" tab on the left edge marks it. It only runs on
+the development server: production builds never include it. AI features need a real
+login, so they don't answer in demo mode.
 
 On a phone (or any production build) the app can be installed from the browser's
 *Add to Home Screen* / install prompt — it ships a web manifest and a service worker.
@@ -285,6 +292,7 @@ src/
     ├── shareCards.ts                           # share-card SVG builder
     ├── leaderboard.ts, coachContext.ts         # friends board, AI coach context
     ├── server/                                 # AI route login check + rate limits
+    ├── demoMode/                               # example athlete + in-memory store (npm run demo)
     └── i18n/                                   # English/Italian phrase tables
 tests/                   # unit tests for the modules above
 docs/
