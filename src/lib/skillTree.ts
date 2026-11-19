@@ -26,11 +26,18 @@ export interface NextUnlock {
   requiredLevel: number; // roughly where the next stage sits on the trophy road
   isGoal: boolean;
   verified: boolean; // the current stage has been proven in training
+  unconfirmed: boolean; // a Skill Check on the current stage was missed — prove it first
 }
 
-// Ranks the next stage of every skill the athlete has started: goals first,
-// then whatever is closest (highest mastery on the current stage), then
-// what sits nearest their level. Not-started athletes get first stages.
+// Ranks the next stage of every skill: the one the athlete is closest to
+// first, then what sits nearest their level on the trophy road.
+//   closeness = mastery on the current stage, plus a bonus when that stage
+//               is verified and a penalty when its Skill Check was missed
+//               (prove what you have before reaching for the next stage)
+//   road      = how far the next stage sits above the athlete's level
+// Goals are a nudge (worth about one mastery step), not an override.
+// Started skills come before untouched ones; athletes who haven't started
+// anything get reachable first stages.
 export function nextUnlocks(
   skills: SkillProfile,
   mastery: Partial<Record<StagedSkillKey, SkillMastery>>,
@@ -56,8 +63,12 @@ export function nextUnlocks(
     // started skills and goals are what "next" means; untouched skills only
     // when they're within reach of the athlete's level
     if (!started && !isGoal && requiredLevel > playerLevel + 3) continue;
-    const score =
-      (isGoal ? 100 : 0) + (started ? 40 + m * 8 : 0) - Math.max(0, requiredLevel - playerLevel) * 2 - (started ? 0 : requiredLevel * 0.1);
+    const status = claims?.[skill]?.status;
+    const verified = started && status === "verified";
+    const unconfirmed = started && status === "unconfirmed";
+    const closeness = started ? m * 8 + (verified ? 12 : 0) - (unconfirmed ? 16 : 0) : 0;
+    const road = -Math.max(0, requiredLevel - playerLevel) * 2;
+    const score = (started ? 40 : -requiredLevel * 0.1) + closeness + road + (isGoal ? 8 : 0);
     options.push({
       skill,
       fromStage: stage,
@@ -65,7 +76,8 @@ export function nextUnlocks(
       mastery: m,
       requiredLevel,
       isGoal,
-      verified: claims?.[skill]?.status === "verified",
+      verified,
+      unconfirmed,
       score,
     });
   }

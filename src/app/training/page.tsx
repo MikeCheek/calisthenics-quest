@@ -89,10 +89,10 @@ export default function TrainingPage() {
         feedback,
         durationMin: meta.durationMin,
       });
-      setXpGained((patch.xp ?? userDoc.xp) - userDoc.xp);
+      const gained = (patch.xp ?? userDoc.xp) - userDoc.xp;
+      setXpGained(gained);
       setCompleted(true);
-      setCelebration(c);
-      showReport(report);
+      if (!showReport(report, { celebration: c, xpGained: gained })) setCelebration(c);
       await refreshUserDoc();
     } catch {
       toast.error("Couldn't log your session — check your connection and try again.");

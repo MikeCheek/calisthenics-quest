@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
 import { SKILL_DESCRIPTIONS } from "@/lib/skillDescriptions";
+import { SKILL_DESCRIPTIONS_IT } from "@/lib/skillDescriptions.it";
 import {
   StagedSkillKey,
   SkillProfile,
@@ -35,7 +36,7 @@ export default function SkillInfoModal({
   showTrainCta?: boolean;
 }) {
   const router = useRouter();
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
 
   if (!skill) return null;
 
@@ -52,7 +53,7 @@ export default function SkillInfoModal({
 
   return (
     <Modal open={!!skill} onClose={onClose} title={tx(SKILL_FIELD_LABEL[skill])}>
-      <p className="text-sm text-zinc-300 mb-3">{SKILL_DESCRIPTIONS[skill]}</p>
+      <p className="text-sm text-zinc-300 mb-3">{(locale === "it" ? SKILL_DESCRIPTIONS_IT : SKILL_DESCRIPTIONS)[skill]}</p>
 
       {stage !== null && (
         <div className="text-xs text-muted mb-3">

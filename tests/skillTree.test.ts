@@ -3,16 +3,34 @@ import assert from "node:assert/strict";
 import { nextUnlocks, nextMilestones, stageStates } from "../src/lib/skillTree";
 import { DEFAULT_SKILLS, SkillProfile } from "../src/lib/types";
 
-test("up next: goals first, then what's reachable at your level before far-off stages", () => {
+test("up next: closest to the next stage first, then nearest your level — goals don't jump the queue", () => {
   const skills: SkillProfile = { ...DEFAULT_SKILLS, frontLever: "tuck", handstand: "wall", lSit: "tuck" };
-  // freestanding handstand sits at ~level 44 on the road; one-leg L-sit at ~13
+  // at level 20: one-leg L-sit sits at ~13 on the road, freestanding
+  // handstand at ~44, advanced-tuck front lever at ~40
   const next = nextUnlocks(skills, { frontLever: 2, handstand: 5, lSit: 4 }, ["frontLever"], {}, 20);
-  assert.equal(next.length, 3);
   assert.deepEqual(
     next.map((u) => [u.skill, u.toStage]),
-    [["frontLever", "advancedTuck"], ["lSit", "advanced"], ["handstand", "freestanding"]]
+    [["lSit", "advanced"], ["handstand", "freestanding"], ["frontLever", "advancedTuck"]]
   );
-  assert.equal(next[0].isGoal, true);
+  assert.equal(next[2].isGoal, true);
+});
+
+test("a goal breaks a tie between otherwise equal skills", () => {
+  const skills: SkillProfile = { ...DEFAULT_SKILLS, frontLever: "tuck", backLever: "tuck" };
+  const plain = nextUnlocks(skills, { frontLever: 3, backLever: 3 }, [], {}, 45);
+  const withGoal = nextUnlocks(skills, { frontLever: 3, backLever: 3 }, ["backLever"], {}, 45);
+  assert.equal(withGoal[0].skill, "backLever");
+  assert.ok(plain.length >= 2);
+});
+
+test("a verified stage moves up; a missed Skill Check moves down and is flagged", () => {
+  const skills: SkillProfile = { ...DEFAULT_SKILLS, frontLever: "tuck", backLever: "tuck" };
+  const claim = (status: "verified" | "unconfirmed") => ({ value: "tuck", status, claimedAt: "", fails: status === "unconfirmed" ? 1 : 0 });
+  const verifiedBack = nextUnlocks(skills, { frontLever: 3, backLever: 3 }, [], { backLever: claim("verified") }, 45);
+  assert.equal(verifiedBack[0].skill, "backLever");
+  const missedFront = nextUnlocks(skills, { frontLever: 4, backLever: 3 }, [], { frontLever: claim("unconfirmed") }, 45);
+  assert.equal(missedFront[0].skill, "backLever");
+  assert.equal(missedFront.find((u) => u.skill === "frontLever")?.unconfirmed, true);
 });
 
 test("at a level where both are reachable, the higher-mastery skill comes first", () => {

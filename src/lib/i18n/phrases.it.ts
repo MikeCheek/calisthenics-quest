@@ -826,6 +826,14 @@ const IT_PHRASES: [string, string][] = [
   ["The AI coach is busy — try again in a minute.", "Il coach AI è occupato — riprova tra un minuto."],
   ["You've asked the AI coach a lot recently — try again in a few minutes.", "Hai fatto molte richieste al coach AI di recente — riprova tra qualche minuto."],
   ["You've reached today's AI coach limit — it resets within a day.", "Hai raggiunto il limite giornaliero del coach AI — si azzera entro un giorno."],
+  // ---- post-session summary, up next ----
+  ["Session logged", "Sessione registrata"],
+  ["Level {n}!", "Livello {n}!"],
+  ["Streak up — {n} days in a row", "Serie in crescita — {n} giorni di fila"],
+  ["Streak unfrozen — {n} days, rest days don't break it", "Serie scongelata — {n} giorni, i giorni di riposo non la interrompono"],
+  ["Fresh start — the streak begins again today", "Si riparte — la serie ricomincia oggi"],
+  ["+{n} XP", "+{n} XP"],
+  ["Prove {stage} in a Skill Check first — it'll come up in a session soon.", "Prima dimostra {stage} in uno Skill Check — arriverà presto in una sessione."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

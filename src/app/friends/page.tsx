@@ -159,14 +159,13 @@ function PairContent() {
   const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => {
     if (!mySession) return;
     try {
-      const { celebration: c, report } = await completeSession(userDoc, mySession, {
+      const { patch, celebration: c, report } = await completeSession(userDoc, mySession, {
         isPaired: true,
         feedback,
         durationMin: meta.durationMin,
       });
       setCompleted(true);
-      setCelebration(c);
-      showReport(report);
+      if (!showReport(report, { celebration: c, xpGained: (patch.xp ?? userDoc.xp) - userDoc.xp })) setCelebration(c);
       await refreshUserDoc();
     } catch {
       toast.error("Couldn't log your session — check your connection and try again.");

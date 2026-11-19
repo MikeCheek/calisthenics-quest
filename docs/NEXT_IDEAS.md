@@ -30,14 +30,13 @@ Unit tests and builds pass, but these flows depend on real browsers, phones or s
 
 ## 2. Decisions to make
 
-- **Post-session pop-ups**: how often to ask "how did that feel?" and show celebrations
-  before they feel noisy. Maybe at most one prompt per session.
-- **"Up next" ranking**: what should come first on the dashboard — the skill closest
-  to being proven, the one trained least recently, or the one on the trophy road?
-- **Skill descriptions in Italian**: the 50 skill descriptions in the skill info pop-up
-  are still English only. Translate them, or keep them English like the exercise names?
 - **Rank and exercise names**: they stay in English on purpose (the community uses
   them). Confirm that's what Italian users want.
+
+Decided and done: a session now ends in a single summary window (level-up, streak and
+XP sit at the top of the report instead of separate overlays and toasts); "Up next"
+ranks by how close you are to the next stage, then by trophy-road distance, with goals
+as a tie-breaker; the skill descriptions are translated to Italian.
 
 ## 3. Bigger work
 
