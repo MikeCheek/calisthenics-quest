@@ -17,7 +17,7 @@ front lever, planche, muscle-up, handstand and 46 more skills.
 
 <br/>
 
-<img src="docs/screenshots/dashboard.png" width="200" alt="Dashboard: level and verified skills" />
+<img src="docs/screenshots/dashboard.png" width="200" alt="Today: the session, the week and one goal" />
 <img src="docs/screenshots/session.png" width="200" alt="Today's session, fitted to your time" />
 <img src="docs/screenshots/guided-mode.png" width="200" alt="Guided training with an animated demonstration" />
 <img src="docs/screenshots/share-card.png" width="200" alt="Shareable session card" />
@@ -75,13 +75,28 @@ and forget how your last session went. BarQuests is built around four ideas:
 - **Coach update** — after each session: mastery changes, new personal records,
   stage-up suggestions you accept or postpone, and a share button.
 
-### Progress
+### Today
+- **Today's session first** — the exercises, time and XP on the first screen, started
+  in one tap; the week's done and planned days beside it, plus one goal to aim at
+  (today's Skill Check, or the next skill to unlock).
+
+### Skills
 - **Headline** — your level and how many skills you've proven, front and centre.
-- **Skill tree** — “Up next” pins the most worthwhile next stages; every skill shows its
+- **Skill tree** — “Up next” pins the stages you're closest to; every skill shows its
   chain of stages with your current one highlighted.
-- **History** — a calendar, month totals, every session with its sets, and personal bests.
+- **Proven** — verified skills, the skill wall and the skill radar.
 - **Trophy road** — the next milestones, with the full level-by-level road one tap away.
+
+### Coach
 - **Ask your coach** — an AI chat that answers questions about *your* training data.
+- **Coach insights** — what the app has learned from your sessions: what's going well,
+  what's being eased off, and your real rest and hold times.
+- **AI review and planning** — check today's session against your level, plan the week,
+  or spin the bonus wheel.
+
+### Me
+- **Activity** — your XP over time, a calendar, month totals, every session with its
+  sets, and personal bests.
 
 ### Social
 - **Friends** — add by code, nudge each other, and see a **weekly leaderboard** with a
@@ -275,8 +290,8 @@ works there.
 
 ```
 src/
-├── app/                 # routes: dashboard, training, plan, progress, friends,
-│   │                    # profile, onboarding, wheel, about, landing
+├── app/                 # routes: dashboard (Today), training, plan, skills, coach,
+│   │                    # friends (Crew), profile (Me), onboarding, wheel, about, landing
 │   └── api/             # AI routes: coach-chat, exercise-tip, plan-review, plan-coach
 ├── components/          # UI (guided mode, session view, skill tree, share sheet, …)
 ├── context/             # auth, training session, language, toasts

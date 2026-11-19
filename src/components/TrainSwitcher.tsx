@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { CalendarDays, Dumbbell } from "lucide-react";
 
-// Today's session and the week plan are two views of the same Train tab.
+// The full session and the week plan: two views under the Today tab.
 export default function TrainSwitcher({ active }: { active: "today" | "week" }) {
   const { tx } = useLanguage();
   const item = (key: "today" | "week", href: string, label: string, Icon: typeof Dumbbell) => (
@@ -20,7 +20,7 @@ export default function TrainSwitcher({ active }: { active: "today" | "week" }) 
   );
   return (
     <div className="flex gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
-      {item("today", "/training", "Today", Dumbbell)}
+      {item("today", "/training", "Session", Dumbbell)}
       {item("week", "/plan", "This week", CalendarDays)}
     </div>
   );

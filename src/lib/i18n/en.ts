@@ -8,6 +8,7 @@ export interface TranslationDict {
   nav: {
     home: string;
     train: string;
+    coach: string;
     skills: string;
     pair: string;
     progress: string;
@@ -61,11 +62,12 @@ const en: TranslationDict = {
   nav: {
     home: "Today",
     train: "Train",
+    coach: "Coach",
     skills: "Skills",
     pair: "Pair",
     progress: "Progress",
-    friends: "Friends",
-    profile: "Profile",
+    friends: "Crew",
+    profile: "Me",
     signOut: "Sign out",
   },
   dashboard: {

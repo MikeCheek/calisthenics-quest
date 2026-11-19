@@ -10,10 +10,11 @@ const it: TranslationDict = {
   nav: {
     home: "Oggi",
     train: "Allena",
-    skills: "Abilità",
+    coach: "Coach",
+    skills: "Skill",
     pair: "Coppia",
     progress: "Progressi",
-    friends: "Amici",
+    friends: "Squadra",
     profile: "Profilo",
     signOut: "Esci",
   },

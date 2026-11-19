@@ -28,7 +28,7 @@ export const ABOUT = {
     "Your data is stored in Google Firebase (Firestore and Authentication), Google's cloud infrastructure. If you use the optional AI features, training data is sent to OpenRouter to generate the response — never your name, email, photo or body stats. For exercise tips, plan coaching and plan review that's the exercises involved and a short skill/equipment summary. For “Ask your coach” it's your skill levels, what you've verified or found hard, your equipment, your recent sessions and the questions you type; the conversation itself isn't stored on a server. A public summary of your profile is readable by other signed-in users (they find you through your friend code): name, photo, level, streak, XP, session count, skills and mastery, and this week's totals for the leaderboard (sessions, minutes, skills proven, XP) — nothing else. Guests have no public profile.",
   controlLead: "Your control.",
   control:
-    "You can remove a friend, turn off notifications, or change your language at any time from your profile. Under Profile → Account you can download a copy of your data, reset parts of it, or permanently delete your account — which also removes you from your friends' lists.",
+    "You can remove a friend, turn off notifications, or change your language at any time from your profile. Under Me → Account you can download a copy of your data, reset parts of it, or permanently delete your account — which also removes you from your friends' lists.",
 
   cookieTitle: "Cookie policy",
   cookieIntro:

@@ -33,7 +33,7 @@ export default function NextGoalCard({ userDoc, check, playerLevel }: { userDoc:
   const next = nextUnlocks(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.goalTracks ?? [], userDoc.claims, playerLevel, 1)[0];
   if (!next) return null;
   return (
-    <Link href="/progress?tab=skills" className="panel p-4 flex items-center gap-3 hover:border-orange-500/50 transition-colors">
+    <Link href="/skills" className="panel p-4 flex items-center gap-3 hover:border-orange-500/50 transition-colors">
       <span className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
         <Target size={19} className="text-orange-400" />
       </span>

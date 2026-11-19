@@ -3,6 +3,7 @@ import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_NOTIFICATIONS, DEFAULT_SKILLS 
 import { generateSession } from "../trainingGenerator";
 import { effectiveLevel } from "../levelPath";
 import { currentWeekKey, generateWeeklyMissions } from "../missions";
+import { statKey } from "../adaptation";
 
 // Example data for demo mode (see flag.ts). Fictional athlete, clearly
 // labeled in the UI; never written anywhere.
@@ -112,6 +113,15 @@ export function demoUserDoc(): UserDoc {
       pullUpMaxReps: { value: 14, status: "verified", claimedAt: iso(60), verifiedAt: iso(15), fails: 0, best: 15 },
     },
     week: { key: weekKey, sessions: 2, minutes: 86, verified: 1, xp: 410 },
+    // what the adaptive engine has "learned", so Coach insights has content
+    exerciseStats: {
+      [statKey("Pull-ups")]: { p: -4, done: 11, skipped: 0, tooHard: 0, rp: [1.1, 1.05, 1.1], last: iso(2) },
+      [statKey("Wall handstand shoulder taps")]: { p: -3, done: 7, skipped: 0, tooHard: 0, last: iso(6) },
+      [statKey("Tuck planche holds")]: { p: 3, done: 2, skipped: 1, tooHard: 2, hr: [0.6, 0.7], last: iso(4) },
+      [statKey("Negative pull-ups")]: { p: 0, done: 6, skipped: 0, tooHard: 0, rr: [1.4, 1.3, 1.5], last: iso(2) },
+    },
+    skillProgress: { backLever: { score: 4 }, lSit: { score: 3 } },
+    transitionRest: [1.3, 1.2, 1.35],
   };
 }
 

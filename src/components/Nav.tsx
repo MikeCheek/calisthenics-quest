@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { effectiveXpProgress } from "@/lib/levelPath";
-import { Home, Dumbbell, Users, User, TrendingUp, BadgeCheck } from "lucide-react";
+import { CalendarCheck, Layers, Bot, Users, User, BadgeCheck } from "lucide-react";
 import { claimCounts, syncClaims } from "@/lib/verification";
 
 export default function Nav() {
@@ -16,11 +16,11 @@ export default function Nav() {
   const claims = userDoc ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
 
   // Each tab owns a group of routes, so it stays highlighted on its
-  // sub-pages (the plan and the wheel are part of Train, etc.).
+  // sub-pages (the full session and the week plan belong to Today, etc.).
   const TABS = [
-    { href: "/dashboard", label: t("nav", "home"), icon: Home, routes: ["/dashboard"] },
-    { href: "/training", label: t("nav", "train"), icon: Dumbbell, routes: ["/training", "/plan", "/wheel"] },
-    { href: "/progress", label: t("nav", "progress"), icon: TrendingUp, routes: ["/progress", "/skills", "/path"] },
+    { href: "/dashboard", label: t("nav", "home"), icon: CalendarCheck, routes: ["/dashboard", "/training", "/plan"] },
+    { href: "/skills", label: t("nav", "skills"), icon: Layers, routes: ["/skills", "/progress", "/path"] },
+    { href: "/coach", label: t("nav", "coach"), icon: Bot, routes: ["/coach", "/wheel"] },
     { href: "/friends", label: t("nav", "friends"), icon: Users, routes: ["/friends", "/friend/", "/pair"] },
     { href: "/profile", label: t("nav", "profile"), icon: User, routes: ["/profile"] },
   ];
@@ -36,7 +36,7 @@ export default function Nav() {
           </Link>
           {/* sign-out lives in Profile → Account; the header just shows where you stand */}
           {progress && (
-            <Link href="/progress" className="text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2">
+            <Link href="/skills" className="text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2">
               <span>LV {progress.level}</span>
               {claims.total > 0 && (
                 <span className="flex items-center gap-0.5 text-emerald-400/90">

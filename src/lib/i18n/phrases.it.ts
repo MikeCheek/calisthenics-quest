@@ -889,6 +889,17 @@ const IT_PHRASES: [string, string][] = [
   ["{a} of {b} sessions", "{a} su {b} sessioni"],
   ["{n} sessions", "{n} sessioni"],
   ["~{n} min", "~{n} min"],
+  // ---- Skills / Coach / Me tabs ----
+  ["Advice built on your own training.", "Consigli basati sul tuo allenamento."],
+  ["Coach", "Coach"],
+  ["Tools", "Strumenti"],
+  ["Review today's session", "Rivedi la sessione di oggi"],
+  ["The AI checks today's session against your level and suggests changes you can apply.", "L'AI confronta la sessione di oggi con il tuo livello e suggerisce modifiche da applicare."],
+  ["Plan your week", "Pianifica la settimana"],
+  ["Lay out the sessions ahead, with optional AI coach notes.", "Organizza le prossime sessioni, con note facoltative del coach AI."],
+  ["Spin for one extra exercise and bonus XP.", "Gira per un esercizio extra e XP bonus."],
+  ["Activity", "Attività"],
+  ["Proven", "Dimostrate"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
