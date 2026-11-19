@@ -1,3 +1,5 @@
+import { ABOUT } from "../aboutCopy";
+
 // Italian phrase table for lib/i18n/tx.ts — keyed by the English text.
 // Entries with {placeholders} are templates: they also translate generated
 // messages (adaptation notes, verification results, toasts). More specific
@@ -688,6 +690,38 @@ const IT_PHRASES: [string, string][] = [
   ["Turn lock-screen controls off", "Disattiva i controlli dalla schermata di blocco"],
   ["Lock-screen controls on. On some phones this pauses music from other apps.", "Controlli dalla schermata di blocco attivi. Su alcuni telefoni mette in pausa la musica di altre app."],
   ["Export workout (.tcx) for Strava, Garmin…", "Esporta l'allenamento (.tcx) per Strava, Garmin…"],
+
+  // ---- About page (keys come from lib/aboutCopy.ts, so they always match) ----
+  [ABOUT.title, "Info su BarQuests"],
+  [ABOUT.version, "Versione {v} — un progetto indipendente e personale di allenamento a corpo libero."],
+  [ABOUT.whoTitle, "Chi l'ha creato"],
+  [ABOUT.whoBefore, "BarQuests è sviluppato e mantenuto da"],
+  [ABOUT.whoAfter, ", uno sviluppatore indipendente. È un progetto nato dalla passione, non il prodotto di un'azienda — se ti ha aiutato ad allenarti e vuoi sostenerne lo sviluppo, un caffè è sempre gradito."],
+  [ABOUT.kofi, "Sostienimi su Ko-fi"],
+  [ABOUT.portfolio, "Sito portfolio"],
+  [ABOUT.privacyTitle, "Informativa sulla privacy"],
+  [ABOUT.collectedLead, "Cosa viene raccolto."],
+  [ABOUT.collected, "Se accedi con Google, BarQuests memorizza il tuo nome, l'indirizzo email e la foto del profilo. Se ti alleni come ospite, nessuno di questi dati esiste — solo un account anonimo, finché non scegli di salvare con Google. Oltre a questo, memorizza ciò che inserisci o registri: i tuoi dati fisici, l'attrezzatura che hai, i livelli e la padronanza delle skill, le risposte alla valutazione e quali sono state verificate negli Skill Check, lo storico di ogni sessione che completi (esercizi, serie, ripetizioni, tempi di tenuta e durata), i record personali, ciò che l'app ha imparato dal tuo allenamento (quali esercizi sono risultati troppo difficili, il tuo recupero abituale), XP, livello, serie di giorni, missioni, totali settimanali, i collegamenti con gli amici e le preferenze di notifiche e lingua."],
+  [ABOUT.usedLead, "A cosa serve."],
+  [ABOUT.used, "Esclusivamente a far funzionare l'app: generare sessioni adatte al tuo livello, alla tua attrezzatura e al tuo storico, monitorare i tuoi progressi e abilitare le funzioni social (codici amico, stimoli, allenamenti di coppia, la classifica settimanale) che scegli di usare."],
+  [ABOUT.livesLead, "Dove si trova."],
+  [ABOUT.lives, "I tuoi dati sono conservati in Google Firebase (Firestore e Authentication), l'infrastruttura cloud di Google. Se usi le funzioni AI facoltative, i dati di allenamento vengono inviati a OpenRouter per generare la risposta — mai il tuo nome, l'email, la foto o i dati fisici. Per i consigli sugli esercizi, le note sul piano e la revisione del piano si tratta degli esercizi coinvolti e di un breve riepilogo di skill e attrezzatura. Per “Chiedi al coach” si tratta dei livelli delle tue skill, di cosa hai verificato o trovato difficile, della tua attrezzatura, delle sessioni recenti e delle domande che scrivi; la conversazione in sé non viene salvata su un server. Un riepilogo pubblico del tuo profilo è leggibile dagli altri utenti che hanno effettuato l'accesso (ti trovano tramite il tuo codice amico): nome, foto, livello, serie di giorni, XP, numero di sessioni, skill e padronanza, e i totali di questa settimana per la classifica (sessioni, minuti, skill dimostrate, XP) — nient'altro. Gli ospiti non hanno un profilo pubblico."],
+  [ABOUT.controlLead, "Il controllo è tuo."],
+  [ABOUT.control, "Puoi rimuovere un amico, disattivare le notifiche o cambiare lingua in qualsiasi momento dal tuo profilo. In Profilo → Account puoi scaricare una copia dei tuoi dati, azzerarne alcune parti o eliminare definitivamente il tuo account — il che ti rimuove anche dalle liste dei tuoi amici."],
+  [ABOUT.cookieTitle, "Cookie policy"],
+  [ABOUT.cookieIntro, "BarQuests non usa cookie di tracciamento o pubblicitari — non ci sono annunci né sistemi di analisi, e nulla viene venduto o condiviso con inserzionisti."],
+  [ABOUT.localIntro, "Ecco cosa l'app salva localmente sul tuo dispositivo — tutto funzionale, e nulla viene inviato altrove dall'app:"],
+  [ABOUT.localItems[0], "La tua sessione di accesso, tramite lo spazio del browser di Firebase Authentication"],
+  [ABOUT.localItems[1], "La lingua scelta (English/Italiano), così resta impostata tra una visita e l'altra"],
+  [ABOUT.localItems[2], "L'ultimo messaggio di promemoria mostrato, così si alternano invece di ripetersi"],
+  [ABOUT.localItems[3], "Se hai attivato il coach vocale e i controlli dalla schermata di blocco"],
+  [ABOUT.localItems[4], "La conversazione di “Chiedi al coach”, solo finché non chiudi la scheda"],
+  [ABOUT.localItems[5], "I video degli Skill Check che scegli di registrare — conservati solo su questo dispositivo, mai caricati online"],
+  [ABOUT.localClear, "Cancellando i dati del sito dal browser si elimina tutto, compresi eventuali video registrati."],
+  [ABOUT.otherTitle, "Altre cose utili da sapere"],
+  [ABOUT.notMedical, "BarQuests non sostituisce un allenatore professionista, la fisioterapia o il parere medico — allenati entro i tuoi limiti, fai un buon riscaldamento e consulta un medico prima di iniziare un nuovo programma se hai problemi di salute."],
+  [ABOUT.builtWith, "Realizzato con Next.js, Firebase e Tailwind CSS, e installabile come Progressive Web App — aggiungilo alla schermata Home dal pulsante di condivisione o dal menu del browser per un'esperienza simile a un'app, con supporto offline per le pagine già visitate."],
+  [ABOUT.reachOut, "Hai trovato un bug o hai un'idea? Il link GitHub qui sopra è il modo migliore per contattarmi."],
 
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
