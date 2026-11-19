@@ -25,7 +25,7 @@ const WEDGE_COLORS = ["#f97316", "#18181b", "#ea580c", "#27272a", "#fb923c", "#3
 const WHEEL_SPIN_MS = 2600;
 
 export default function LandingWheelDemo() {
-  const { locale } = useLanguage();
+  const { locale, tx } = useLanguage();
   const [skill, setSkill] = useState<StagedSkillKey>("frontLever");
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
@@ -63,11 +63,10 @@ export default function LandingWheelDemo() {
   return (
     <div className="panel p-4">
       <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
-        <Dices size={16} className="text-orange-400" /> Try the bonus wheel
+        <Dices size={16} className="text-orange-400" /> {tx("Try the bonus wheel")}
       </div>
       <p className="text-xs text-muted mb-3">
-        No account needed — pick a skill and spin for a real exercise, exactly like the wheel you&apos;ll
-        get once you sign in.
+        {tx("No account needed — pick a skill and spin for a real exercise, exactly like the wheel you'll get once you sign in.")}
       </p>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
@@ -86,9 +85,9 @@ export default function LandingWheelDemo() {
               }}
               className="disabled:opacity-50"
             >
-              {SKILL_FIELD_LABEL[s]}
+              {tx(SKILL_FIELD_LABEL[s])}
             </button>
-            <InfoIconButton onClick={() => setInfoSkill(s)} label={`About ${SKILL_FIELD_LABEL[s]}`} size={11} />
+            <InfoIconButton onClick={() => setInfoSkill(s)} label={tx("About {skill}", { skill: tx(SKILL_FIELD_LABEL[s]) })} size={11} />
           </div>
         ))}
       </div>
@@ -123,7 +122,7 @@ export default function LandingWheelDemo() {
           disabled={spinning || pool.length === 0}
           className="px-6 py-2.5 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-50"
         >
-          {spinning ? "Spinning..." : "🎰 Spin"}
+          {spinning ? tx("Spinning…") : `🎰 ${tx("Spin")}`}
         </button>
       </div>
 
@@ -137,7 +136,7 @@ export default function LandingWheelDemo() {
           </div>
           <ExerciseTimer exercise={result} />
           <div className="text-xs text-muted mt-3 text-center">
-            Sign in to save this, bank bonus XP, and unlock all 50 skills
+            {tx("Sign in to save this, bank bonus XP, and unlock all 50 skills")}
           </div>
         </div>
       )}

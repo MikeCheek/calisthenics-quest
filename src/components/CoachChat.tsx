@@ -9,6 +9,7 @@ import { fetchSessionsBetween } from "@/lib/store";
 import { SessionRecord } from "@/lib/types";
 import { Send, Loader2, Bot } from "lucide-react";
 import { authedFetch } from "@/lib/apiClient";
+import ChatMarkdown from "@/components/ChatMarkdown";
 
 interface Msg {
   role: "user" | "assistant";
@@ -64,6 +65,13 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
       .catch(() => setRecent([]));
   }, [open, userDoc]);
 
+  // An unanswered question goes back into the input instead of staying in
+  // the conversation, so retrying doesn't leave the same question twice.
+  const giveBack = (q: string) => {
+    setMessages((m) => (m.length && m[m.length - 1].role === "user" && m[m.length - 1].content === q ? m.slice(0, -1) : m));
+    setInput(q);
+  };
+
   const ask = async (question: string) => {
     const q = question.trim().slice(0, 600);
     if (!q || busy || !userDoc) return;
@@ -80,11 +88,13 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.reply) {
+        giveBack(q);
         setError(data.configured === false ? tx("The AI coach isn't set up on this server yet.") : (data.error ? tx(data.error) : tx("The coach couldn't answer — try again.")));
         return;
       }
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
     } catch {
+      giveBack(q);
       setError(tx("Couldn't reach the coach — check your connection and try again."));
     } finally {
       setBusy(false);
@@ -118,11 +128,13 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${
-                  m.role === "user" ? "bg-orange-500 text-zinc-950 rounded-br-md" : "bg-zinc-800 text-zinc-100 rounded-bl-md"
+                className={`rounded-2xl px-3.5 py-2.5 text-sm ${
+                  m.role === "user"
+                    ? "max-w-[85%] bg-orange-500 text-zinc-950 rounded-br-md whitespace-pre-wrap"
+                    : "max-w-[92%] bg-zinc-800 text-zinc-100 rounded-bl-md"
                 }`}
               >
-                {m.content}
+                {m.role === "assistant" ? <ChatMarkdown text={m.content} /> : m.content}
               </div>
             </div>
           ))}

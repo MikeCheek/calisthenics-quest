@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,5 +13,15 @@ const firebaseConfig = {
 
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
-export const db = getFirestore(firebaseApp);
+// Optional fields (a guest has no photoURL, for instance) are left out of
+// writes instead of failing them: Firestore rejects `undefined` values by
+// default, which once silently blocked creating guest accounts.
+function makeDb(): Firestore {
+  try {
+    return initializeFirestore(firebaseApp, { ignoreUndefinedProperties: true });
+  } catch {
+    return getFirestore(firebaseApp); // already initialised (hot reload)
+  }
+}
+export const db = makeDb();
 export const googleProvider = new GoogleAuthProvider();

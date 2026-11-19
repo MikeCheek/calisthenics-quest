@@ -833,6 +833,13 @@ const IT_PHRASES: [string, string][] = [
   ["Fresh start — the streak begins again today", "Si riparte — la serie ricomincia oggi"],
   ["+{n} XP", "+{n} XP"],
   ["Prove {stage} in a Skill Check first — it'll come up in a session soon.", "Prima dimostra {stage} in uno Skill Check — arriverà presto in una sessione."],
+  ["Couldn't set up your account — check your connection and try again.", "Non è stato possibile configurare il tuo account — controlla la connessione e riprova."],
+  ["Try the bonus wheel", "Prova la ruota bonus"],
+  ["No account needed — pick a skill and spin for a real exercise, exactly like the wheel you'll get once you sign in.", "Senza account — scegli una skill e gira per un esercizio vero, proprio come la ruota che avrai dopo l'accesso."],
+  ["About {skill}", "Info su {skill}"],
+  ["Spinning…", "Gira…"],
+  ["Spin", "Gira"],
+  ["Sign in to save this, bank bonus XP, and unlock all 50 skills", "Accedi per salvarlo, accumulare XP bonus e sbloccare tutte le 50 skill"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
