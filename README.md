@@ -301,8 +301,8 @@ npm run build && npm start   # production build
 **Demo mode** (`npm run demo`) signs in a fictional athlete with three weeks of example
 training, friends and Skill Checks, all kept in memory, so you can try every signed-in
 screen without a Firebase project. A "DEMO" tab on the left edge marks it. It only runs on
-the development server: production builds never include it. AI features need a real
-login, so they don't answer in demo mode.
+the development server: production builds never include it. The AI features answer with
+canned, clearly labelled demo replies, so no OpenRouter key is needed either.
 
 On a phone (or any production build) the app can be installed from the browser's
 *Add to Home Screen* / install prompt — it ships a web manifest and a service worker.

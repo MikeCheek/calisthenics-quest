@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -17,7 +17,6 @@ export default function CoachPage() {
   const { user, userDoc, loading } = useAuth();
   const { tx } = useLanguage();
   const router = useRouter();
-  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -57,21 +56,7 @@ export default function CoachPage() {
           <p className="text-sm text-zinc-400">{tx("Advice built on your own training.")}</p>
         </div>
 
-        <button
-          onClick={() => setChatOpen(true)}
-          className="w-full panel p-5 text-left border-orange-500/40 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent hover:border-orange-500 transition-colors"
-        >
-          <span className="flex items-center gap-3">
-            <span className="w-12 h-12 rounded-2xl bg-orange-500/15 flex items-center justify-center shrink-0">
-              <Bot size={22} className="text-orange-400" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block heading text-lg text-zinc-100">{tx("Ask your coach")}</span>
-              <span className="block text-sm text-zinc-400">{tx("Questions about your training, answered from your own data.")}</span>
-            </span>
-            <ChevronRight size={18} className="text-muted shrink-0" />
-          </span>
-        </button>
+        <CoachChat />
 
         <CoachInsightsCard userDoc={userDoc} />
 
@@ -91,7 +76,6 @@ export default function CoachPage() {
           ))}
         </section>
       </main>
-      <CoachChat open={chatOpen} onClose={() => setChatOpen(false)} />
     </>
   );
 }
