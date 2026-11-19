@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ExerciseFeedback, TrainingSession } from "@/lib/types";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import {
@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { plausibleDuration } from "@/lib/sessionHistory";
 import { lockScreenPref, startKeepAlive, stopKeepAlive } from "@/lib/mediaSession";
+import { clearActiveSession, loadActiveSession, saveActiveSession } from "@/lib/activeSession";
 
 // What the session earned, shown at the top of the post-session report so a
 // finished session ends in one window instead of a celebration overlay, a
@@ -114,6 +115,34 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   // guided mode measures duration from when it was started
   const startedAtRef = useRef<number | null>(null);
 
+  // ---- kept on this device, so closing or reloading doesn't lose it ----
+  const uid = userDoc?.uid ?? null;
+  const restoredFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!uid || restoredFor.current === uid) return;
+    restoredFor.current = uid;
+    const saved = loadActiveSession(uid);
+    if (!saved) return;
+    startedAtRef.current = saved.startedAt;
+    setSession(saved.session);
+    setPaused(saved.paused);
+    setCompleted(false);
+    // opened from the "training in progress" notification: straight back in;
+    // otherwise the resume bubble shows and one tap reopens it
+    const url = new URL(window.location.href);
+    const fromNotice = url.searchParams.get("resume") === "1";
+    setExpanded(fromNotice);
+    if (fromNotice) {
+      url.searchParams.delete("resume"); // a later reload shouldn't reopen it again
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid || !session) return;
+    saveActiveSession({ uid, startedAt: startedAtRef.current, session, paused });
+  }, [uid, session, paused]);
+
   const startSession = useCallback((s: TrainingSession) => {
     startedAtRef.current = Date.now();
     // lock-screen controls need audio started from this tap (opt-in)
@@ -132,6 +161,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
 
   const discardSession = useCallback(() => {
     stopKeepAlive();
+    clearActiveSession();
     setSession(null);
     setExpanded(false);
     setPaused(false);
@@ -160,6 +190,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       return;
     }
     stopKeepAlive();
+    clearActiveSession();
     setSession(null);
     setExpanded(false);
     setPaused(false);

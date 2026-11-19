@@ -60,7 +60,13 @@ and forget how your last session went. BarQuests is built around four ideas:
   exercises that appear in sessions, plus the common mistakes for each movement.
 - **Per-set logging** — log reps in the timer's rest screen; holds are measured
   automatically.
-- **Lock-screen controls** *(opt-in)* — exercise, rest and next/previous on your lock screen.
+- **Lock-screen controls** *(opt-in)* — exercise, rest (with a progress bar) and
+  next/previous on your lock screen.
+- **Sessions that survive interruptions** — the session in progress, where you are in it
+  and any running timer are kept on the phone: close the app, reload or let the phone
+  kill it, and it picks up where you left off. Timers keep real time while the phone is
+  locked, the screen stays on during guided mode, and a *training in progress*
+  notification (current exercise, when the rest ends) brings you back with one tap.
 
 ### Learning and verification
 - **Adaptive sessions** — swaps in an easier variation after “too hard”, brings the
@@ -367,6 +373,11 @@ docs/
 - **Leaderboard totals are self-reported** by each player's device. The global board
   hides weeks no real athlete could log, but it isn't tamper-proof — that would need
   the totals computed on a server.
+- **No true background timer.** Browsers suspend web pages that aren't on screen, so a
+  timer can't beep or move on by itself while the app is closed — it catches up the
+  moment you're back, and the notification shows an end time instead of a live
+  countdown. The notification needs notification permission, and on iPhone the app
+  installed to the home screen (iOS 16.4+). A native app could do more.
 - **Lock-screen controls** need a silent audio track while active, which can pause other
   apps' music on some phones — hence opt-in.
 - **AI answers** depend on the model configured in `OPENROUTER_MODEL`.

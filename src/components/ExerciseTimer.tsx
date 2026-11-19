@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
 import { parseTiming } from "@/lib/exerciseTiming";
 import { TimerLog, EMPTY_TIMER_LOG } from "@/lib/timingLearning";
+import { loadTimer, saveTimer, secondsLeftOf } from "@/lib/activeSession";
 
 export type TimerEvent =
   | { type: "setStart"; set: number; sets: number }
@@ -24,8 +25,12 @@ export default function ExerciseTimer({
   externallyPaused,
   onLog,
   onEvent,
+  persist,
 }: {
   exercise: Exercise;
+  // guided mode: keep this timer on the device (see lib/activeSession.ts),
+  // so a reload mid-set picks up at the same set, phase and time
+  persist?: { sessionId: string; step: number };
   onComplete?: () => void;
   // Receives the raw timing log (holds, rests, pauses) after every set and
   // rest, so the session can learn from it — cleaning happens downstream.
@@ -235,6 +240,44 @@ export default function ExerciseTimer({
     beginCountdown();
   };
 
+  // ---- kept on the device in guided mode ----
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!persist || restored.current) return;
+    restored.current = true;
+    const t = loadTimer(persist.sessionId, persist.step);
+    if (!t) return;
+    logRef.current = { sets: [...t.log.sets], rests: [...t.log.rests], workPauses: t.log.workPauses };
+    setRepLog(t.log.sets.map((x) => x.reps));
+    setSet(t.set);
+    setPhase(t.phase);
+    setSecondsLeft(secondsLeftOf(t.endsAt, t.secondsLeft) ?? timing.workSeconds);
+    setRunning(t.endsAt !== null);
+    // the interrupted set or rest counts as time away, so the timing
+    // learning leaves it out rather than learning from it
+    meter.current = { start: Date.now(), pausedMs: 0, maxPauseMs: 0, pauseStart: null, hiddenMs: 1e9, hiddenStart: null };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!persist || !restored.current) return;
+    if (phase === "work" || phase === "rest") {
+      const live = running && !externallyPaused && secondsLeft !== null;
+      saveTimer({
+        ...persist,
+        set,
+        phase,
+        endsAt: live ? Date.now() + (secondsLeft ?? 0) * 1000 : null,
+        secondsLeft: live ? null : secondsLeft,
+        log: logRef.current,
+      });
+    } else if (phase === "done") {
+      if (loadTimer(persist.sessionId, persist.step)) saveTimer(null);
+    }
+    // saved on changes of state, not on every second of a countdown
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [set, phase, running, externallyPaused]);
+
   // countdown-before-start ticker
   useEffect(() => {
     if (phase !== "countdown" || externallyPaused) return;
@@ -252,25 +295,42 @@ export default function ExerciseTimer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, countdownValue, externallyPaused]);
 
-  // work/rest countdown loop
+  // work/rest countdown loop. The clock, not the number of ticks, decides
+  // what's left: browsers slow or suspend timers while the phone is locked
+  // or the app is in the background, so each tick (and coming back to the
+  // app) recomputes from the end time — a rest that ran out meanwhile ends.
+  const endsAt = useRef<number | null>(null);
+  const shownLeft = useRef<number | null>(null);
   useEffect(() => {
     if (!running || externallyPaused) return;
     if (phase !== "work" && phase !== "rest") return;
     if (secondsLeft === null) return;
 
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s === null) return s;
-        // a heads-up on longer holds, ten seconds out
-        if (phase === "work" && s === 11 && (timing.workSeconds ?? 0) >= 20) emitEvent({ type: "tenLeft" }, `ten-${set}`);
-        if (s > 1) return s - 1;
-        if (phase === "work") advanceAfterWork(0);
-        else advanceAfterRest();
-        return 0;
-      });
-    }, 1000);
+    endsAt.current = Date.now() + secondsLeft * 1000;
+    shownLeft.current = secondsLeft;
+    const tick = () => {
+      if (endsAt.current === null) return;
+      const left = Math.max(0, Math.ceil((endsAt.current - Date.now()) / 1000));
+      const prev = shownLeft.current ?? left;
+      if (left === prev && left > 0) return;
+      shownLeft.current = left;
+      // a heads-up on longer holds, ten seconds out
+      if (phase === "work" && prev > 10 && left <= 10 && left > 0 && (timing.workSeconds ?? 0) >= 20) emitEvent({ type: "tenLeft" }, `ten-${set}`);
+      if (left > 0) {
+        setSecondsLeft(left);
+        return;
+      }
+      endsAt.current = null;
+      setSecondsLeft(0);
+      if (phase === "work") advanceAfterWork(0);
+      else advanceAfterRest();
+    };
+    intervalRef.current = setInterval(tick, 250);
+    document.addEventListener("visibilitychange", tick);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", tick);
+      endsAt.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, phase, externallyPaused]);

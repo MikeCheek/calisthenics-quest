@@ -917,6 +917,12 @@ const IT_PHRASES: [string, string][] = [
   ["Couldn't save that — try again.", "Non è stato possibile salvare — riprova."],
   ["Session", "Sessione"],
   ["Sets — or swipe the card", "Serie — oppure scorri la scheda"],
+  ["Tap to log it.", "Tocca per registrarla."],
+  ["Paused — tap to resume", "In pausa — tocca per riprendere"],
+  ["Rest until {t}", "Recupero fino alle {t}"],
+  ["rest until {t}", "recupero fino alle {t}"],
+  ["hold until {t}", "tenuta fino alle {t}"],
+  ["tap to continue", "tocca per continuare"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

@@ -1137,6 +1137,30 @@ session" button (with a native confirm, since discarding loses unsaved
 progress and isn't reversible) so you never have to reopen the full screen
 just to pause or bail out.
 
+
+**Interruptions and the background** (`src/lib/activeSession.ts`,
+`src/lib/backgroundSession.ts`).
+- *Kept on the device.* The session in progress (`barquests:activeSession`:
+  the session, start time, pause, and guided progress — step, done/skipped
+  steps, swaps, too-hard feedback, timer logs, Skill Check results and
+  clips) and the running exercise timer (`barquests:activeTimer`: step, set,
+  phase) are saved as they change, not every second. Per account, ignored
+  after 12 h, cleared on finish or discard. On load the context restores it
+  behind the resume bubble; `/dashboard?resume=1` (the notification's link)
+  reopens guided mode directly.
+- *Clock-based timers.* Both the exercise timer and the between-exercise
+  rest store an end time and recompute on every tick and on
+  `visibilitychange`, so throttled or suspended timers catch up instead of
+  drifting; saved timers are end times too, so time away counts. A restored
+  interruption is marked as background time, so timing learning ignores it.
+- *Screen wake lock* while guided mode is open (re-taken when you come back).
+- *"Training in progress" notification* (tag `barquests-training`) when the
+  page is hidden: the exercise and set, or "Rest until 18:42 · Up next", or
+  "Paused"; closed when you're back or the session ends. Needs notification
+  permission (iOS: installed app, 16.4+). An end time, not a countdown — a
+  hidden page can't be relied on to update it.
+- *Lock-screen controls* (opt-in) also get `setPositionState`, so the media
+  notification draws the rest as a progress bar.
 ## Estimated session time (`estimateSessionMinutes`, `exerciseTiming.ts`)
 
 Every session preview — the checklist header (`SessionView.tsx`, next to

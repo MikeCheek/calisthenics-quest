@@ -84,13 +84,24 @@ export function stopKeepAlive() {
 }
 
 export function updateLockScreen(
-  info: { title: string; subtitle: string; paused: boolean },
+  // progress: a running countdown, drawn as the media notification's bar
+  info: { title: string; subtitle: string; paused: boolean; progress?: { total: number; left: number } | null },
   handlers: { togglePause: () => void; next: () => void; previous: () => void }
 ) {
   if (!mediaSessionSupported()) return;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({ title: info.title, artist: info.subtitle, album: "BarQuests" });
     navigator.mediaSession.playbackState = info.paused ? "paused" : "playing";
+    try {
+      const p = info.progress;
+      if (p && p.total > 0 && "setPositionState" in navigator.mediaSession) {
+        navigator.mediaSession.setPositionState({ duration: p.total, position: Math.min(p.total, Math.max(0, p.total - p.left)), playbackRate: info.paused ? 0 : 1 });
+      } else if ("setPositionState" in navigator.mediaSession) {
+        navigator.mediaSession.setPositionState();
+      }
+    } catch {
+      // position state is optional
+    }
     navigator.mediaSession.setActionHandler("play", handlers.togglePause);
     navigator.mediaSession.setActionHandler("pause", handlers.togglePause);
     navigator.mediaSession.setActionHandler("nexttrack", handlers.next);
