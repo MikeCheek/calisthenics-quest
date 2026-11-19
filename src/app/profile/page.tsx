@@ -15,6 +15,7 @@ import { claimCounts, syncClaims } from "@/lib/verification";
 import { Globe, Info, Flame, Dumbbell, Zap, BadgeCheck, Pencil, ChevronRight, Ruler, MapPin } from "lucide-react";
 import XPHistoryChart from "@/components/XPHistoryChart";
 import SessionHistory from "@/components/SessionHistory";
+import VolumeTotalsCard from "@/components/VolumeTotalsCard";
 
 
 type Tab = "activity" | "settings" | "account";
@@ -139,6 +140,7 @@ export default function ProfilePage() {
 
         {tab === "activity" && (
           <div className="space-y-4 animate-overlay-fade-in">
+            <VolumeTotalsCard userDoc={userDoc} />
             <div className="panel p-4">
               <div className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</div>
               <XPHistoryChart history={userDoc.xpHistory ?? []} />

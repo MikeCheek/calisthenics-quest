@@ -103,6 +103,10 @@ and forget how your last session went. BarQuests is built around four ideas:
 ### Me
 - **Activity** — your XP over time, a calendar, month totals, every session with its
   sets, and personal bests.
+- **Your totals** — reps and time per exercise this month, this year or all time
+  ("128 toes-to-bar in November"), added up from your sessions: what you logged, or the
+  prescription for sets you marked done (marked ≈). Warm-ups don't count, and max sets
+  only count when logged.
 
 ### Social
 - **Friends** — add by code, nudge each other, and see a **weekly leaderboard** with a
