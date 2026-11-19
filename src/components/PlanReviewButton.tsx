@@ -6,6 +6,7 @@ import { useToast } from "@/context/ToastContext";
 import { TrainingSession, SkillProfile, TrainingEquipment } from "@/lib/types";
 import { Sparkles, Star, Check, X, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { authedFetch } from "@/lib/apiClient";
 
 interface Suggestion {
   key: string;
@@ -77,7 +78,7 @@ export default function PlanReviewButton({
     );
 
     try {
-      const res = await fetch("/api/plan-review", {
+      const res = await authedFetch("/api/plan-review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -204,7 +205,7 @@ export default function PlanReviewButton({
                               ? "bg-orange-500 border-orange-500 text-zinc-950"
                               : "border-zinc-600 text-muted"
                           }`}
-                          aria-label={isApproved ? "Don't apply this change" : "Apply this change"}
+                          aria-label={isApproved ? tx("Don't apply this change") : tx("Apply this change")}
                         >
                           {isApproved ? <Check size={14} /> : <X size={14} />}
                         </button>

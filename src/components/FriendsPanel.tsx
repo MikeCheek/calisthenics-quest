@@ -14,11 +14,13 @@ import {
 import { Friend } from "@/lib/types";
 import { pickReminderLine } from "@/lib/reminderMessages";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Copy, UserPlus, Zap, Users2, UserMinus } from "lucide-react";
 
 export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (friend: Friend) => void }) {
   const { userDoc } = useAuth();
   const toast = useToast();
+  const { tx } = useLanguage();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [codeInput, setCodeInput] = useState("");
   const [adding, setAdding] = useState(false);
@@ -77,7 +79,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
   };
 
   const handleRemove = async (friend: Friend) => {
-    if (!window.confirm(`Remove ${friend.displayName} from your friends?`)) return;
+    if (!window.confirm(tx("Remove {name} from your friends?", { name: friend.displayName }))) return;
     try {
       await removeFriend(userDoc.uid, friend.uid);
       toast.success(`Removed ${friend.displayName}.`);
@@ -89,8 +91,8 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
   return (
     <div className="space-y-4">
       <div className="panel p-4">
-        <div className="heading text-base text-zinc-100 mb-1">Your friend code</div>
-        <p className="text-xs text-muted mb-3">Share this so friends can add you.</p>
+        <div className="heading text-base text-zinc-100 mb-1">{tx("Your friend code")}</div>
+        <p className="text-xs text-muted mb-3">{tx("Share this so friends can add you.")}</p>
         <div className="flex items-center gap-2">
           <div className="stat-mono text-2xl tracking-[0.25em] text-orange-400 flex-1 text-center py-2 border border-zinc-700 rounded-lg">
             {userDoc.friendCode || "······"}
@@ -102,7 +104,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
               toast.success("Friend code copied!");
             }}
             className="p-2.5 border border-zinc-600 rounded-lg text-zinc-300 hover:text-zinc-100"
-            aria-label="Copy your code"
+            aria-label={tx("Copy your code")}
             disabled={!userDoc.friendCode}
           >
             <Copy size={16} />
@@ -112,13 +114,13 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
 
       <div className="panel p-4">
         <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
-          <UserPlus size={16} className="text-orange-400" /> Add a friend
+          <UserPlus size={16} className="text-orange-400" /> {tx("Add a friend")}
         </div>
         <div className="flex gap-2">
           <input
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-            placeholder="Their code"
+            placeholder={tx("Their code")}
             maxLength={6}
             className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 stat-mono tracking-widest text-center"
           />
@@ -127,18 +129,18 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
             disabled={adding}
             className="px-4 py-2 rounded-lg text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-60"
           >
-            Add
+            {tx("Add")}
           </button>
         </div>
       </div>
 
       <div className="panel p-4">
         <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
-          <Users2 size={16} className="text-orange-400" /> Your friends
+          <Users2 size={16} className="text-orange-400" /> {tx("Your friends")}
         </div>
         {friends.length === 0 ? (
           <p className="text-sm text-muted">
-            No friends added yet — share your code or add one above.
+            {tx("No friends added yet — share your code or add one above.")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -156,18 +158,18 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
                     className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
                   >
                     <Zap size={12} className={nudged === f.uid ? "text-orange-400" : ""} />
-                    {nudged === f.uid ? "Sent!" : "Nudge"}
+                    {nudged === f.uid ? tx("Sent!") : tx("Nudge")}
                   </button>
                   <button
                     onClick={() => onTrainTogether(f)}
                     className="text-xs px-2.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950"
                   >
-                    Train together
+                    {tx("Train together")}
                   </button>
                   <button
                     onClick={() => handleRemove(f)}
                     className="p-1.5 rounded-lg text-muted hover:text-red-400"
-                    aria-label={`Remove ${f.displayName}`}
+                    aria-label={tx("Remove {name}", { name: f.displayName })}
                   >
                     <UserMinus size={14} />
                   </button>

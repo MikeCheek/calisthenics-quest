@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { updateProgress } from "@/lib/store";
 import { notificationsSupported, requestNotificationPermission } from "@/lib/notifications";
 import { Bell, X } from "lucide-react";
@@ -10,6 +11,7 @@ import { Bell, X } from "lucide-react";
 export default function NotificationPrompt() {
   const { userDoc, refreshUserDoc } = useAuth();
   const toast = useToast();
+  const { tx } = useLanguage();
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -55,10 +57,9 @@ export default function NotificationPrompt() {
         <Bell size={16} className="text-orange-400" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-zinc-100 font-medium">Turn on notifications?</div>
+        <div className="text-sm text-zinc-100 font-medium">{tx("Turn on notifications?")}</div>
         <p className="text-xs text-muted mt-0.5 mb-3">
-          Get a daily training reminder and know right away when a friend nudges you or invites you
-          to train together.
+          {tx("Get a daily training reminder and know right away when a friend nudges you or invites you to train together.")}
         </p>
         <div className="flex gap-2">
           <button
@@ -66,18 +67,18 @@ export default function NotificationPrompt() {
             disabled={saving}
             className="text-xs px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 font-medium disabled:opacity-60"
           >
-            Turn on
+            {tx("Turn on")}
           </button>
           <button
             onClick={dismiss}
             disabled={saving}
             className="text-xs px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200"
           >
-            Not now
+            {tx("Not now")}
           </button>
         </div>
       </div>
-      <button onClick={dismiss} className="text-muted hover:text-zinc-400 shrink-0" aria-label="Dismiss">
+      <button onClick={dismiss} className="text-muted hover:text-zinc-400 shrink-0" aria-label={tx("Dismiss")}>
         <X size={14} />
       </button>
     </div>

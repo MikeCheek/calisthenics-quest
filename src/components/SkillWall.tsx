@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { SKILL_CATEGORIES } from "@/lib/skillCategories";
 import { STAGE_ORDER, stageIndex } from "@/lib/stageOrder";
-import { SkillProfile, StagedSkillKey, SkillMastery, DEFAULT_MASTERY } from "@/lib/types";
+import { SkillProfile, StagedSkillKey, SkillMastery, DEFAULT_MASTERY, SKILL_FIELD_LABEL } from "@/lib/types";
 import SkillInfoModal from "@/components/SkillInfoModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 const ALL_SKILLS: StagedSkillKey[] = SKILL_CATEGORIES.flatMap((c) => c.skills);
 
@@ -43,17 +44,17 @@ export default function SkillWall({
   playerLevel?: number;
 }) {
   const [activeSkill, setActiveSkill] = useState<StagedSkillKey | null>(null);
+  const { tx } = useLanguage();
   const startedCount = ALL_SKILLS.filter((s) => intensity(s, skills, mastery) > 0).length;
 
   return (
     <div className="panel p-4">
       <div className="flex items-center justify-between mb-1">
-        <div className="heading text-base text-zinc-100">Skill wall</div>
-        <div className="text-xs text-muted">{startedCount}/50 lit</div>
+        <div className="heading text-base text-zinc-100">{tx("Skill wall")}</div>
+        <div className="text-xs text-muted">{tx("{n}/{total} lit", { n: startedCount, total: ALL_SKILLS.length })}</div>
       </div>
       <p className="text-xs text-muted mb-3">
-        Every skill, one square each — brighter means further into its progression and more solidly
-        claimed. Tap a square for details.
+        {tx("Every skill, one square each — brighter means further into its progression and more solidly claimed. Tap a square for details.")}
       </p>
 
       <div className="grid grid-cols-10 gap-1.5">
@@ -63,7 +64,7 @@ export default function SkillWall({
             <button
               key={skill}
               onClick={() => setActiveSkill(skill)}
-              aria-label={skill}
+              aria-label={tx(SKILL_FIELD_LABEL[skill] ?? skill)}
               className={`aspect-square rounded-sm ${LEVEL_CLASS[level]} hover:ring-1 hover:ring-orange-400 transition-shadow`}
             />
           );
@@ -71,11 +72,11 @@ export default function SkillWall({
       </div>
 
       <div className="flex items-center justify-end gap-1.5 mt-3 text-xs text-muted">
-        <span>Less</span>
+        <span>{tx("Less")}</span>
         {[0, 1, 2, 3, 4].map((lvl) => (
           <span key={lvl} className={`w-3 h-3 rounded-sm ${LEVEL_CLASS[lvl]}`} />
         ))}
-        <span>More</span>
+        <span>{tx("More")}</span>
       </div>
 
       <SkillInfoModal

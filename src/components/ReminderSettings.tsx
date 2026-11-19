@@ -10,10 +10,12 @@ import {
 } from "@/lib/notifications";
 import { Bell, BellOff } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ReminderSettings() {
   const { userDoc, refreshUserDoc } = useAuth();
   const toast = useToast();
+  const { tx } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
@@ -49,7 +51,7 @@ export default function ReminderSettings() {
       <div className="flex items-center justify-between mb-1">
         <div className="heading text-base text-zinc-100 flex items-center gap-2">
           {prefs.enabled ? <Bell size={16} className="text-orange-400" /> : <BellOff size={16} className="text-muted" />}
-          Training reminders
+          {tx("Training reminders")}
         </div>
         <button
           onClick={toggle}
@@ -57,7 +59,7 @@ export default function ReminderSettings() {
           className={`relative w-11 h-6 rounded-full transition-colors ${
             prefs.enabled ? "bg-orange-500" : "bg-zinc-700"
           } disabled:opacity-50`}
-          aria-label="Toggle training reminders"
+          aria-label={tx("Toggle training reminders")}
         >
           <span
             className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-zinc-950 transition-transform ${
@@ -68,22 +70,21 @@ export default function ReminderSettings() {
       </div>
 
       {!supported && (
-        <p className="text-xs text-muted">Notifications aren&apos;t supported in this browser.</p>
+        <p className="text-xs text-muted">{tx("Notifications aren't supported in this browser.")}</p>
       )}
       {permissionDenied && (
         <p className="text-xs text-orange-400">
-          Notification permission was denied — enable it in your browser/site settings to turn this on.
+          {tx("Notification permission was denied — enable it in your browser/site settings to turn this on.")}
         </p>
       )}
 
       {supported && (
         <div className="mt-2 space-y-3">
           <p className="text-xs text-muted">
-            A different fun nudge every time, Duolingo-style — only fires while the app has been
-            opened recently (see the README for guaranteed background push via Firebase Cloud Messaging).
+            {tx("A different fun nudge every time. Reminders only arrive if you've opened the app recently.")}
           </p>
           <label className="flex items-center justify-between text-sm text-zinc-300">
-            Remind me at
+            {tx("Remind me at")}
             <input
               type="time"
               value={prefs.time}
@@ -100,7 +101,7 @@ export default function ReminderSettings() {
             disabled={typeof window !== "undefined" && Notification.permission !== "granted"}
             className="w-full py-2 rounded-lg text-sm border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 disabled:opacity-50"
           >
-            Send me a test reminder now
+            {tx("Send me a test reminder now")}
           </button>
         </div>
       )}
