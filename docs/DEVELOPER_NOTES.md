@@ -132,28 +132,53 @@ service cloud.firestore {
       }
     }
 
-    // minimal public info so friends can be found by code — see PublicProfile
+    // minimal public info so friends can be found by code — see PublicProfile.
+    // "get" only: a profile can be opened by its id, but the collection can't
+    // be listed, so nobody can download every player's profile.
     match /profiles/{uid} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // friend-code -> uid reverse lookup, one doc per user, immutable once set
+    // friend-code -> uid reverse lookup, one doc per user, immutable once set.
+    // "get" only, or listing it would reveal every uid.
     match /usercodes/{code} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
       // released when its owner deletes their account
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     match /pairings/{code} {
-      allow read: if request.auth != null;
+      // opened by code; listed only for your own (account deletion finds them)
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && resource.data.hostUid == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
       allow update: if request.auth != null &&
         (resource.data.hostUid == request.auth.uid ||
          request.resource.data.guestUid == request.auth.uid);
       // pairings hold the host's body stats and skills — removed on account deletion
       allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+    }
+
+    // opt-in global weekly leaderboard: a short name, level and the week's
+    // totals only. Anyone signed in can read it; only the owner writes their
+    // own entry, guests can't, and numbers must be ones a real week allows
+    // (the same limits as BOARD_LIMITS in src/lib/leaderboard.ts).
+    match /leaderboard/{week}/entries/{uid} {
+      function count(v, max) { return v is int && v >= 0 && v <= max; }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && week.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['name', 'level', 'sessions', 'minutes', 'verified', 'xp'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.level is int && request.resource.data.level >= 1 && request.resource.data.level <= 1000
+        && count(request.resource.data.sessions, 21)
+        && count(request.resource.data.minutes, 1800)
+        && count(request.resource.data.verified, 30)
+        && count(request.resource.data.xp, 20000);
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }

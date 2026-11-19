@@ -5,6 +5,7 @@ import { generateSession } from "../trainingGenerator";
 import { effectiveLevel } from "../levelPath";
 import { currentWeekKey, generateWeeklyMissions } from "../missions";
 import { statKey } from "../adaptation";
+import { boardName } from "../leaderboard";
 
 // Example data for demo mode (see flag.ts). Fictional athlete, clearly
 // labeled in the UI; never written anywhere.
@@ -170,7 +171,7 @@ export const DEMO_GLOBAL_BOARD: GlobalBoardRow[] = [
   })),
   ...DEMO_FRIEND_PROFILES.filter((p) => (p.week?.sessions ?? 0) > 0).map((p) => ({
     uid: p.uid,
-    displayName: p.displayName,
+    displayName: boardName(p.displayName),
     level: p.level,
     week: p.week!,
   })),

@@ -202,7 +202,7 @@ export async function completeSession(
     // removed when a new week starts
     if (userDoc.globalBoard) {
       const stale = userDoc.week && userDoc.week.key !== week.key ? [userDoc.week.key] : [];
-      setGlobalBoardEntry(userDoc.uid, week, stale).catch(() => {});
+      setGlobalBoardEntry(userDoc.uid, { displayName: userDoc.displayName, level: effectiveLevel(totalXp, newSkills, newMastery), week }, stale).catch(() => {});
     }
   }
 

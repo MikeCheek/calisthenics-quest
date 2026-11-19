@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCoachContext, MAX_CONTEXT_CHARS } from "../src/lib/coachContext";
-import { addToWeek, rankBoard, weeklyChallenge, weekNumber, BoardEntry, boardName, globalWeekField, plausibleWeek } from "../src/lib/leaderboard";
+import { addToWeek, rankBoard, weeklyChallenge, weekNumber, BoardEntry, boardName, plausibleWeek } from "../src/lib/leaderboard";
 import { buildTcx, canExportTcx, tcxFileName } from "../src/lib/workoutExport";
 import { silentWavDataUri } from "../src/lib/mediaSession";
 import { clipExtension } from "../src/lib/videoProof";
@@ -91,9 +91,7 @@ test("clip file extensions follow the recorded container", () => {
 
 // ---- global leaderboard ----
 
-test("global board: one field per week, names shortened for strangers", () => {
-  assert.equal(globalWeekField("2026-W47"), "gw_2026W47");
-  assert.notEqual(globalWeekField("2026-W47"), globalWeekField("2026-W48"));
+test("global board: names shortened for strangers", () => {
   assert.equal(boardName("Michele Pulvirenti"), "Michele P.");
   assert.equal(boardName("Anna Maria de luca"), "Anna L.");
   assert.equal(boardName("Sam"), "Sam");
@@ -107,4 +105,23 @@ test("global board hides weeks no real athlete could log", () => {
   assert.equal(plausibleWeek({ sessions: 5, minutes: 240, verified: 2, xp: 999999 }), false);
   assert.equal(plausibleWeek({ sessions: -1, minutes: 0, verified: 0, xp: 0 }), false);
   assert.equal(plausibleWeek({ sessions: Number.NaN, minutes: 0, verified: 0, xp: 0 }), false);
+});
+
+test("security rules: nothing private is listable, and the board rules match the app's limits", () => {
+  const { readFileSync } = require("node:fs") as typeof import("node:fs");
+  const readme = readFileSync("README.md", "utf8");
+  const rules = readme.slice(readme.indexOf("rules_version"), readme.indexOf("```", readme.indexOf("rules_version")));
+  const block = (name: string) => rules.slice(rules.indexOf(`match /${name}/`), rules.indexOf("match /", rules.indexOf(`match /${name}/`) + 1));
+  for (const c of ["profiles", "usercodes", "pairings"]) {
+    assert.ok(!/allow read\b/.test(block(c)), `${c} must not allow "read" (that includes listing)`);
+    assert.match(block(c), /allow get:/, c);
+  }
+  assert.match(block("pairings"), /allow list: if request\.auth != null && resource\.data\.hostUid == request\.auth\.uid/);
+  const { BOARD_LIMITS } = require("../src/lib/leaderboard") as typeof import("../src/lib/leaderboard");
+  for (const [k, max] of Object.entries(BOARD_LIMITS)) {
+    assert.ok(rules.includes(`count(request.resource.data.${k}, ${max})`), `rules limit for ${k} should be ${max}`);
+  }
+  // the developer notes carry the same rules
+  const notes = readFileSync("docs/DEVELOPER_NOTES.md", "utf8");
+  assert.ok(notes.includes(rules.trim().slice(0, 2000)), "docs/DEVELOPER_NOTES.md rules differ from the README's");
 });

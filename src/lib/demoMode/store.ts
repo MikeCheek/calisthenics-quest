@@ -7,9 +7,9 @@
 // does, so the swap can't break a screen.
 
 import type { BodyProfile, Friend, Ping, PublicProfile, SessionRecord, SkillMastery, SkillProfile, SkillTrack, StagedSkillKey, TrainingEquipment, UserDoc } from "../types";
-import type { GlobalBoardRow, PairingDoc } from "../store";
+import type { GlobalBoardRow, GlobalBoardWrite, PairingDoc } from "../store";
+import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
-import type { WeekStats } from "../types";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 
 export type { GlobalBoardRow, PairingDoc };
@@ -166,13 +166,12 @@ export async function fetchSessionsBetween(_uid: string, fromISO: string, toISO:
   );
 }
 
-export async function setGlobalBoardEntry(uid: string, week: WeekStats | null, _clearWeekKeys: string[] = []): Promise<void> {
-  if (!week) {
+export async function setGlobalBoardEntry(uid: string, entry: GlobalBoardWrite | null, _clearWeekKeys: string[] = []): Promise<void> {
+  if (!entry) {
     state.global.delete(uid);
     return;
   }
-  const u = state.users.get(uid);
-  state.global.set(uid, { uid, displayName: u?.displayName ?? "Athlete", level: u?.level ?? 1, week: clone(week) });
+  state.global.set(uid, { uid, displayName: boardName(entry.displayName), level: entry.level, week: clone(entry.week) });
 }
 
 export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: number): Promise<GlobalBoardRow[]> {

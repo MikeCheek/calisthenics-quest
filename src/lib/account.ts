@@ -174,6 +174,8 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
   // pairings hold body stats + skills; best-effort, needs the host delete rule
   await Promise.all(pairings.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
   if (userDoc.friendCode) await deleteDoc(doc(db, "usercodes", userDoc.friendCode)).catch(() => {});
+  // global board entries for this and the last logged week
+  await setGlobalBoardEntry(uid, null, [currentWeekKey(), ...(userDoc.week?.key ? [userDoc.week.key] : [])]).catch(() => {});
   await deleteDoc(doc(db, "profiles", uid));
   await deleteDoc(doc(db, "users", uid));
 

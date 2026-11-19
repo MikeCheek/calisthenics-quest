@@ -6,7 +6,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { listenFriends, fetchPublicProfile, fetchGlobalBoard, setGlobalBoardEntry, updateProgress } from "@/lib/store";
 import {
   BoardEntry,
-  boardName,
   EMPTY_WEEK,
   GLOBAL_BOARD_SIZE,
   Metric,
@@ -16,6 +15,7 @@ import {
   weeklyChallenge,
 } from "@/lib/leaderboard";
 import { useToast } from "@/context/ToastContext";
+import { effectiveXpProgress } from "@/lib/levelPath";
 import { currentWeekKey } from "@/lib/missions";
 import { Friend } from "@/lib/types";
 import { Trophy, Crown, Swords, Globe2, Users } from "lucide-react";
@@ -72,8 +72,7 @@ export default function FriendsLeaderboard() {
             .filter((r) => plausibleWeek(r.week))
             .map((r) => ({
               uid: r.uid,
-              name: r.uid === userDoc.uid ? tx("You") : boardName(r.displayName),
-              photoURL: r.photoURL,
+              name: r.uid === userDoc.uid ? tx("You") : r.displayName,
               isMe: r.uid === userDoc.uid,
               week: r.week,
             }))
@@ -93,7 +92,12 @@ export default function FriendsLeaderboard() {
     setJoining(true);
     try {
       const thisWeek = userDoc.week?.key === weekKey ? userDoc.week : EMPTY_WEEK(weekKey);
-      await setGlobalBoardEntry(userDoc.uid, join ? thisWeek : null, join ? [] : [weekKey, ...(userDoc.week ? [userDoc.week.key] : [])]);
+      const level = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery).level;
+      await setGlobalBoardEntry(
+        userDoc.uid,
+        join ? { displayName: userDoc.displayName, level, week: thisWeek } : null,
+        join ? [] : [weekKey, ...(userDoc.week ? [userDoc.week.key] : [])]
+      );
       await updateProgress(userDoc.uid, { globalBoard: join });
       await refreshUserDoc();
       toast.success(join ? "You're on the global board." : "You've left the global board.");

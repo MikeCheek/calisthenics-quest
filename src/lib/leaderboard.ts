@@ -79,21 +79,18 @@ export function rankBoard(entries: BoardEntry[], metric: Metric, weekKey: string
 }
 
 // ---- global board (everyone who opted in) ----
-// Each week's totals sit in their own profile field, named after the week
-// (gw_2026W47), so "top of this week" is a plain sort on one field — which
-// Firestore indexes automatically, no composite index to set up — and
-// players who haven't trained this week simply aren't in it.
+// Entries live in leaderboard/{weekKey}/entries/{uid} (see store.ts).
 export const GLOBAL_BOARD_SIZE = 50;
 
-export function globalWeekField(weekKey: string): string {
-  return `gw_${weekKey.replace(/[^0-9A-Za-z]/g, "")}`;
-}
-
 // Totals are self-reported by each player's device, so numbers no real week
-// could produce are left off the public board rather than shown.
+// could produce are left off the public board. The Firestore rules enforce
+// the same limits on write (README → security rules); keep them in step.
+export const BOARD_LIMITS = { sessions: 21, minutes: 1800, verified: 30, xp: 20000 } as const;
 export function plausibleWeek(w: Pick<WeekStats, "sessions" | "minutes" | "verified" | "xp">): boolean {
   const ok = (n: unknown, max: number) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= max;
-  return ok(w.sessions, 21) && ok(w.minutes, 1800) && ok(w.verified, 30) && ok(w.xp, 20000);
+  return (
+    ok(w.sessions, BOARD_LIMITS.sessions) && ok(w.minutes, BOARD_LIMITS.minutes) && ok(w.verified, BOARD_LIMITS.verified) && ok(w.xp, BOARD_LIMITS.xp)
+  );
 }
 
 // Strangers see first name + last initial ("Michele P."), not the full name.
