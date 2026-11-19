@@ -10,6 +10,7 @@ import { playBeep } from "@/lib/sound";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
 import { Dices, Sparkles } from "lucide-react";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 // A curated slice of the full 50-skill roster — enough variety to show
 // range (beginner-friendly through absurd) without listing all 50 on a
@@ -128,7 +129,7 @@ export default function LandingWheelDemo() {
       {result && (
         <div className="mt-4 p-3 rounded-lg bg-zinc-800/60 border border-orange-500/40 animate-pop-in">
           <div className="text-sm font-medium text-zinc-100">{result.name}</div>
-          <div className="text-xs text-zinc-400 mb-2">{result.detail}</div>
+          <div className="text-xs text-zinc-400 mb-2">{localizeDetail(result.detail, locale)}</div>
           {result.description && <p className="text-xs text-zinc-300 mb-2">{localizedDescription(result, locale)}</p>}
           {/* the AI routes need an account, so visitors get a pointer instead of a button that would refuse */}
           <div className="mb-2 text-xs text-zinc-400 flex items-center gap-1.5">

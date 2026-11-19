@@ -23,6 +23,7 @@ import {
 import { buildTcx, canExportTcx, tcxFileName } from "@/lib/workoutExport";
 import { downloadBlob } from "@/lib/shareImage";
 import ShareSheet from "@/components/ShareSheet";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 // Monday-first calendar for the visible month, plus that month's sessions
 // and the athlete's personal bests.
@@ -301,10 +302,11 @@ function SessionCard({
 }
 
 function ExerciseLine({ e }: { e: ExerciseRecord }) {
-  const { tx } = useLanguage();
-  const result =
-    formatSets(e.sets) ??
-    (typeof e.checkResult === "number" ? `${e.checkResult}` : e.checkResult === true ? tx("done") : e.detail ?? "");
+  const { tx, locale } = useLanguage();
+  const result = localizeDetail(
+    formatSets(e.sets) ?? (typeof e.checkResult === "number" ? `${e.checkResult}` : e.checkResult === true ? tx("done") : e.detail ?? ""),
+    locale
+  );
   return (
     <li className="flex items-center gap-2 text-sm">
       {e.outcome === "done" ? (

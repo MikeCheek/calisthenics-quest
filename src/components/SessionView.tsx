@@ -13,6 +13,7 @@ import { plausibleDuration } from "@/lib/sessionHistory";
 import Modal from "@/components/Modal";
 import { Play, Clock, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 type SessionLevel = "easier" | "default" | "harder";
 
@@ -57,7 +58,7 @@ export default function SessionView({
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set(COLLAPSED_BY_DEFAULT));
   const toast = useToast();
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
   const eq = equipment ?? DEFAULT_LOOKUP_EQUIPMENT;
 
   const toggleSkip = (key: string) => {
@@ -76,8 +77,8 @@ export default function SessionView({
   const lastTimeFor = (name: string): string | undefined => {
     const st = userDoc?.exerciseStats?.[statKey(name)];
     if (!st?.lastSets || !st.lastAt) return undefined;
-    const when = new Date(st.lastAt).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-    return `${st.lastSets} · ${when}`;
+    const when = new Date(st.lastAt).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short" });
+    return `${localizeDetail(st.lastSets, locale)} · ${when}`;
   };
 
   const toggleDone = (key: string) => {

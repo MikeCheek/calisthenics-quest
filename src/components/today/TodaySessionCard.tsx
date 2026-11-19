@@ -5,6 +5,7 @@ import { TrainingSession } from "@/lib/types";
 import { estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { useLanguage } from "@/context/LanguageContext";
 import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, RotateCcw } from "lucide-react";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 const PREVIEW = 5;
 
@@ -24,7 +25,7 @@ export default function TodaySessionCard({
   onStart: () => void;
   onResume: () => void;
 }) {
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
   // warm-up and finisher are always there; the preview shows what's specific to today
   const main = session.sets.filter((s) => s.track !== "warmup" && s.track !== "finisher");
   const exercises = main.flatMap((s) => s.exercises.map((e) => ({ name: e.name, detail: e.detail, check: s.track === "skillCheck" })));
@@ -87,7 +88,7 @@ export default function TodaySessionCard({
                 {e.check && <BadgeCheck size={14} className="text-sky-400 shrink-0" aria-label={tx("Skill Check")} />}
                 <span className="truncate">{e.name}</span>
               </span>
-              <span className="block text-xs text-muted">{e.detail}</span>
+              <span className="block text-xs text-muted">{localizeDetail(e.detail, locale)}</span>
             </span>
           </li>
         ))}

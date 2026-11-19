@@ -7,6 +7,7 @@ import { TrainingSession, SkillProfile, TrainingEquipment } from "@/lib/types";
 import { Sparkles, Star, Check, X, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { authedFetch } from "@/lib/apiClient";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 interface Suggestion {
   key: string;
@@ -61,7 +62,7 @@ export default function PlanReviewButton({
   onApply: (next: TrainingSession) => void;
 }) {
   const toast = useToast();
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReviewResult | null>(null);
@@ -189,7 +190,7 @@ export default function PlanReviewButton({
                       <div className="flex items-start justify-between gap-2 text-sm">
                         <div className="flex-1 min-w-0">
                           <div className="text-muted line-through truncate">
-                            {original?.name} — {original?.detail}
+                            {original?.name} — {localizeDetail(original?.detail ?? "", locale)}
                           </div>
                           <div className="flex items-center gap-1.5 text-zinc-100 mt-0.5">
                             <ArrowRight size={12} className="text-orange-400 shrink-0" />

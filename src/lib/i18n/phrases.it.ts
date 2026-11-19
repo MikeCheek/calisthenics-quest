@@ -915,6 +915,8 @@ const IT_PHRASES: [string, string][] = [
   ["You're on the global board.", "Sei nella classifica globale."],
   ["You've left the global board.", "Sei uscito dalla classifica globale."],
   ["Couldn't save that — try again.", "Non è stato possibile salvare — riprova."],
+  ["Session", "Sessione"],
+  ["Sets — or swipe the card", "Serie — oppure scorri la scheda"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
