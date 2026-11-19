@@ -19,7 +19,7 @@ export default function HeadlineCard({ userDoc }: { userDoc: UserDoc }) {
     <section className="panel p-4 relative overflow-hidden">
       <div className="absolute -top-20 -right-12 w-56 h-56 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
       <div className="flex items-stretch gap-3 relative">
-        <Link href="/progress?tab=road" className="flex-1 min-w-0 group">
+        <Link href="/skills?tab=road" className="flex-1 min-w-0 group">
           <div className="text-xs uppercase tracking-wide text-muted">{tx("Level")}</div>
           <div className="flex items-baseline gap-1">
             <span className="heading text-5xl text-zinc-100 stat-mono leading-none">{p.level}</span>
@@ -35,7 +35,7 @@ export default function HeadlineCard({ userDoc }: { userDoc: UserDoc }) {
           </div>
         </Link>
         <Link
-          href="/progress"
+          href="/skills?tab=proven"
           className="w-28 shrink-0 rounded-xl bg-zinc-950/60 border border-zinc-800 hover:border-emerald-600/60 p-3 flex flex-col justify-between transition-colors"
         >
           <div className="text-xs uppercase tracking-wide text-muted flex items-center gap-1">

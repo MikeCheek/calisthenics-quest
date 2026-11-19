@@ -1,24 +1,37 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useTrainingSession } from "@/context/TrainingSessionContext";
 import Nav from "@/components/Nav";
 import NotificationPrompt from "@/components/NotificationPrompt";
-import HeadlineCard from "@/components/HeadlineCard";
 import MissionsSummary from "@/components/MissionsSummary";
-import { ensureCurrentWeekMissions } from "@/lib/missions";
-import { pickFocus, FOCUS_LABEL } from "@/lib/trainingGenerator";
-import { Dumbbell, CalendarDays, Users2, Layers, History } from "lucide-react";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
+import PageLoading from "@/components/PageLoading";
+import TodaySessionCard from "@/components/today/TodaySessionCard";
+import WeekStrip from "@/components/today/WeekStrip";
+import NextGoalCard from "@/components/today/NextGoalCard";
+import { useTodaysSession } from "@/hooks/useTodaysSession";
+import { ensureCurrentWeekMissions } from "@/lib/missions";
+import { FOCUS_LABEL } from "@/lib/trainingGenerator";
+import { effectiveXpProgress } from "@/lib/levelPath";
+import { fetchSessionsBetween } from "@/lib/store";
+import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
+import { SessionRecord } from "@/lib/types";
+import { Flame } from "lucide-react";
 
-
-export default function DashboardPage() {
+// Today: what to do now, in one screen. Today's session is the hero and
+// starts in one tap; under it, the week so far, one goal to aim at, and
+// this week's missions. Everything else lives in its own tab.
+export default function TodayPage() {
   const { user, userDoc, loading } = useAuth();
-  const { t, tx } = useLanguage();
+  const { tx, locale } = useLanguage();
   const router = useRouter();
+  const { session: activeSession, completed: activeCompleted, startSession, expand } = useTrainingSession();
+  const { focus, fitted, check } = useTodaysSession(userDoc);
+  const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -26,82 +39,68 @@ export default function DashboardPage() {
     else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
   }, [loading, user, userDoc, router]);
 
-  if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
-  }
+  // this week's sessions, refetched after each one is logged
+  const uid = userDoc?.uid;
+  const sessionsDone = userDoc?.totalSessionsCompleted;
+  useEffect(() => {
+    if (!uid) return;
+    const now = new Date();
+    fetchSessionsBetween(uid, weekStart(now).toISOString(), new Date(now.getTime() + 60_000).toISOString())
+      .then(setWeekSessions)
+      .catch(() => setWeekSessions([]));
+  }, [uid, sessionsDone]);
 
+  const now = useMemo(() => new Date(), []);
+  if (loading || !userDoc || !fitted || !focus) return <PageLoading />;
+
+  const level = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery).level;
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
-  const todaysFocus = FOCUS_LABEL[pickFocus(new Date(), userDoc.equipment, userDoc.goalTracks)];
+  const days = weekStrip(now, weekSessions, userDoc.body?.trainingDaysOfWeek ?? []);
+  const doneToday = trainedToday(now, weekSessions);
+  const plannedCount = userDoc.body?.trainingDaysOfWeek?.length ?? 0;
+  const firstName = userDoc.displayName?.split(" ")[0] ?? "Athlete";
+  const rawDate = now.toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const dateLine = rawDate.charAt(0).toUpperCase() + rawDate.slice(1); // "giovedì 19 novembre" → "Giovedì 19 novembre"
 
   return (
     <>
       <Nav />
-      <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5">
-        <div>
-          <h1 className="heading text-2xl text-zinc-100">
-            {t("dashboard", "welcomeBack", { name: userDoc.displayName?.split(" ")[0] ?? "Athlete" })}
-          </h1>
-          <p className="text-zinc-400 text-sm">{t("dashboard", "sessionsLogged", { count: userDoc.totalSessionsCompleted })}</p>
-        </div>
+      <main className="max-w-xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+        <header className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted">{dateLine}</p>
+            <h1 className="heading text-2xl text-zinc-100 truncate">{tx("Hi, {name}", { name: firstName })}</h1>
+          </div>
+          {userDoc.streak > 0 && (
+            <div
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-300 text-sm"
+              aria-label={tx("{n}-day streak", { n: userDoc.streak })}
+            >
+              <Flame size={15} className="text-orange-400" />
+              <span className="stat-mono">{userDoc.streak}</span>
+            </div>
+          )}
+        </header>
 
         <SaveProgressPrompt compact />
-
         <NotificationPrompt />
 
-        {/* Hero: today's session, the primary call to action */}
-        <Link
-          href="/training"
-          className="panel p-5 flex items-center gap-4 border-orange-500/40 hover:border-orange-500 transition-colors block"
-        >
-          <div className="w-12 h-12 rounded-full bg-orange-500/15 flex items-center justify-center shrink-0">
-            <Dumbbell size={22} className="text-orange-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs text-muted uppercase tracking-wide">{t("dashboard", "todaysFocus")}</div>
-            <div className="heading text-xl text-zinc-100 truncate">{todaysFocus}</div>
-            <div className="text-xs text-muted">{t("dashboard", "sessionFlow")}</div>
-          </div>
-          <div className="shrink-0 heading text-sm bg-orange-500 text-zinc-950 px-4 py-2.5 rounded-lg">
-            {t("dashboard", "start")}
-          </div>
-        </Link>
+        <TodaySessionCard
+          session={fitted.session}
+          focusLabel={FOCUS_LABEL[focus]}
+          inProgress={!!activeSession && !activeCompleted}
+          doneToday={doneToday}
+          onStart={() => startSession(fitted.session)}
+          onResume={expand}
+        />
 
-        <HeadlineCard userDoc={userDoc} />
+        <WeekStrip days={days} planned={plannedCount} />
+
+        {/* once today's session is done, its Skill Check is no longer "today" */}
+        <NextGoalCard userDoc={userDoc} check={doneToday ? null : check} playerLevel={level} />
 
         <MissionsSummary missions={missions} />
-
-        {/* Quick actions grid */}
-        <div>
-          <div className="text-xs uppercase tracking-wide text-muted mb-2">{t("dashboard", "quickActions")}</div>
-          <div className="grid grid-cols-4 gap-2">
-            <QuickAction href="/plan" icon={CalendarDays} label={tx("This week")} />
-            <QuickAction href="/progress?tab=skills" icon={Layers} label={t("dashboard", "skills")} />
-            <QuickAction href="/progress?tab=history" icon={History} label={tx("History")} />
-            <QuickAction href="/friends" icon={Users2} label={tx("Friends")} />
-          </div>
-        </div>
       </main>
     </>
-  );
-}
-
-
-function QuickAction({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: typeof Dumbbell;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="panel p-3 flex flex-col items-center justify-center gap-1.5 text-center hover:border-orange-500/50 transition-colors"
-    >
-      <Icon size={20} className="text-orange-400" />
-      <span className="text-xs text-zinc-300">{label}</span>
-    </Link>
   );
 }

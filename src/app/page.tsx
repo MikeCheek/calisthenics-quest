@@ -19,7 +19,7 @@ const FEATURES: { icon: typeof Bot; title: string; body: string }[] = [
 ];
 
 export default function LandingPage() {
-  const { user, userDoc, loading, signIn, startAsGuest } = useAuth();
+  const { user, userDoc, loading, signIn, startAsGuest, setupFailures } = useAuth();
   const [startingGuest, setStartingGuest] = useState(false);
   const { tx } = useLanguage();
   const tryAsGuest = async () => {
@@ -28,6 +28,11 @@ export default function LandingPage() {
     // on success the redirect below sends the new guest to onboarding
   };
   const router = useRouter();
+
+  // the account was created but its data couldn't be saved: let them retry
+  useEffect(() => {
+    if (setupFailures > 0) setStartingGuest(false);
+  }, [setupFailures]);
 
   useEffect(() => {
     if (loading) return;

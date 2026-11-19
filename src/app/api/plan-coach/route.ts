@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { guardAiRequest } from "@/lib/server/aiGuard";
+import { AI_ERRORS, guardAiRequest, upstreamFailure } from "@/lib/server/aiGuard";
 
 export const runtime = "nodejs";
 
@@ -178,10 +178,7 @@ ${planLines}`;
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       console.log(`${LOG_TAG} request failed`, { status: res.status, model, usedJsonMode, body: text.slice(0, 2000) });
-      return NextResponse.json(
-        { error: `OpenRouter request failed (${res.status}). ${text.slice(0, 200)}` },
-        { status: 502 }
-      );
+      return upstreamFailure(res.status);
     }
 
     const data = await res.json();
@@ -231,7 +228,7 @@ ${planLines}`;
   } catch (err) {
     console.log(`${LOG_TAG} unexpected error`, err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error reaching OpenRouter." },
+      { error: AI_ERRORS.upstream },
       { status: 502 }
     );
   }

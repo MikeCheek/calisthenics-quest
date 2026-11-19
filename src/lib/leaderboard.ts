@@ -77,3 +77,25 @@ export function rankBoard(entries: BoardEntry[], metric: Metric, weekKey: string
     return { ...e, rank };
   });
 }
+
+// ---- global board (everyone who opted in) ----
+// Entries live in leaderboard/{weekKey}/entries/{uid} (see store.ts).
+export const GLOBAL_BOARD_SIZE = 50;
+
+// Totals are self-reported by each player's device, so numbers no real week
+// could produce are left off the public board. The Firestore rules enforce
+// the same limits on write (README → security rules); keep them in step.
+export const BOARD_LIMITS = { sessions: 21, minutes: 1800, verified: 30, xp: 20000 } as const;
+export function plausibleWeek(w: Pick<WeekStats, "sessions" | "minutes" | "verified" | "xp">): boolean {
+  const ok = (n: unknown, max: number) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= max;
+  return (
+    ok(w.sessions, BOARD_LIMITS.sessions) && ok(w.minutes, BOARD_LIMITS.minutes) && ok(w.verified, BOARD_LIMITS.verified) && ok(w.xp, BOARD_LIMITS.xp)
+  );
+}
+
+// Strangers see first name + last initial ("Michele P."), not the full name.
+export function boardName(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "Athlete";
+  return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+}

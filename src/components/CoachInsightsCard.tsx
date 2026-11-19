@@ -52,7 +52,7 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
           )}
           {rising.length > 0 && (
             <Group icon={<TrendingUp size={14} className="text-emerald-400" />} title={tx("Skills trending up")}>
-              <div className="text-sm text-zinc-300">{rising.join(", ")}</div>
+              <div className="text-sm text-zinc-300">{rising.map((r) => tx(r)).join(", ")}</div>
             </Group>
           )}
           {struggling.length > 0 && (

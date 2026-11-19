@@ -9,6 +9,7 @@ import { effectiveLevel } from "@/lib/levelPath";
 import { UserDoc, SkillProfile, StagedSkillKey, SkillMastery } from "@/lib/types";
 import { Celebration } from "@/lib/sessionComplete";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function DeclareSkillModal({
   open,
@@ -22,6 +23,7 @@ export default function DeclareSkillModal({
   onSaved: () => Promise<void>;
 }) {
   const toast = useToast();
+  const { tx } = useLanguage();
   const [skills, setSkills] = useState<SkillProfile>(userDoc.skills);
   const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(userDoc.skillMastery);
   const [saving, setSaving] = useState(false);
@@ -65,9 +67,9 @@ export default function DeclareSkillModal({
   return (
     <>
       <CelebrationOverlay celebration={celebration} />
-      <Modal open={open} onClose={close} title="Declare a new skill">
+      <Modal open={open} onClose={close} title={tx("Declare a new skill")}>
         <p className="text-xs text-muted mb-3">
-          Just hit something new? Update it here — no need to redo the whole assessment.
+          {tx("Just hit something new? Update it here — no need to redo the whole assessment.")}
         </p>
         <SkillTabPicker
           skills={skills}
@@ -81,7 +83,7 @@ export default function DeclareSkillModal({
           disabled={saving}
           className="w-full mt-4 py-2.5 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-60"
         >
-          {saving ? "Saving..." : "Save"}
+          {saving ? tx("Saving...") : tx("Save")}
         </button>
       </Modal>
     </>

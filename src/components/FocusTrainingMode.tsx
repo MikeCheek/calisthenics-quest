@@ -19,6 +19,7 @@ import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAliv
 import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
 import type { TimerEvent } from "@/components/ExerciseTimer";
 import { useLanguage } from "@/context/LanguageContext";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 interface Step {
   key: string;
@@ -511,11 +512,11 @@ export default function FocusTrainingMode() {
                   </div>
                 )
               )}
-              <div className="text-sm text-zinc-400 mt-1">{current.exercise.detail}</div>
+              <div className="text-sm text-zinc-400 mt-1">{localizeDetail(current.exercise.detail, locale)}</div>
               {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && userDoc?.exerciseStats?.[statKey(current.exercise.name)]?.lastSets && (
                 <div className="text-xs text-muted mt-0.5">
                   {tx("Last time:")}{" "}
-                  <span className="text-zinc-300 stat-mono">{userDoc.exerciseStats[statKey(current.exercise.name)].lastSets}</span>
+                  <span className="text-zinc-300 stat-mono">{localizeDetail(userDoc.exerciseStats[statKey(current.exercise.name)].lastSets ?? "", locale)}</span>
                 </div>
               )}
               {current.exercise.cue && (

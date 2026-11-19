@@ -447,6 +447,8 @@ export interface UserDoc {
   // best clean set per exercise (keyed like exerciseStats), for records
   records?: Record<string, ExerciseBest>;
   week?: WeekStats;
+  // opted in to the global weekly leaderboard (everyone, not just friends)
+  globalBoard?: boolean;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

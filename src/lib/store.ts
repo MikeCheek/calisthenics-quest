@@ -14,6 +14,7 @@ import {
   writeBatch,
   where,
 } from "firebase/firestore";
+import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
 import {
   BodyProfile,
@@ -28,6 +29,7 @@ import {
   UserDoc,
   DEFAULT_SKILLS,
   SessionRecord,
+  WeekStats,
 } from "./types";
 
 export async function fetchUserDoc(uid: string): Promise<UserDoc | null> {
@@ -304,4 +306,57 @@ export async function fetchSessionsBetween(uid: string, fromISO: string, toISO: 
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as SessionRecord) }));
+}
+
+// ---- global weekly leaderboard (opt-in) ----
+// leaderboard/{weekKey}/entries/{uid}: only what the board shows — a
+// shortened name, level and the week's totals — in its own collection, so
+// the board can be listed without making profiles listable. The security
+// rules check the numbers are plausible (see README).
+export interface GlobalBoardRow {
+  uid: string;
+  displayName: string; // already shortened ("Michele P.")
+  level: number;
+  week: WeekStats;
+}
+
+export interface GlobalBoardWrite {
+  displayName: string; // full name; shortened before it's written
+  level: number;
+  week: WeekStats;
+}
+
+const boardDoc = (weekKey: string, uid: string) => doc(db, "leaderboard", weekKey, "entries", uid);
+
+// Writes this week's entry (or none with `null`) and removes the entries for
+// the given weeks, so past weeks don't linger.
+export async function setGlobalBoardEntry(uid: string, entry: GlobalBoardWrite | null, clearWeekKeys: string[] = []): Promise<void> {
+  const keep = entry?.week.key;
+  await Promise.all(
+    [...new Set(clearWeekKeys)].filter((k) => k !== keep).map((k) => deleteDoc(boardDoc(k, uid)).catch(() => {}))
+  );
+  if (entry) {
+    const { week } = entry;
+    await setDoc(boardDoc(week.key, uid), {
+      name: boardName(entry.displayName),
+      level: entry.level,
+      sessions: week.sessions,
+      minutes: week.minutes,
+      verified: week.verified,
+      xp: week.xp,
+    });
+  }
+}
+
+export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: number): Promise<GlobalBoardRow[]> {
+  const snap = await getDocs(query(collection(db, "leaderboard", weekKey, "entries"), orderBy(metric, "desc"), limit(count)));
+  return snap.docs.map((d) => {
+    const e = d.data() as { name?: string; level?: number; sessions: number; minutes: number; verified: number; xp: number };
+    return {
+      uid: d.id,
+      displayName: e.name ?? "Athlete",
+      level: e.level ?? 1,
+      week: { key: weekKey, sessions: e.sessions, minutes: e.minutes, verified: e.verified, xp: e.xp },
+    };
+  });
 }

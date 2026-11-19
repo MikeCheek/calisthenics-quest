@@ -13,10 +13,13 @@ import { updateProgress } from "@/lib/store";
 import DangerZone from "@/components/DangerZone";
 import { claimCounts, syncClaims } from "@/lib/verification";
 import { Globe, Info, Flame, Dumbbell, Zap, BadgeCheck, Pencil, ChevronRight, Ruler, MapPin } from "lucide-react";
+import XPHistoryChart from "@/components/XPHistoryChart";
+import SessionHistory from "@/components/SessionHistory";
 
 
-type Tab = "settings" | "account";
+type Tab = "activity" | "settings" | "account";
 const TABS: { id: Tab; label: string }[] = [
+  { id: "activity", label: "Activity" },
   { id: "settings", label: "Settings" },
   { id: "account", label: "Account" },
 ];
@@ -36,7 +39,7 @@ export default function ProfilePage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const { t, tx, locale, setLocale } = useLanguage();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("settings");
+  const [tab, setTab] = useState<Tab>("activity");
 
   // open the tab named in the URL (e.g. /profile?tab=account)
   useEffect(() => {
@@ -47,7 +50,7 @@ export default function ProfilePage() {
   const selectTab = (next: Tab) => {
     setTab(next);
     // deep-linkable (e.g. /profile?tab=account) without adding history entries
-    router.replace(next === "settings" ? "/profile" : `/profile?tab=${next}`, { scroll: false });
+    router.replace(next === "activity" ? "/profile" : `/profile?tab=${next}`, { scroll: false });
   };
 
   useEffect(() => {
@@ -117,7 +120,7 @@ export default function ProfilePage() {
 
         {/* tabs */}
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">
-          <div role="tablist" className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
             {TABS.map((x) => (
               <button
                 key={x.id}
@@ -133,6 +136,16 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
+
+        {tab === "activity" && (
+          <div className="space-y-4 animate-overlay-fade-in">
+            <div className="panel p-4">
+              <div className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</div>
+              <XPHistoryChart history={userDoc.xpHistory ?? []} />
+            </div>
+            <SessionHistory userDoc={userDoc} />
+          </div>
+        )}
 
         {tab === "settings" && (
           <div className="space-y-4 animate-overlay-fade-in">
@@ -227,7 +240,7 @@ function HeroStat({ icon, value, label }: { icon: React.ReactNode; value: number
         {icon}
         {value}
       </div>
-      <div className="text-xs text-muted truncate">{label}</div>
+      <div className="text-xs text-muted leading-tight">{label}</div>
     </div>
   );
 }

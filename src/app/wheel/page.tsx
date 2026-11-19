@@ -31,6 +31,8 @@ import { playBeep } from "@/lib/sound";
 import { Sparkles, X, Shuffle } from "lucide-react";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
+import PageLoading from "@/components/PageLoading";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -74,7 +76,7 @@ export default function WheelPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>
+        <PageLoading />
       }
     >
       <WheelContent />
@@ -129,7 +131,7 @@ function WheelContent() {
   }, [userDoc, track, difficulty, spinPhase]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const playerLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
@@ -419,7 +421,7 @@ function WheelContent() {
                 </span>
               )}
             </div>
-            <div className="text-sm text-zinc-400 mb-1">{composed.detail}</div>
+            <div className="text-sm text-zinc-400 mb-1">{localizeDetail(composed.detail, locale)}</div>
             {composed.description && <p className="text-sm text-zinc-300 mb-2">{localizedDescription(composed, locale)}</p>}
             {composed.cue && <div className="text-xs text-orange-400/80 italic mb-2">{composed.cue}</div>}
             <div className="flex items-center gap-2 mb-2">

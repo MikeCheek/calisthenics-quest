@@ -30,7 +30,14 @@ export const AI_ERRORS = {
   busy: "The AI coach is busy — try again in a minute.",
   tooMany: "You've asked the AI coach a lot recently — try again in a few minutes.",
   daily: "You've reached today's AI coach limit — it resets within a day.",
+  modelBusy: "The AI model is busy right now — try again in a minute.",
+  upstream: "The AI coach couldn't answer right now — try again.",
 } as const;
+
+/** What to tell the user when OpenRouter fails. Details stay in the server log. */
+export function upstreamFailure(status: number) {
+  return NextResponse.json({ error: status === 429 ? AI_ERRORS.modelBusy : AI_ERRORS.upstream }, { status: 502 });
+}
 
 function tooMany(error: string, retryAfterS: number) {
   return NextResponse.json({ error }, { status: 429, headers: { "Retry-After": String(retryAfterS) } });

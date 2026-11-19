@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -19,6 +20,7 @@ import {
   User,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
+import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
 import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -40,6 +42,7 @@ interface AuthContextValue {
   // signing up; saveWithGoogle links Google to that same account.
   isGuest: boolean;
   startAsGuest: () => Promise<boolean>;
+  setupFailures: number;
   saveWithGoogle: () => Promise<SaveResult>;
   switchToExistingAccount: () => Promise<void>;
 }
@@ -56,6 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCredential, setPendingCredential] = useState<AuthCredential | null>(null);
+  // bumped whenever loading/creating the account's data fails, so screens
+  // waiting on it (the landing page's guest button) can stop waiting
+  const [setupFailures, setSetupFailures] = useState(0);
+  // the auth listener below is registered once; read the toast through a ref
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const loadUserDoc = async (u: User) => {
     let doc = await fetchUserDoc(u.uid);
@@ -67,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         uid: u.uid,
         displayName: u.displayName ?? (u.isAnonymous ? "Guest" : "Athlete"),
         email: u.email ?? "",
-        photoURL: u.photoURL ?? undefined,
+        ...(u.photoURL ? { photoURL: u.photoURL } : {}),
         body: DEFAULT_BODY,
         skills: DEFAULT_SKILLS,
         skillMastery: {},
@@ -104,10 +113,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // the inline NODE_ENV check lets production builds drop this branch entirely
+    if (process.env.NODE_ENV === "development" && DEMO_MODE) {
+      // example athlete, no Firebase (see lib/demoMode)
+      const demoUser = {
+        uid: DEMO_UID,
+        isAnonymous: false,
+        displayName: "Alex Demo",
+        email: "demo@example.com",
+        photoURL: null,
+        providerData: [],
+        getIdToken: async () => "",
+      } as unknown as User;
+      setUser(demoUser);
+      loadUserDoc(demoUser).finally(() => setLoading(false));
+      return;
+    }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
-        await loadUserDoc(u);
+        try {
+          await loadUserDoc(u);
+        } catch (err) {
+          console.error("Couldn't load or create the account's data", err);
+          setUserDoc(null);
+          setSetupFailures((n) => n + 1);
+          toastRef.current.error("Couldn't set up your account — check your connection and try again.");
+        }
       } else {
         setUserDoc(null);
       }
@@ -133,6 +165,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const startAsGuest = async (): Promise<boolean> => {
+    // a guest account whose data couldn't be created last time: retry that
+    // instead of making another anonymous account
+    const current = auth.currentUser;
+    if (current?.isAnonymous && !userDoc) {
+      try {
+        await loadUserDoc(current);
+        return true;
+      } catch {
+        toast.error("Couldn't set up your account — check your connection and try again.");
+        return false;
+      }
+    }
     try {
       await signInAnonymously(auth);
       return true;
@@ -208,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         isGuest: !!user?.isAnonymous,
         startAsGuest,
+        setupFailures,
         saveWithGoogle,
         switchToExistingAccount,
       }}

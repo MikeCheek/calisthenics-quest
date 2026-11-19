@@ -22,6 +22,7 @@ import { Copy, Users } from "lucide-react";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
+import PageLoading from "@/components/PageLoading";
 
 type Mode = "choose" | "create" | "join";
 
@@ -29,7 +30,7 @@ export default function FriendsPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>
+        <PageLoading />
       }
     >
       <PairContent />
@@ -43,7 +44,7 @@ function PairContent() {
   const searchParams = useSearchParams();
   const toast = useToast();
   const { showReport } = useTrainingSession();
-  const { tx } = useLanguage();
+  const { t, tx } = useLanguage();
   const [mode, setMode] = useState<Mode>("choose");
   const [code, setCode] = useState("");
   const [joinInput, setJoinInput] = useState("");
@@ -74,7 +75,7 @@ function PairContent() {
   }, [code]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">Loading...</main>;
+    return <PageLoading />;
   }
 
   const handleCreate = async () => {
@@ -186,7 +187,7 @@ function PairContent() {
         <Nav />
         <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
           <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
-            <Users size={26} className="text-orange-400" /> {tx("Friends")}
+            <Users size={26} className="text-orange-400" /> {t("nav", "friends")}
           </h1>
           <SaveProgressPrompt reason="Friends, nudges and training together need an account, so others can find you. Save your progress with Google — nothing you've done so far is lost." />
         </main>
@@ -200,7 +201,7 @@ function PairContent() {
       <CelebrationOverlay celebration={celebration} />
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
-          <Users size={26} className="text-orange-400" /> {tx("Friends")}
+          <Users size={26} className="text-orange-400" /> {t("nav", "friends")}
         </h1>
         <p className="text-sm text-zinc-400 -mt-2">{tx("Your training crew — nudge them, or train together with a shared session.")}</p>
 

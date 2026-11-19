@@ -8,6 +8,7 @@ import { Exercise } from "@/lib/types";
 import { Clock, AlertTriangle } from "lucide-react";
 import ExerciseDemo from "@/components/ExerciseDemo";
 import { demoFor } from "@/lib/demos/catalog";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 export default function ExerciseDetailModal({
   exercise,
@@ -28,7 +29,7 @@ export default function ExerciseDetailModal({
   return (
     <Modal open={open} onClose={onClose} title={exercise.name}>
       <ExerciseDemo exerciseName={exercise.name} width={220} className="mb-3" />
-      <div className="text-sm text-zinc-200 mb-2 stat-mono">{exercise.detail}</div>
+      <div className="text-sm text-zinc-200 mb-2 stat-mono">{localizeDetail(exercise.detail, locale)}</div>
       {description && (
         <div className="mb-3">
           <div className="text-xs uppercase tracking-wide text-emerald-400 mb-1">{t("exercise", "howTo")}</div>

@@ -17,7 +17,7 @@ front lever, planche, muscle-up, handstand and 46 more skills.
 
 <br/>
 
-<img src="docs/screenshots/dashboard.png" width="200" alt="Dashboard: level and verified skills" />
+<img src="docs/screenshots/dashboard.png" width="200" alt="Today: the session, the week and one goal" />
 <img src="docs/screenshots/session.png" width="200" alt="Today's session, fitted to your time" />
 <img src="docs/screenshots/guided-mode.png" width="200" alt="Guided training with an animated demonstration" />
 <img src="docs/screenshots/share-card.png" width="200" alt="Shareable session card" />
@@ -75,17 +75,35 @@ and forget how your last session went. BarQuests is built around four ideas:
 - **Coach update** — after each session: mastery changes, new personal records,
   stage-up suggestions you accept or postpone, and a share button.
 
-### Progress
+### Today
+- **Today's session first** — the exercises, time and XP on the first screen, started
+  in one tap; the week's done and planned days beside it, plus one goal to aim at
+  (today's Skill Check, or the next skill to unlock).
+
+### Skills
 - **Headline** — your level and how many skills you've proven, front and centre.
-- **Skill tree** — “Up next” pins the most worthwhile next stages; every skill shows its
+- **Skill tree** — “Up next” pins the stages you're closest to; every skill shows its
   chain of stages with your current one highlighted.
-- **History** — a calendar, month totals, every session with its sets, and personal bests.
+- **Proven** — verified skills, the skill wall and the skill radar.
 - **Trophy road** — the next milestones, with the full level-by-level road one tap away.
+
+### Coach
 - **Ask your coach** — an AI chat that answers questions about *your* training data.
+- **Coach insights** — what the app has learned from your sessions: what's going well,
+  what's being eased off, and your real rest and hold times.
+- **AI review and planning** — check today's session against your level, plan the week,
+  or spin the bonus wheel.
+
+### Me
+- **Activity** — your XP over time, a calendar, month totals, every session with its
+  sets, and personal bests.
 
 ### Social
 - **Friends** — add by code, nudge each other, and see a **weekly leaderboard** with a
   rotating challenge (sessions, minutes, skills proven, XP).
+- **Global leaderboard** — switch the board to *Everyone* to see the week's top 50
+  across the app. It's opt-in: you only appear after joining, as first name and last
+  initial, and you can leave any time.
 - **Train together** — a shared session where each person gets work at their own level;
   with one bar between you, rests double so you take turns.
 - **Share cards** — session, verified-skill and personal-best images in story or square
@@ -216,28 +234,53 @@ service cloud.firestore {
       }
     }
 
-    // minimal public info so friends can be found by code — see PublicProfile
+    // minimal public info so friends can be found by code — see PublicProfile.
+    // "get" only: a profile can be opened by its id, but the collection can't
+    // be listed, so nobody can download every player's profile.
     match /profiles/{uid} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // friend-code -> uid reverse lookup, one doc per user, immutable once set
+    // friend-code -> uid reverse lookup, one doc per user, immutable once set.
+    // "get" only, or listing it would reveal every uid.
     match /usercodes/{code} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
       // released when its owner deletes their account
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     match /pairings/{code} {
-      allow read: if request.auth != null;
+      // opened by code; listed only for your own (account deletion finds them)
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && resource.data.hostUid == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
       allow update: if request.auth != null &&
         (resource.data.hostUid == request.auth.uid ||
          request.resource.data.guestUid == request.auth.uid);
       // pairings hold the host's body stats and skills — removed on account deletion
       allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+    }
+
+    // opt-in global weekly leaderboard: a short name, level and the week's
+    // totals only. Anyone signed in can read it; only the owner writes their
+    // own entry, guests can't, and numbers must be ones a real week allows
+    // (the same limits as BOARD_LIMITS in src/lib/leaderboard.ts).
+    match /leaderboard/{week}/entries/{uid} {
+      function count(v, max) { return v is int && v >= 0 && v <= max; }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && week.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['name', 'level', 'sessions', 'minutes', 'verified', 'xp'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.level is int && request.resource.data.level >= 1 && request.resource.data.level <= 1000
+        && count(request.resource.data.sessions, 21)
+        && count(request.resource.data.minutes, 1800)
+        && count(request.resource.data.verified, 30)
+        && count(request.resource.data.xp, 20000);
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
@@ -249,10 +292,17 @@ service cloud.firestore {
 
 ```bash
 npm run dev        # http://localhost:3000
+npm run demo       # same, signed in as an example athlete — no Firebase needed
 npm test           # unit tests
 npm run lint
 npm run build && npm start   # production build
 ```
+
+**Demo mode** (`npm run demo`) signs in a fictional athlete with three weeks of example
+training, friends and Skill Checks, all kept in memory, so you can try every signed-in
+screen without a Firebase project. A "DEMO" tab on the left edge marks it. It only runs on
+the development server: production builds never include it. The AI features answer with
+canned, clearly labelled demo replies, so no OpenRouter key is needed either.
 
 On a phone (or any production build) the app can be installed from the browser's
 *Add to Home Screen* / install prompt — it ships a web manifest and a service worker.
@@ -268,8 +318,8 @@ works there.
 
 ```
 src/
-├── app/                 # routes: dashboard, training, plan, progress, friends,
-│   │                    # profile, onboarding, wheel, about, landing
+├── app/                 # routes: dashboard (Today), training, plan, skills, coach,
+│   │                    # friends (Crew), profile (Me), onboarding, wheel, about, landing
 │   └── api/             # AI routes: coach-chat, exercise-tip, plan-review, plan-coach
 ├── components/          # UI (guided mode, session view, skill tree, share sheet, …)
 ├── context/             # auth, training session, language, toasts
@@ -285,6 +335,7 @@ src/
     ├── shareCards.ts                           # share-card SVG builder
     ├── leaderboard.ts, coachContext.ts         # friends board, AI coach context
     ├── server/                                 # AI route login check + rate limits
+    ├── demoMode/                               # example athlete + in-memory store (npm run demo)
     └── i18n/                                   # English/Italian phrase tables
 tests/                   # unit tests for the modules above
 docs/
@@ -313,8 +364,9 @@ docs/
 
 - **Apple Health and Google Health Connect** can't be written from a web app; that
   would need a native wrapper. Sessions can be exported as `.tcx` instead.
-- **Leaderboard totals are self-reported** by each player's device — fine for friendly
-  competition, not tamper-proof.
+- **Leaderboard totals are self-reported** by each player's device. The global board
+  hides weeks no real athlete could log, but it isn't tamper-proof — that would need
+  the totals computed on a server.
 - **Lock-screen controls** need a silent audio track while active, which can pause other
   apps' music on some phones — hence opt-in.
 - **AI answers** depend on the model configured in `OPENROUTER_MODEL`.

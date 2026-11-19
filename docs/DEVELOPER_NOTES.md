@@ -132,28 +132,53 @@ service cloud.firestore {
       }
     }
 
-    // minimal public info so friends can be found by code — see PublicProfile
+    // minimal public info so friends can be found by code — see PublicProfile.
+    // "get" only: a profile can be opened by its id, but the collection can't
+    // be listed, so nobody can download every player's profile.
     match /profiles/{uid} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // friend-code -> uid reverse lookup, one doc per user, immutable once set
+    // friend-code -> uid reverse lookup, one doc per user, immutable once set.
+    // "get" only, or listing it would reveal every uid.
     match /usercodes/{code} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
       // released when its owner deletes their account
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     match /pairings/{code} {
-      allow read: if request.auth != null;
+      // opened by code; listed only for your own (account deletion finds them)
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && resource.data.hostUid == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
       allow update: if request.auth != null &&
         (resource.data.hostUid == request.auth.uid ||
          request.resource.data.guestUid == request.auth.uid);
       // pairings hold the host's body stats and skills — removed on account deletion
       allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+    }
+
+    // opt-in global weekly leaderboard: a short name, level and the week's
+    // totals only. Anyone signed in can read it; only the owner writes their
+    // own entry, guests can't, and numbers must be ones a real week allows
+    // (the same limits as BOARD_LIMITS in src/lib/leaderboard.ts).
+    match /leaderboard/{week}/entries/{uid} {
+      function count(v, max) { return v is int && v >= 0 && v <= max; }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && week.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['name', 'level', 'sessions', 'minutes', 'verified', 'xp'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.level is int && request.resource.data.level >= 1 && request.resource.data.level <= 1000
+        && count(request.resource.data.sessions, 21)
+        && count(request.resource.data.minutes, 1800)
+        && count(request.resource.data.verified, 30)
+        && count(request.resource.data.xp, 20000);
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
@@ -270,7 +295,7 @@ real (non-dev) environment, you can install it as an app from the browser's
   goals), Road (the trophy road) and History (calendar, month totals, every
   finished session with its sets and outcomes, personal bests). `/skills`
   and `/path` redirect here.
-- **AI coach chat** (Progress → Overview → "Ask your coach") — questions
+- **AI coach chat** (Coach → "Ask your coach") — questions
   about your own training, answered by the OpenRouter model configured for
   the other AI features (`/api/coach-chat`). The app sends training data
   only (skills, what's verified or struggling, equipment, recent sessions —
@@ -296,17 +321,21 @@ real (non-dev) environment, you can install it as an app from the browser's
   possible from a web app; that would need a native wrapper.
 - **Share cards** — after every logged session the Coach update offers
   "Share your session"; new personal records and verified skills each have
-  a share button too, as do sessions in History and verified rows in
-  Progress. Cards come as a 1080×1920 story or 1080×1080 square, built as
+  a share button too, as do sessions in History (Me → Activity) and
+  verified rows in Skills → Proven. Cards come as a 1080×1920 story or 1080×1080 square, built as
   SVG (`src/lib/shareCards.ts`, with the stick figure in the exercise's key
   position) and rasterized to PNG in the browser; phones get the system
   share sheet, desktops a download. The athlete's name is opt-in — by
   default a card carries only training numbers.
-- **One headline** — the dashboard leads with your level (and how far to
-  the next) with verified skills beside it as the proof; the header shows
-  the same two numbers. Rank titles live in Progress → Road as your current
-  chapter, missions collapse to one line, and the bonus wheel appears as a
-  "bonus round" after you log a session instead of as a main feature.
+- **Today** (`/dashboard`) — today's session is the hero: focus, time, XP,
+  the exercises, and Start opening guided mode in one tap. Under it: a
+  seven-day strip (done / planned / today, `src/lib/weekStrip.ts`), one next
+  goal (today's Skill Check, else the top "Up next" unlock) and missions.
+  After training it turns into "Done for today" with the bonus wheel. Today
+  and the full session page share `src/hooks/useTodaysSession.ts`, so both
+  always show the same session; a changed focus is remembered for the day.
+  Your level and verified skills lead the Skills tab; the header shows the
+  same two numbers everywhere.
 - **Try before signing in** — guests train with an anonymous Firebase
   account (no friend code or public profile is created for them); "Save
   with Google" links Google to the same account, so nothing is copied. If
@@ -329,13 +358,15 @@ real (non-dev) environment, you can install it as an app from the browser's
   shoulders in 30° steps. Tests check that every anchored limb reaches its
   anchor through the whole loop and that the figure stays in frame;
   reduced-motion users get the key position as a still.
-- **Skill tree** (Progress → Skills) — "Up next" pins the three most
-  worthwhile next stages (goals first, then what's reachable at your level,
-  then closest by mastery); each area lists started skills as a chain of
+- **Skill tree** (Skills) — "Up next" pins the three next stages you're
+  closest to (mastery on the current stage, plus a bonus when verified and a
+  penalty when its Skill Check was missed; then trophy-road distance; goals
+  break ties); each area lists started skills as a chain of
   stages (done / current / next / locked) that opens into the full ladder
   with each stage's approximate level, and folds untouched skills away.
-  Progress → Road leads with the next three milestones; the full road is
-  one tap away.
+  Skills → Road leads with the next three milestones; the full road is
+  one tap away. Skills → Proven holds verified skills, the skill wall and
+  the radar.
 - **Contrast** — muted text uses a `muted` color (#909099, ≥4.7:1 on every
   background) instead of zinc-500/600 (which measured 3.7:1 and 2.3:1 on
   panels), and nothing is smaller than 12px; `tests/contrast.test.ts`
@@ -350,12 +381,15 @@ real (non-dev) environment, you can install it as an app from the browser's
   outcome, prescribed detail and clean per-set results from the timer.
   Exercises show "Last time: 12·11·10 reps", and beating a previous best
   shows up as a new personal record in the Coach update.
-- **Bottom tab bar** is the primary navigation on phones (Home / Train /
-  Progress / Friends / Profile); a slim top bar with a secondary nav row
-  appears on wider screens. Train has a Today / This week switch (the
-  plan) and links to the bonus wheel; each tab stays highlighted on its
-  sub-pages. Sign-out lives in Profile → Account. The standalone focus
-  timer was retired (`/pomodoro` redirects to Train).
+- **Bottom tab bar** is the primary navigation on phones, organised by
+  feature: Today (the session, the full session page and the week plan) /
+  Skills (tree, proven skills, road) / Coach (AI chat, coach insights, AI
+  review, week planning, bonus wheel) / Crew (friends, leaderboard, training
+  together) / Me (activity — XP chart and history — settings, account). A
+  slim top bar with a secondary nav row appears on wider screens; each tab
+  stays highlighted on its sub-pages. `/progress` (and its old `?tab=`
+  links), `/path`, `/pair` and `/pomodoro` redirect to the new homes.
+  Sign-out lives in Me → Account.
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first with
   app-shell caching) + generated icons in `public/icons/`. Registered from
   `src/components/PWARegister.tsx`. `display: "standalone"` plus a

@@ -8,6 +8,7 @@ import SkillCheckPanel from "@/components/SkillCheckPanel";
 import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
 import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles, History } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { localizeDetail } from "@/lib/i18n/detail";
 
 const SWIPE_THRESHOLD = 55;
 const SWIPE_MAX = 90;
@@ -60,7 +61,7 @@ export default function ExerciseRow({
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
   // once opened, the timer stays mounted (just hidden) so hiding it doesn't
   // throw away its progress or the timing it has recorded
   const [timerMounted, setTimerMounted] = useState(false);
@@ -171,7 +172,7 @@ export default function ExerciseRow({
               </div>
             </div>
             <div className="text-xs text-zinc-400">
-              {displayedDetail}
+              {localizeDetail(displayedDetail, locale)}
               {isAdjusted && <span className="text-orange-400"> ({tx("adjusted")})</span>}
             </div>
             {lastTime && (
@@ -187,7 +188,7 @@ export default function ExerciseRow({
             )}
             {isSkipped && <div className="text-xs text-muted mt-0.5">{tx("Skipped")}</div>}
 
-            <div className="flex items-center gap-1.5 mt-2">
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
               <button
                 onClick={onToggleTimer}
                 className={`text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-medium ${
@@ -214,7 +215,7 @@ export default function ExerciseRow({
                   <ArrowDownCircle size={11} /> {tx("Too hard")}
                 </button>
               )}
-              <div className="flex items-center ml-auto rounded-lg border border-zinc-700 overflow-hidden" title="Sets — or swipe the card">
+              <div className="flex items-center ml-auto shrink-0 rounded-lg border border-zinc-700 overflow-hidden" title={tx("Sets — or swipe the card")}>
                 <button
                   onClick={() => onBump(-1)}
                   aria-label={tx("One set fewer")}

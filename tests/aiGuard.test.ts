@@ -108,3 +108,17 @@ test("the AI guard's error messages have Italian versions", () => {
     assert.notEqual(translate("it", s), s, s);
   }
 });
+
+test("AI route error messages never include upstream details, and all have Italian versions", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const dir = join(process.cwd(), "src/app/api");
+  for (const route of readdirSync(dir)) {
+    const src = readFileSync(join(dir, route, "route.ts"), "utf8");
+    assert.ok(!/error:\s*`/.test(src), `${route}: templated error message (could leak details)`);
+    assert.ok(!/error:\s*err/.test(src), `${route}: raw exception sent to the user`);
+    for (const m of src.matchAll(/error:\s*"([^"]+)"/g)) {
+      assert.notEqual(translate("it", m[1]), m[1], `${route}: "${m[1]}" has no Italian version`);
+    }
+  }
+});

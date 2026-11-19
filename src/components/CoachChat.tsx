@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { buildCoachContext } from "@/lib/coachContext";
@@ -9,6 +8,7 @@ import { fetchSessionsBetween } from "@/lib/store";
 import { SessionRecord } from "@/lib/types";
 import { Send, Loader2, Bot } from "lucide-react";
 import { authedFetch } from "@/lib/apiClient";
+import ChatMarkdown from "@/components/ChatMarkdown";
 
 interface Msg {
   role: "user" | "assistant";
@@ -26,7 +26,9 @@ const SUGGESTIONS = [
 // Ask the AI coach about your own training. The conversation stays in this
 // browser tab (session storage), not on a server; the coach sees training
 // data only (see lib/coachContext.ts).
-export default function CoachChat({ open, onClose }: { open: boolean; onClose: () => void }) {
+// Shown inline on the Coach tab: the conversation scrolls inside its own
+// panel, so the page doesn't jump around as answers arrive.
+export default function CoachChat() {
   const { userDoc } = useAuth();
   const { tx, locale } = useLanguage();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -34,7 +36,8 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<SessionRecord[]>([]);
-  const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const scrollOnUpdate = useRef(false); // only after asking, not on load
 
   useEffect(() => {
     try {
@@ -51,22 +54,32 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
     } catch {
       // storage unavailable — the chat still works for this view
     }
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+    if (scrollOnUpdate.current && listRef.current) {
+      listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [messages, busy]);
 
   // recent sessions give the coach something concrete to talk about
   useEffect(() => {
-    if (!open || !userDoc) return;
+    if (!userDoc) return;
     const to = new Date();
     const from = new Date(to.getTime() - 30 * 86400000);
     fetchSessionsBetween(userDoc.uid, from.toISOString(), to.toISOString())
       .then(setRecent)
       .catch(() => setRecent([]));
-  }, [open, userDoc]);
+  }, [userDoc]);
+
+  // An unanswered question goes back into the input instead of staying in
+  // the conversation, so retrying doesn't leave the same question twice.
+  const giveBack = (q: string) => {
+    setMessages((m) => (m.length && m[m.length - 1].role === "user" && m[m.length - 1].content === q ? m.slice(0, -1) : m));
+    setInput(q);
+  };
 
   const ask = async (question: string) => {
     const q = question.trim().slice(0, 600);
     if (!q || busy || !userDoc) return;
+    scrollOnUpdate.current = true;
     const next: Msg[] = [...messages, { role: "user", content: q }];
     setMessages(next);
     setInput("");
@@ -80,11 +93,13 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.reply) {
+        giveBack(q);
         setError(data.configured === false ? tx("The AI coach isn't set up on this server yet.") : (data.error ? tx(data.error) : tx("The coach couldn't answer — try again.")));
         return;
       }
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
     } catch {
+      giveBack(q);
       setError(tx("Couldn't reach the coach — check your connection and try again."));
     } finally {
       setBusy(false);
@@ -92,8 +107,11 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={tx("Ask your coach")}>
-      <div className="flex flex-col gap-3 min-h-[50vh]">
+    <section className="panel p-4 border-orange-500/40 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent">
+      <h2 className="heading text-lg text-zinc-100 flex items-center gap-2 mb-3">
+        <Bot size={18} className="text-orange-400" /> {tx("Ask your coach")}
+      </h2>
+      <div className="flex flex-col gap-3">
         {messages.length === 0 && (
           <div className="space-y-3">
             <p className="text-sm text-zinc-400 flex items-start gap-2">
@@ -114,15 +132,17 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
           </div>
         )}
 
-        <div className="space-y-2.5" aria-live="polite">
+        <div ref={listRef} className="space-y-2.5 max-h-[60vh] overflow-y-auto -mx-1 px-1" aria-live="polite">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${
-                  m.role === "user" ? "bg-orange-500 text-zinc-950 rounded-br-md" : "bg-zinc-800 text-zinc-100 rounded-bl-md"
+                className={`rounded-2xl px-3.5 py-2.5 text-sm ${
+                  m.role === "user"
+                    ? "max-w-[85%] bg-orange-500 text-zinc-950 rounded-br-md whitespace-pre-wrap"
+                    : "max-w-[92%] bg-zinc-800 text-zinc-100 rounded-bl-md"
                 }`}
               >
-                {m.content}
+                {m.role === "assistant" ? <ChatMarkdown text={m.content} /> : m.content}
               </div>
             </div>
           ))}
@@ -134,7 +154,6 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
             </div>
           )}
           {error && <div className="text-sm text-orange-300">{error}</div>}
-          <div ref={endRef} />
         </div>
 
         <form
@@ -142,7 +161,7 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
             e.preventDefault();
             ask(input);
           }}
-          className="mt-auto flex gap-2 sticky bottom-0 bg-zinc-900 pt-2"
+          className="flex gap-2"
         >
           <input
             value={input}
@@ -167,6 +186,6 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
           </button>
         )}
       </div>
-    </Modal>
+    </section>
   );
 }

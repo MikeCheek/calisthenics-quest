@@ -3,16 +3,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { listenFriends, fetchPublicProfile } from "@/lib/store";
-import { BoardEntry, Metric, METRIC_LABEL, rankBoard, weeklyChallenge } from "@/lib/leaderboard";
+import { listenFriends, fetchPublicProfile, fetchGlobalBoard, setGlobalBoardEntry, updateProgress } from "@/lib/store";
+import {
+  BoardEntry,
+  EMPTY_WEEK,
+  GLOBAL_BOARD_SIZE,
+  Metric,
+  METRIC_LABEL,
+  plausibleWeek,
+  rankBoard,
+  weeklyChallenge,
+} from "@/lib/leaderboard";
+import { useToast } from "@/context/ToastContext";
+import { effectiveXpProgress } from "@/lib/levelPath";
 import { currentWeekKey } from "@/lib/missions";
 import { Friend } from "@/lib/types";
-import { Trophy, Crown, Swords } from "lucide-react";
+import { Trophy, Crown, Swords, Globe2, Users } from "lucide-react";
 
-// This week's challenge among you and your friends, plus a switchable board.
+type Scope = "friends" | "everyone";
+
+// This week's challenge among you and your friends, plus a board you can
+// switch between your friends and everyone who joined the global board.
 export default function FriendsLeaderboard() {
-  const { userDoc } = useAuth();
+  const { userDoc, refreshUserDoc } = useAuth();
   const { tx } = useLanguage();
+  const toast = useToast();
+  const [scope, setScope] = useState<Scope>("friends");
+  const [global, setGlobal] = useState<BoardEntry[] | null>(null);
+  const [joining, setJoining] = useState(false);
   const weekKey = currentWeekKey();
   const challenge = weeklyChallenge(weekKey);
   const [metric, setMetric] = useState<Metric>(challenge.metric);
@@ -41,7 +59,58 @@ export default function FriendsLeaderboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friends, userDoc?.week, userDoc?.uid]);
 
-  const ranked = useMemo(() => (entries ? rankBoard(entries, metric, weekKey) : []), [entries, metric, weekKey]);
+  // the global board is fetched per metric (it's the top N for that metric)
+  useEffect(() => {
+    if (scope !== "everyone" || !userDoc) return;
+    let cancelled = false;
+    setGlobal(null);
+    fetchGlobalBoard(weekKey, metric, GLOBAL_BOARD_SIZE)
+      .then((rows) => {
+        if (cancelled) return;
+        setGlobal(
+          rows
+            .filter((r) => plausibleWeek(r.week))
+            .map((r) => ({
+              uid: r.uid,
+              name: r.uid === userDoc.uid ? tx("You") : r.displayName,
+              isMe: r.uid === userDoc.uid,
+              week: r.week,
+            }))
+        );
+      })
+      .catch(() => !cancelled && setGlobal([]));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, metric, weekKey, userDoc?.uid, userDoc?.week, userDoc?.globalBoard]);
+
+  const canJoin = !!userDoc?.friendCode; // guests have no public profile
+  const joined = !!userDoc?.globalBoard;
+  const setJoined = async (join: boolean) => {
+    if (!userDoc) return;
+    setJoining(true);
+    try {
+      const thisWeek = userDoc.week?.key === weekKey ? userDoc.week : EMPTY_WEEK(weekKey);
+      const level = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery).level;
+      await setGlobalBoardEntry(
+        userDoc.uid,
+        join ? { displayName: userDoc.displayName, level, week: thisWeek } : null,
+        join ? [] : [weekKey, ...(userDoc.week ? [userDoc.week.key] : [])]
+      );
+      await updateProgress(userDoc.uid, { globalBoard: join });
+      await refreshUserDoc();
+      toast.success(join ? "You're on the global board." : "You've left the global board.");
+    } catch {
+      toast.error("Couldn't save that — try again.");
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const boardEntries = scope === "friends" ? entries : global;
+  const ranked = useMemo(() => (boardEntries ? rankBoard(boardEntries, metric, weekKey) : []), [boardEntries, metric, weekKey]);
+  const meMissing = scope === "everyone" && joined && global !== null && !global.some((e) => e.isMe);
   const challengeBoard = useMemo(() => (entries ? rankBoard(entries, challenge.metric, weekKey) : []), [entries, challenge.metric, weekKey]);
   const leader = challengeBoard[0];
   const me = challengeBoard.find((e) => e.isMe);
@@ -70,26 +139,72 @@ export default function FriendsLeaderboard() {
         )}
       </div>
 
-      {entries && entries.length > 1 && (
-        <div className="panel p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="heading text-base text-zinc-100 flex items-center gap-2">
-              <Trophy size={16} className="text-amber-400" /> {tx("This week")}
-            </div>
+      <div className="panel p-4">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="heading text-base text-zinc-100 flex items-center gap-2">
+            <Trophy size={16} className="text-amber-400" /> {tx("This week")}
           </div>
-          <div className="flex p-1 rounded-xl bg-zinc-800/60 gap-1 mb-3" role="tablist">
-            {(Object.keys(METRIC_LABEL) as Metric[]).map((m) => (
+          <div className="flex p-0.5 rounded-lg bg-zinc-800/60 gap-0.5" role="tablist" aria-label={tx("Leaderboard")}>
+            {(
+              [
+                ["friends", tx("Friends"), Users],
+                ["everyone", tx("Everyone"), Globe2],
+              ] as const
+            ).map(([id, label, Icon]) => (
               <button
-                key={m}
+                key={id}
                 role="tab"
-                aria-selected={metric === m}
-                onClick={() => setMetric(m)}
-                className={`flex-1 py-1.5 rounded-lg text-xs ${metric === m ? "bg-zinc-950 text-zinc-100" : "text-zinc-400"}`}
+                aria-selected={scope === id}
+                onClick={() => setScope(id)}
+                className={`px-2.5 py-1 rounded-md text-xs flex items-center gap-1 ${scope === id ? "bg-zinc-950 text-zinc-100" : "text-zinc-400"}`}
               >
-                {tx(METRIC_LABEL[m])}
+                <Icon size={12} /> {label}
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex p-1 rounded-xl bg-zinc-800/60 gap-1 mb-3" role="tablist">
+          {(Object.keys(METRIC_LABEL) as Metric[]).map((m) => (
+            <button
+              key={m}
+              role="tab"
+              aria-selected={metric === m}
+              onClick={() => setMetric(m)}
+              className={`flex-1 py-1.5 rounded-lg text-xs ${metric === m ? "bg-zinc-950 text-zinc-100" : "text-zinc-400"}`}
+            >
+              {tx(METRIC_LABEL[m])}
+            </button>
+          ))}
+        </div>
+
+        {scope === "everyone" && !joined && (
+          <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 mb-3">
+            <div className="text-sm text-zinc-100">{tx("Join the global board")}</div>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              {canJoin
+                ? tx("Everyone using BarQuests will see your first name, last initial, photo and this week's totals. You can leave any time.")
+                : tx("Save your progress with Google to join — guests can't appear on public boards.")}
+            </p>
+            {canJoin && (
+              <button
+                onClick={() => setJoined(true)}
+                disabled={joining}
+                className="mt-2.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-sky-500 hover:bg-sky-400 text-zinc-950 disabled:opacity-60"
+              >
+                {tx("Join")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {boardEntries === null ? (
+          <p className="text-sm text-muted py-2">{tx("Loading…")}</p>
+        ) : scope === "friends" && boardEntries.length <= 1 ? (
+          <p className="text-sm text-zinc-400">{tx("Add a friend below to compete — or switch to Everyone.")}</p>
+        ) : ranked.length === 0 ? (
+          <p className="text-sm text-zinc-400">{tx("Nobody's on the global board this week yet.")}</p>
+        ) : (
           <ol className="space-y-1.5">
             {ranked.map((e) => (
               <li
@@ -111,9 +226,23 @@ export default function FriendsLeaderboard() {
               </li>
             ))}
           </ol>
-          <p className="text-xs text-muted mt-2">{tx("Resets every Monday. Counts what each of you logged this week.")}</p>
-        </div>
-      )}
+        )}
+        {meMissing && <p className="text-xs text-zinc-400 mt-2">{tx("You're not in the top {n} for this yet.", { n: GLOBAL_BOARD_SIZE })}</p>}
+
+        <p className="text-xs text-muted mt-2">
+          {scope === "friends"
+            ? tx("Resets every Monday. Counts what each of you logged this week.")
+            : tx("Resets every Monday. Shows the top {n} of everyone who joined.", { n: GLOBAL_BOARD_SIZE })}
+          {scope === "everyone" && joined && (
+            <>
+              {" "}
+              <button onClick={() => setJoined(false)} disabled={joining} className="underline hover:text-zinc-300">
+                {tx("Leave the global board")}
+              </button>
+            </>
+          )}
+        </p>
+      </div>
     </section>
   );
 }

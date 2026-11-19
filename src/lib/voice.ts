@@ -1,4 +1,5 @@
 import { Locale } from "./types";
+import { localizeDetail } from "./i18n/detail";
 
 // ---------------------------------------------------------------------------
 // Spoken coaching for guided mode, via the browser's built-in speech
@@ -13,11 +14,21 @@ const PREF_KEY = "barquests:voice";
 export function speakableDetail(detail: string, locale: Locale): string {
   let s = detail.replace(/\s*\([^)]*\)/g, "").trim();
   if (locale === "it") {
+    // "4 x max reps" reads as "4 serie, massimo ripetizioni"; everything else
+    // goes through the shared written translation ("slow descent", "each
+    // side"…) and then gets its numbers and units spelled out
+    s = s.replace(/^(\d+)\s*x\s*max\s+(?!unbroken)/i, "$1 serie, massimo ");
+    s = localizeDetail(s, "it")
+      .replace(/\brip\. max\b/g, "massimo di ripetizioni")
+      .replace(/\brip\./g, "ripetizioni")
+      .replace(/\btenuta max\b/g, "tenuta massima")
+      .replace(/\btentativo max\b/g, "tentativo massimo");
     s = s
-      .replace(/^(\d+)\s*x\s*max\s+/i, "$1 serie, massimo ")
-      .replace(/^(\d+)\s*x\s*/i, "$1 serie da ")
+      .replace(/^(\d+)\s*[x×]\s*/i, "$1 serie da ")
       .replace(/(\d+)\s*-\s*(\d+)/g, "da $1 a $2")
       .replace(/da da /g, "da ")
+      .replace(/di da /g, "da ")
+      .replace(/serie da (tenuta|tentativ)/g, "serie, $1")
       .replace(/(\d+)\s*s\b/g, "$1 secondi")
       .replace(/(\d+)\s*min\b/g, "$1 minuti")
       .replace(/\breps?\b/gi, "ripetizioni")

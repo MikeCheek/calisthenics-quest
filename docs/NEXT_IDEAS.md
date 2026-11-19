@@ -40,6 +40,10 @@ as a tie-breaker; the skill descriptions are translated to Italian.
 
 ## 3. Bigger work
 
+- **Friend requests**: adding a friend writes both lists at once, so the rules have to
+  let anyone add themselves to anyone's friend list — and with it, send them nudges.
+  Turning adds into requests the other person accepts would close that.
+
 - **Location leaderboards**: boards per park or per city, opt-in, without sharing exact
   locations.
 - **Tamper-proof stats**: weekly totals and XP are reported by each device. Moving that
