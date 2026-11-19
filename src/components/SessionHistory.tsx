@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { UserDoc, SessionRecord, ExerciseRecord } from "@/lib/types";
-import { fetchSessionsBetween } from "@/lib/store";
+import { fetchSessionsBetween, updateProgress, updateSessionRecord } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { correctToDone } from "@/lib/adaptation";
+import { exerciseEffort } from "@/lib/effort";
+import { XP_RULES } from "@/lib/sessionXp";
+import { awardXp } from "@/lib/sessionComplete";
 import { formatSets } from "@/lib/timingLearning";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -41,6 +47,28 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
   const [error, setError] = useState(false);
   const [dayFilter, setDayFilter] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const { refreshUserDoc } = useAuth();
+  const toast = useToast();
+
+  // A "too hard" or skip that was a mistake: the record says done, the
+  // learning takes back what it did, and the exercise's XP is awarded.
+  const markDone = async (session: SessionRecord, i: number) => {
+    if (!session.id) return;
+    const ex = session.exercises[i];
+    const xp = Math.round(exerciseEffort({ name: ex.name, detail: ex.detail ?? "" }, ex.setTitle) * XP_RULES.perEffort);
+    const exercises = session.exercises.map((e, j) => (j === i ? { ...e, outcome: "done" as const, fatigue: undefined } : e));
+    try {
+      await updateSessionRecord(userDoc.uid, session.id, { exercises, xp: session.xp + xp });
+      const fixed = correctToDone(userDoc.exerciseStats ?? {}, userDoc.skillProgress ?? {}, userDoc.skills, ex);
+      await updateProgress(userDoc.uid, { exerciseStats: fixed.stats, skillProgress: fixed.progress });
+      if (xp > 0) await awardXp(userDoc, xp);
+      await refreshUserDoc();
+      setSessions((prev) => prev?.map((s) => (s.id === session.id ? { ...s, exercises, xp: s.xp + xp } : s)) ?? prev);
+      toast.success(`Marked as done — +${xp} XP, and it won't be eased off for this.`);
+    } catch {
+      toast.error("Couldn't save that — try again.");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +198,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
             open={openId === (s.id ?? s.finishedAt)}
             onToggle={() => setOpenId(openId === (s.id ?? s.finishedAt) ? null : s.id ?? s.finishedAt)}
             fmtLocale={fmtLocale}
+            onMarkDone={s.id ? (i) => markDone(s, i) : undefined}
           />
         ))}
       </div>
@@ -215,11 +244,13 @@ function SessionCard({
   open,
   onToggle,
   fmtLocale,
+  onMarkDone,
 }: {
   session: SessionRecord;
   open: boolean;
   onToggle: () => void;
   fmtLocale: string;
+  onMarkDone?: (exerciseIndex: number) => void;
 }) {
   const { tx } = useLanguage();
   const main = session.exercises.filter((e) => e.setTitle !== "Warm-Up" && e.setTitle !== "Final Hits");
@@ -277,7 +308,7 @@ function SessionCard({
             </li>
           ))}
           {session.exercises.map((e, i) => (
-            <ExerciseLine key={i} e={e} />
+            <ExerciseLine key={i} e={e} onMarkDone={onMarkDone && e.outcome !== "done" && !/^Skill check:/i.test(e.name) ? () => onMarkDone(i) : undefined} />
           ))}
           <li className="pt-1.5">
             <button
@@ -301,7 +332,7 @@ function SessionCard({
   );
 }
 
-function ExerciseLine({ e }: { e: ExerciseRecord }) {
+function ExerciseLine({ e, onMarkDone }: { e: ExerciseRecord; onMarkDone?: () => void }) {
   const { tx, locale } = useLanguage();
   const result = localizeDetail(
     formatSets(e.sets) ?? (typeof e.checkResult === "number" ? `${e.checkResult}` : e.checkResult === true ? tx("done") : e.detail ?? ""),
@@ -318,6 +349,15 @@ function ExerciseLine({ e }: { e: ExerciseRecord }) {
       )}
       <span className={`truncate ${e.outcome === "done" ? "text-zinc-200" : "text-muted"}`}>{e.name}</span>
       <span className="ml-auto text-xs text-muted stat-mono shrink-0">{e.outcome === "done" ? result : tx(e.outcome === "tooHard" ? "Too hard" : "Skipped")}</span>
+      {onMarkDone && (
+        <button
+          onClick={onMarkDone}
+          className="text-xs px-2 py-0.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-emerald-600 hover:text-emerald-300 shrink-0"
+          title={tx("Marked by mistake? Count it as done")}
+        >
+          {tx("Actually done")}
+        </button>
+      )}
     </li>
   );
 }

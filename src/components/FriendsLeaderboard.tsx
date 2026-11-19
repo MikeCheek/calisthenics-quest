@@ -15,7 +15,7 @@ import {
   weeklyChallenge,
 } from "@/lib/leaderboard";
 import { useToast } from "@/context/ToastContext";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { levelProgress } from "@/lib/levelPath";
 import { currentWeekKey } from "@/lib/missions";
 import { Friend } from "@/lib/types";
 import { Trophy, Crown, Swords, Globe2, Users } from "lucide-react";
@@ -92,7 +92,7 @@ export default function FriendsLeaderboard() {
     setJoining(true);
     try {
       const thisWeek = userDoc.week?.key === weekKey ? userDoc.week : EMPTY_WEEK(weekKey);
-      const level = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery).level;
+      const level = levelProgress(userDoc.xp).level;
       await setGlobalBoardEntry(
         userDoc.uid,
         join ? { displayName: userDoc.displayName, level, week: thisWeek } : null,

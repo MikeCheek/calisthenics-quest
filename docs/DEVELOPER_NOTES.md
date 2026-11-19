@@ -559,103 +559,25 @@ your skills" panel):
   in the app if the change pushes your level up, and persists via the same
   `saveProfile` call onboarding uses.
 
-**Unified with XP and leveling, via a 1-5 mastery rating.** Skills feed
-directly into your level rather than sitting next to it as a separate
-display — but "possessing" a skill isn't binary. Every skill claim carries
-a mastery rating (`SkillMastery` in `src/lib/types.ts`):
+**Level is experience only** (`src/lib/sessionXp.ts`, `levelProgress` in
+`levelPath.ts`). The assessment and "Declare a new skill" shape your sessions,
+never your level — there used to be a "skill floor" that raised the level from
+declared skills; it's gone, and so is the gate that blocked claiming solid
+mastery above your level (Skill Checks verify claims in training instead).
+XP per session: 15 + 4 × the effort points of what you actually did (only
+the sets you did; skipped/too-hard earn nothing), so harder skills and
+exercises earn more. Bonuses: +40 per skill proven in a Skill Check, +10 per
+personal record, +75 when you accept a suggested step up. The XP shown before
+a session (`plannedXp`) uses the same formula.
 
-| Mastery | Label | Meaning |
-|---|---|---|
-| 1 | Attempted | Tried it, not really landing it yet |
-| 2 | Touched it | Hit it once or twice — brief, rough form |
-| 3 | Getting there | Can do it, but inconsistent or not clean |
-| 4 | Consistent | Reliable, decent form most of the time |
-| 5 | Mastered | Clean, full target reps or hold, controlled |
-
-**Mastery 1-2 are always self-reportable, at any level, no gate at all** —
-that's the explicit exception for having hit a skill once, briefly, or
-badly: log it as "Attempted" or "Touched it" regardless of where your level
-actually is, and it's honest, not a workaround. Mastery 3-5 require being
-within reach of that stage's trophy-road level, progressively stricter:
-
-```
-required level for mastery 3  =  node's road level − 15
-required level for mastery 4  =  node's road level − 5
-required level for mastery 5  =  exactly the node's road level
-```
-
-(`requiredLevelForMastery` / `canClaimMastery` in `src/lib/levelPath.ts`.)
-Onboarding's skill picker (`SkillTabPicker.tsx`) enforces this directly —
-mastery options you haven't reached show a lock icon and a "unlocks around
-level N" hint, live-recalculated as you edit other skills in the same
-session, with a running "level so far" indicator at the top of the step so
-you can watch it build. A brand-new claim always starts at mastery 1 by
-default; you raise it deliberately, not automatically.
-
-Only mastery 3+ counts toward your level floor at all, and even then it's
-discounted by the same margin as its gate — mastery 3 credits `node − 15`,
-mastery 4 credits `node − 5`, mastery 5 credits the full node level. So
-claiming "Attempted" on Victorian Cross at level 1 is honest and free, but
-doesn't inflate your level; claiming real competency does, and can only
-happen once you're actually in range. `skillFloorLevel` /
-`effectiveLevel` in `src/lib/levelPath.ts` do this computation; a
-pre-existing account with a stage set but no recorded mastery (from before
-this system existed) defaults to mastery 3 rather than being penalized to 1.
-
-This was a deliberate design choice over the alternative (a second, separate
-"skill level" alongside the XP level): two numbers competing for "which one
-is my real level" would undercut having one coherent trophy road in the
-first place. The floor mechanism reuses the trophy road's own data as the
-single source of truth, so the road and your displayed level literally
-cannot disagree — no separate weighting table to keep in sync. Every
-consumer of level/XP in the app (`Nav`, `XPBar`, `/profile`, `/skills`,
-`/wheel`, `/path`, `/onboarding`, and `sessionComplete.ts`'s
-celebration/friend-profile sync) goes through
-`effectiveLevel`/`effectiveXpProgress` — now all taking `skillMastery` as a
-parameter — rather than the raw XP curve, so this is consistent everywhere,
-not just on the dashboard.
-
-**A real bug this floor design created, and the fix.** The floor is
-`max(rawXp, xpForLevel(skillFloorLevel))` — correct for the level *number*,
-since it should never sit below what your skills already justify. But the
-dashboard's XP progress bar used to compute its fill from that same
-max'd value, which meant: for anyone whose skill floor sat meaningfully
-above their raw earned XP (a fresh account that self-reported an advanced
-skill during onboarding, for instance), completing training sessions
-produced **zero visible movement on the bar** — the floor's XP-equivalent
-so thoroughly dominated the max that raw XP gains from actual training
-didn't register at all, sometimes for hundreds of sessions before raw XP
-could organically exceed the floor. I confirmed the exact magnitude before
-fixing it: a floor of level 61 sits at 144,000 XP-equivalent; at ~20-50 XP
-per session, someone in that position would need literally thousands of
-sessions before the bar moved by even one visible percent.
-
-The fix (`effectiveXpProgress` in `src/lib/levelPath.ts`) doesn't touch the
-level number at all — only how the *bar* is computed. Below the floor, it
-shows genuine progress toward "catching up" using raw XP directly
-(`into: rawXp, span: floorXp`), so every session visibly moves the number
-shown, rather than progress toward the next level using the floor-dominated
-value. `XPBar.tsx` labels this state distinctly ("catching up to your
-skill level" instead of "XP to level N+1") so it reads as an honest,
-different kind of progress rather than a mislabeled one. Once raw XP
-actually exceeds the floor, this collapses back to normal next-level
-progress with no visible seam. Accounts without a meaningfully elevated
-floor (the common case) see no behavior change at all — verified this
-directly, level-1-floor progress numbers are bit-for-bit identical before
-and after this fix.
-
-**What's actually enforced now, versus what remains advisory:** the level
-*floor* is a real, load-bearing gate — you cannot claim high mastery on a
-skill without the level to back it, full stop. What's still *not* gated is
-the underlying stage itself (front lever's tuck/straddle/full progression,
-etc.) — you can mark any stage for any skill at low mastery regardless of
-level, and self-reported stage (not mastery, not level) is still what the
-training generator, the bonus wheel, and the radar chart use to tailor
-actual session content. Going further — e.g. having the exercise
-prescriptions themselves (reps/hold targets in `Exercise.detail`) scale
-with level rather than being fixed per stage — would be a further step
-touching the training generator directly and remains out of scope for this
-pass.
+**Taking back a mistake.** In a session, a "too hard" swap has an *Undo*
+(guided mode and the list) that restores the exercise and forgets the press.
+Afterwards, a "too hard" or skipped row in history has *Actually done*
+(`correctToDone`): the record is fixed, the exercise's pressure and the
+skill's progress are reversed by exactly what the press did (its stored
+fatigue weight) and replaced with a "done", and the exercise's XP is
+awarded. Coach insights' "Being eased off" rows have *I can do this*
+(`forgetStruggles`), which clears the remembered struggles.
 
 ## Skills catalog (`/skills`) and "too hard for your level" suggestions
 

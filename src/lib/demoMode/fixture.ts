@@ -1,8 +1,9 @@
+import { plannedXp } from "../sessionXp";
 import type { Friend, PublicProfile, SessionRecord, SkillProfile, SkillTrack, StagedSkillKey, SkillMastery, UserDoc } from "../types";
 import type { GlobalBoardRow } from "../store";
 import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_NOTIFICATIONS, DEFAULT_SKILLS } from "../types";
 import { generateSession } from "../trainingGenerator";
-import { effectiveLevel } from "../levelPath";
+import { levelFromXp } from "../xp";
 import { currentWeekKey, generateWeeklyMissions } from "../missions";
 import { statKey } from "../adaptation";
 import { boardName } from "../leaderboard";
@@ -70,7 +71,7 @@ export function demoSessions(): SessionRecord[] {
       finishedAt: iso(daysAgo, 17 + (i % 3)),
       focusLabel: s.focusLabel,
       durationMin: 38 + ((i * 7) % 20),
-      xp: s.estXp,
+      xp: plannedXp(s),
       exercises,
       ...(i === 0 ? { records: [{ name: "Tuck front lever", kind: "hold" as const, value: 14, previous: 11 }] } : {}),
     };
@@ -99,7 +100,7 @@ export function demoUserDoc(): UserDoc {
     goalTracks: ["frontLever", "planche", "handstand"],
     onboarded: true,
     xp: XP,
-    level: effectiveLevel(XP, skills, mastery),
+    level: levelFromXp(XP),
     streak: 9,
     lastSessionDateISO: iso(1).slice(0, 10),
     totalSessionsCompleted: 47,

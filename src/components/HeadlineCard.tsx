@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { UserDoc } from "@/lib/types";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { levelProgress } from "@/lib/levelPath";
 import { claimCounts, syncClaims } from "@/lib/verification";
 import { useLanguage } from "@/context/LanguageContext";
 import { BadgeCheck, ChevronRight, Flame } from "lucide-react";
@@ -12,7 +12,7 @@ import { BadgeCheck, ChevronRight, Flame } from "lucide-react";
 // rest live in their detail views.
 export default function HeadlineCard({ userDoc }: { userDoc: UserDoc }) {
   const { tx } = useLanguage();
-  const p = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const p = levelProgress(userDoc.xp);
   const { verified, total } = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
 
   return (
@@ -29,9 +29,7 @@ export default function HeadlineCard({ userDoc }: { userDoc: UserDoc }) {
             <div className="h-full bg-gradient-to-r from-orange-600 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${p.pct}%` }} />
           </div>
           <div className="text-xs text-zinc-400 mt-1.5 stat-mono">
-            {p.catchingUp
-              ? tx("{p}% to match your skill level", { p: p.pct })
-              : tx("{a} / {b} XP to level {n}", { a: p.into, b: p.span, n: p.level + 1 })}
+            {tx("{a} / {b} XP to level {n}", { a: p.into, b: p.span, n: p.level + 1 })}
           </div>
         </Link>
         <Link

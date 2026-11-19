@@ -100,6 +100,13 @@ and forget how your last session went. BarQuests is built around four ideas:
   chain of stages with your current one highlighted.
 - **Proven** — verified skills, the skill wall and the skill radar.
 - **Trophy road** — the next milestones, with the full level-by-level road one tap away.
+- **Level from experience only** — what you declare shapes your sessions, not your level.
+  XP comes from the work you do (harder exercises earn more, only the sets you did
+  count), with bonuses for proving a skill (+40), new records (+10) and stepping up a
+  stage (+75).
+- **Take back a mistake** — *Undo* a "too hard" swap during a session; afterwards mark a
+  "too hard" or skipped exercise *Actually done* in your history, or tap *I can do this*
+  on anything the coach is easing off.
 
 ### Coach
 - **Ask your coach** — an AI chat that answers questions about *your* training data.

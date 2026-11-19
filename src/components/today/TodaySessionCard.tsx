@@ -6,6 +6,7 @@ import { estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { useLanguage } from "@/context/LanguageContext";
 import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, RotateCcw } from "lucide-react";
 import { localizeDetail } from "@/lib/i18n/detail";
+import { plannedXp } from "@/lib/sessionXp";
 
 const PREVIEW = 5;
 
@@ -77,7 +78,7 @@ export default function TodaySessionCard({
           <Clock size={13} /> {tx("~{n} min", { n: minutes })}
         </span>
         <span className="stat-mono text-orange-400 flex items-center gap-1">
-          <Sparkles size={13} /> +{session.estXp} XP
+          <Sparkles size={13} /> +{plannedXp(session)} XP
         </span>
       </div>
 

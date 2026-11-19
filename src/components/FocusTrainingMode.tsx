@@ -458,6 +458,24 @@ export default function FocusTrainingMode() {
     }
   };
 
+  // Pressed "too hard" (or eased) by mistake: put the original back and
+  // forget the "too hard", as if it never happened.
+  const undoSwap = () => {
+    const swapped = overrides[index];
+    if (!swapped) return;
+    const original = steps[index].exercise;
+    setOverrides((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+    setTooHard((prev) => {
+      const at = prev.map((t) => t.name === original.name && t.setTitle === current.setTitle).lastIndexOf(true);
+      return at === -1 ? prev : [...prev.slice(0, at), ...prev.slice(at + 1)];
+    });
+    toast.info(`Back to ${original.name} — the "too hard" is forgotten.`);
+  };
+
   const collectFeedback = (): ExerciseFeedback[] => {
     const out: ExerciseFeedback[] = [...tooHard];
     steps.forEach((step, i) => {
@@ -638,7 +656,12 @@ export default function FocusTrainingMode() {
                 </button>
               </div>
               {index in overrides ? (
-                <div className="text-xs text-orange-400 mt-0.5">{tx("Swapped in — something gentler")}</div>
+                <div className="text-xs text-orange-400 mt-0.5 flex items-center justify-center gap-2">
+                  {tx("Swapped in — something gentler")}
+                  <button onClick={undoSwap} className="underline text-zinc-300 hover:text-zinc-100">
+                    {tx("Undo")}
+                  </button>
+                </div>
               ) : (
                 current.exercise.adaptNote && (
                   <div className="text-xs text-sky-400/90 mt-0.5 flex items-center justify-center gap-1">

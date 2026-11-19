@@ -16,6 +16,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { localizeDetail } from "@/lib/i18n/detail";
 import { exerciseEffort, fatigueOf, stepsOf, totalEffort } from "@/lib/effort";
 import { parseTiming } from "@/lib/exerciseTiming";
+import { plannedXp } from "@/lib/sessionXp";
 
 type SessionLevel = "easier" | "default" | "harder";
 
@@ -147,6 +148,21 @@ export default function SessionView({
     resetAdjust(key);
   };
 
+  // "Too hard" pressed by mistake: the original exercise comes back and the
+  // "too hard" is forgotten
+  const undoSwap = (key: string, originalEx: Exercise, setTitle: string) => {
+    setIndividualOverrides((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setTooHard((prev) => {
+      const at = prev.map((t) => t.name === originalEx.name && t.setTitle === setTitle).lastIndexOf(true);
+      return at === -1 ? prev : [...prev.slice(0, at), ...prev.slice(at + 1)];
+    });
+    toast.info(`Back to ${originalEx.name} — the "too hard" is forgotten.`);
+  };
+
   // the exercise actually shown in a row: a "too hard" swap wins, else the
   // whole-session easier/harder step, else what was generated
   const effectiveFor = (key: string, originalEx: Exercise, exempt: boolean): Exercise => {
@@ -226,7 +242,7 @@ export default function SessionView({
         </div>
         <div className="text-right">
           <div className="text-xs text-zinc-400">{tx("Est. reward")}</div>
-          <div className="stat-mono text-orange-400">+{session.estXp} XP</div>
+          <div className="stat-mono text-orange-400">+{plannedXp(session)} XP</div>
           <div className="text-xs text-muted mt-0.5 flex items-center justify-end gap-1">
             <Clock size={11} /> ~{estimateSessionMinutes(session)} min
           </div>
@@ -302,6 +318,7 @@ export default function SessionView({
                         checkVideoKey={checkVideos[key]}
                         onCheckVideo={(v) => setCheckVideos((prev) => ({ ...prev, [key]: v }))}
                         onSkip={() => toggleSkip(key)}
+                        onUndoSwap={isSwapped && individualOverrides[key] ? () => undoSwap(key, originalEx, set.title) : undefined}
                         // "Finish here" in the row's timer: the row keeps only the sets done
                         onStopEarly={(n) => {
                           bump(key, n - parseTiming(displayedDetail).sets);

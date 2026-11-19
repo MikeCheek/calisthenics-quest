@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ExerciseFeedback, TrainingSession } from "@/lib/types";
-import { completeSession, Celebration } from "@/lib/sessionComplete";
+import { awardXp, completeSession, Celebration } from "@/lib/sessionComplete";
+import { XP_RULES } from "@/lib/sessionXp";
 import {
   AdaptationReport,
   StageSuggestion,
@@ -95,7 +96,11 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
         if (accept) {
           const next = acceptStageSuggestion(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.skillProgress ?? {}, s);
           await updateProgress(userDoc.uid, { skills: next.skills, skillMastery: next.mastery, skillProgress: next.progress });
-          toast.success(s.direction === "up" ? "Stage updated — new progressions from your next session." : "Stage eased — next sessions will rebuild it.");
+          if (s.direction === "up") {
+            // stepping up a stage earned in training is worth a bonus (sessionXp.ts)
+            await awardXp(userDoc, XP_RULES.stageUp);
+            toast.success(`Stage updated — new progressions from your next session. +${XP_RULES.stageUp} XP`);
+          } else toast.success("Stage eased — next sessions will rebuild it.");
         } else {
           await updateProgress(userDoc.uid, { skillProgress: snoozeStageSuggestion(userDoc.skillProgress ?? {}, s) });
         }

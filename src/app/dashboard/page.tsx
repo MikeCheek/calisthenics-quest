@@ -16,7 +16,7 @@ import NextGoalCard from "@/components/today/NextGoalCard";
 import { useTodaysSession } from "@/hooks/useTodaysSession";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
 import { FOCUS_LABEL } from "@/lib/trainingGenerator";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { levelProgress } from "@/lib/levelPath";
 import { fetchSessionsBetween } from "@/lib/store";
 import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
 import { SessionRecord } from "@/lib/types";
@@ -53,7 +53,7 @@ export default function TodayPage() {
   const now = useMemo(() => new Date(), []);
   if (loading || !userDoc || !fitted || !focus) return <PageLoading />;
 
-  const level = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery).level;
+  const level = levelProgress(userDoc.xp).level;
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
   const days = weekStrip(now, weekSessions, userDoc.body?.trainingDaysOfWeek ?? []);
   const doneToday = trainedToday(now, weekSessions);

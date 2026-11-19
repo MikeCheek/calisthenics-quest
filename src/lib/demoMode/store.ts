@@ -180,3 +180,7 @@ export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: n
     .sort((a, b) => b.week[metric] - a.week[metric])
     .slice(0, count);
 }
+
+export async function updateSessionRecord(_uid: string, sessionId: string, fields: Pick<SessionRecord, "exercises" | "xp">): Promise<void> {
+  state.sessions = state.sessions.map((s) => (s.id === sessionId ? { ...s, ...clone(fields) } : s));
+}

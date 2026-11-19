@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { SkillProfile, StagedSkillKey, SkillMastery, MASTERY_LABEL, MASTERY_HINT, DEFAULT_MASTERY, SKILL_FIELD_LABEL } from "@/lib/types";
 import { STAGE_ORDER, STAGE_LABEL } from "@/lib/stageOrder";
-import { levelForSkillStage, requiredLevelForMastery, canClaimMastery } from "@/lib/levelPath";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
-import { Lock } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 const SKILL_ORDER: StagedSkillKey[] = [
@@ -44,7 +42,6 @@ export default function SkillTabPicker({
   const stages = STAGE_ORDER[active] ?? ["none"];
   const currentStage = skills[active] as string;
   const currentMastery = mastery[active] ?? DEFAULT_MASTERY;
-  const nodeLevel = levelForSkillStage(active, currentStage);
 
   return (
     <div>
@@ -103,23 +100,16 @@ export default function SkillTabPicker({
             </div>
             <div className="flex gap-1.5">
               {MASTERY_VALUES.map((m) => {
-                const allowed = canClaimMastery(nodeLevel, m, liveLevel);
                 const selected = currentMastery === m;
                 return (
                   <button
                     key={m}
                     type="button"
-                    disabled={!allowed}
                     onClick={() => onMasteryChange(active, m)}
                     className={`flex-1 py-2 rounded-lg text-xs border flex flex-col items-center gap-0.5 ${
-                      selected
-                        ? "border-orange-500 bg-orange-500/10 text-zinc-100"
-                        : allowed
-                        ? "border-zinc-700 text-zinc-400"
-                        : "border-zinc-800 text-zinc-700 cursor-not-allowed"
+                      selected ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-400"
                     }`}
                   >
-                    {!allowed && <Lock size={10} />}
                     <span>{m}</span>
                   </button>
                 );
@@ -128,16 +118,6 @@ export default function SkillTabPicker({
             <div className="text-xs text-muted mt-1.5">
               {tx(MASTERY_LABEL[currentMastery])} — {tx(MASTERY_HINT[currentMastery])}
             </div>
-            {(() => {
-              const nextLocked = MASTERY_VALUES.find((m) => !canClaimMastery(nodeLevel, m, liveLevel));
-              if (!nextLocked) return null;
-              const req = requiredLevelForMastery(nodeLevel, nextLocked);
-              return (
-                <div className="text-xs text-muted mt-1">
-                  {tx("{mastery} and above unlock around level {n}.", { mastery: tx(MASTERY_LABEL[nextLocked]), n: req })}
-                </div>
-              );
-            })()}
           </div>
         )}
       </div>

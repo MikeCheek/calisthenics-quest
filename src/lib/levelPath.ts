@@ -1,5 +1,5 @@
-import { SkillProfile, StagedSkillKey, SkillMastery, DEFAULT_MASTERY } from "./types";
-import { RANK_TITLES, levelFromXp, xpForLevel, xpProgress as rawXpProgress } from "./xp";
+import { StagedSkillKey } from "./types";
+import { RANK_TITLES, xpProgress as rawXpProgress } from "./xp";
 import { stageIndex } from "./stageOrder";
 
 export interface PathNode {
@@ -170,119 +170,11 @@ export function suggestEasierSkill(
   return reachable[0] ?? LEVEL_PATH.find((n) => n.skill) ?? null;
 }
 
-// ---- Unifying XP/level with skills already possessed, via mastery ----
-//
-// A player's level is never allowed to sit below what their self-reported
-// skills already justify — but "possessing" a skill isn't binary. Every
-// skill claim carries a 1-5 mastery rating (SkillMastery in types.ts):
-// 1-2 ("Attempted" / "Touched it") are always self-reportable regardless
-// of level — that's the deliberate exception for having hit a skill once,
-// briefly, or with rough form. 3-5 require being within reach of that
-// stage's trophy-road level, progressively stricter, and only 3+
-// contributes to the level floor at all (scaled by how solid the claim
-// is) — so claiming "Attempted" on an advanced skill at level 1 doesn't
-// inflate your level, but claiming real competency does.
-const MASTERY_LEVEL_MARGIN: Record<SkillMastery, number> = {
-  1: Infinity, // no gate at all
-  2: Infinity, // no gate at all
-  3: 15,
-  4: 5,
-  5: 0,
-};
-
-const MASTERY_FLOOR_DISCOUNT: Record<SkillMastery, number> = {
-  1: Infinity, // contributes nothing
-  2: Infinity, // contributes nothing
-  3: 15,
-  4: 5,
-  5: 0,
-};
-
-// The minimum effective level required to claim a given mastery on a node
-// at this trophy-road level. Mastery 1-2 are always allowed (returns 1).
-export function requiredLevelForMastery(nodeLevel: number, mastery: SkillMastery): number {
-  const margin = MASTERY_LEVEL_MARGIN[mastery];
-  if (!Number.isFinite(margin)) return 1;
-  return Math.max(1, nodeLevel - margin);
-}
-
-export function canClaimMastery(nodeLevel: number, mastery: SkillMastery, currentLevel: number): boolean {
-  return currentLevel >= requiredLevelForMastery(nodeLevel, mastery);
-}
-
-// A player's level is never allowed to sit below what their self-reported
-// skills already justify: for every trophy-road node whose skill+stage
-// they've already reached or surpassed AND whose claimed mastery is solid
-// enough (3+), that node's discounted level is a candidate, and the
-// highest candidate becomes a "floor." A brand-new account that marks
-// Full Front Lever at "Mastered" is floored at whatever level Full Front
-// Lever sits at on the road (around 61) immediately — not level 1 — and
-// every session's XP keeps building normally from there afterward. This
-// is the single source of truth: the floor is derived directly from
-// LEVEL_PATH, so the trophy road and the level shown everywhere else in
-// the app can never disagree with each other.
-export function skillFloorLevel(
-  skills: SkillProfile,
-  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
-): number {
-  let floor = 1;
-  for (const node of LEVEL_PATH) {
-    if (!node.skill || !node.stage) continue;
-    const userStage = skills[node.skill] as string;
-    if (stageIndex(node.skill, userStage) < stageIndex(node.skill, node.stage)) continue;
-
-    const claimedMastery = mastery[node.skill] ?? DEFAULT_MASTERY;
-    const discount = MASTERY_FLOOR_DISCOUNT[claimedMastery];
-    if (!Number.isFinite(discount)) continue; // mastery 1-2: no floor credit
-
-    floor = Math.max(floor, Math.max(1, node.level - discount));
-  }
-  return floor;
-}
-
-// The "effective" xp used for all display/leveling purposes: whichever is
-// higher between what's actually been earned and what the skill floor
-// implies. Session-earned XP is never reduced or hidden — it's just that
-// the displayed level can't drop below the floor.
-export function effectiveXp(
-  rawXp: number,
-  skills: SkillProfile,
-  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
-): number {
-  return Math.max(rawXp, xpForLevel(skillFloorLevel(skills, mastery)));
-}
-
-export function effectiveLevel(
-  rawXp: number,
-  skills: SkillProfile,
-  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
-): number {
-  return levelFromXp(effectiveXp(rawXp, skills, mastery));
-}
-
-export function effectiveXpProgress(
-  rawXp: number,
-  skills: SkillProfile,
-  mastery: Partial<Record<StagedSkillKey, SkillMastery>> = {}
-) {
-  const floor = skillFloorLevel(skills, mastery);
-  const floorXp = xpForLevel(floor);
-
-  // When self-reported skills already justify a level higher than earned
-  // XP does, `effectiveXp` (max of the two) means the level number is
-  // correct — but computing the progress bar from that same max'd value
-  // freezes it at a permanent 0%, since raw XP earned from sessions has no
-  // effect at all until it eventually exceeds the floor (which, for a
-  // high floor, could take hundreds of sessions). Every bit of earned XP
-  // should visibly move the bar, so below the floor this shows honest
-  // progress toward "catching up" using raw XP directly, rather than
-  // progress toward the next level using the floor-dominated value.
-  if (rawXp < floorXp) {
-    const level = levelFromXp(floorXp);
-    const pct = floorXp > 0 ? Math.min(100, Math.round((rawXp / floorXp) * 100)) : 100;
-    return { level, into: rawXp, span: floorXp, pct, catchingUp: true };
-  }
-
-  const { level, into, span, pct } = rawXpProgress(rawXp);
-  return { level, into, span, pct, catchingUp: false };
+// ---- level ----
+// The level comes from experience only — XP earned by training (harder
+// exercises earn more, proving skills and stepping up earn bonuses; see
+// sessionXp.ts). What you declare in the assessment shapes your sessions,
+// not your level.
+export function levelProgress(xp: number) {
+  return rawXpProgress(xp);
 }

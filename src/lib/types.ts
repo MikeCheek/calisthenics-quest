@@ -289,6 +289,7 @@ export interface ExerciseRecord {
   sets?: SetRecord[];
   checkResult?: number | boolean;
   setsDone?: number; // stopped early: only this many sets were done
+  fatigue?: number; // for "too hard"/skipped: how far into the session (effort.ts)
 }
 
 export interface PersonalRecord {

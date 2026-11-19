@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { levelProgress } from "@/lib/levelPath";
 import { Locale } from "@/lib/types";
 import ReminderSettings from "@/components/ReminderSettings";
 import { updateProgress } from "@/lib/store";
@@ -64,7 +64,7 @@ export default function ProfilePage() {
     return <main className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
   }
 
-  const progress = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const progress = levelProgress(userDoc.xp);
   const counts = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
 
   const changeLocale = async (next: Locale) => {
@@ -105,9 +105,7 @@ export default function ProfilePage() {
                 <div className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${progress.pct}%` }} />
               </div>
               <div className="text-xs text-muted mt-1 stat-mono">
-                {progress.catchingUp
-                  ? tx("{p}% to match your skill level", { p: progress.pct })
-                  : tx("{a} / {b} XP to level {n}", { a: progress.into, b: progress.span, n: progress.level + 1 })}
+                {tx("{a} / {b} XP to level {n}", { a: progress.into, b: progress.span, n: progress.level + 1 })}
               </div>
             </div>
           </div>

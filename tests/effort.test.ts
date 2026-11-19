@@ -13,7 +13,7 @@ import {
   totalEffort,
 } from "../src/lib/effort";
 import { generateSession } from "../src/lib/trainingGenerator";
-import { applyExerciseFeedback, statKey } from "../src/lib/adaptation";
+import { applyExerciseFeedback, correctToDone, forgetStruggles, statKey } from "../src/lib/adaptation";
 import { exerciseVolume } from "../src/lib/volumeTotals";
 import { DEFAULT_EQUIPMENT, DEFAULT_SKILLS, Exercise, SkillProfile } from "../src/lib/types";
 
@@ -117,4 +117,28 @@ test("stopping early counts as done, with a small signal, and only the sets done
   assert.equal(s.done, 1);
   assert.equal(s.p, 0.5);
   assert.equal(exerciseVolume({ outcome: "done", detail: "4 x 8 reps", setsDone: 2 }).reps, 16);
+});
+
+// ---- undoing a mistake ----
+
+test("'Actually done' takes back a too hard exactly, then counts it as done", () => {
+  const fb = { name: "Muscle-up negatives", setTitle: "Main Focus — Muscle-Up", outcome: "tooHard" as const, fatigue: 0.1 };
+  const after = applyExerciseFeedback({}, [fb]);
+  const fixed = correctToDone(after, {}, DEFAULT_SKILLS, fb).stats[statKey(fb.name)];
+  const asDone = applyExerciseFeedback({}, [{ ...fb, outcome: "done" as const }])[statKey(fb.name)];
+  assert.equal(fixed.tooHard, 0);
+  assert.equal(fixed.done, 1);
+  assert.equal(fixed.p, asDone.p);
+  // late-session too hard weighed less, so less is taken back
+  const late = { ...fb, fatigue: 0.9 };
+  const lateFixed = correctToDone(applyExerciseFeedback({}, [late]), {}, DEFAULT_SKILLS, late).stats[statKey(fb.name)];
+  assert.equal(lateFixed.p, asDone.p);
+});
+
+test("'I can do this' forgets the struggles", () => {
+  const fb = { name: "Tuck planche holds", setTitle: "Main Focus — Planche", outcome: "tooHard" as const };
+  let stats = applyExerciseFeedback({}, [fb, fb]);
+  assert.ok(stats[statKey(fb.name)].p >= 2);
+  stats = forgetStruggles(stats, statKey(fb.name));
+  assert.deepEqual([stats[statKey(fb.name)].p <= 0, stats[statKey(fb.name)].tooHard], [true, 0]);
 });

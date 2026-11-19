@@ -360,3 +360,8 @@ export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: n
     };
   });
 }
+
+// Corrects a logged session (e.g. a "too hard" that was really done).
+export async function updateSessionRecord(uid: string, sessionId: string, fields: Pick<SessionRecord, "exercises" | "xp">): Promise<void> {
+  await updateDoc(doc(db, "users", uid, "sessions", sessionId), withoutUndefined(fields));
+}

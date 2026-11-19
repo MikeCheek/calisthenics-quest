@@ -1,3 +1,4 @@
+import { earnedXp } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
 import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
@@ -6,7 +7,7 @@ import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHis
 import { addToWeek } from "./leaderboard";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
 import { updateProgress, syncPublicProfile, saveSessionRecord, setGlobalBoardEntry } from "./store";
-import { effectiveLevel } from "./levelPath";
+import { levelFromXp } from "./xp";
 
 export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
 
@@ -78,8 +79,8 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
   const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: newXp }];
   await updateProgress(userDoc.uid, { xp: newXp, xpHistory: history.slice(-30) });
 
-  const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
-  const newLevel = effectiveLevel(newXp, userDoc.skills, userDoc.skillMastery);
+  const oldLevel = levelFromXp(userDoc.xp);
+  const newLevel = levelFromXp(newXp);
   return { newXp, leveledUp: newLevel > oldLevel, newLevel };
 }
 
@@ -108,10 +109,6 @@ export async function completeSession(
     repeatedFocus: true,
   });
 
-  const totalXp = userDoc.xp + session.estXp + xpFromMissions;
-
-  const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }];
-  const trimmedHistory = history.slice(-30);
 
   // Learn from what actually happened in this session (see adaptation.ts).
   const exerciseStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
@@ -132,6 +129,16 @@ export async function completeSession(
   );
   const newSkills = verified.skills;
   const claims = syncClaims(verified.claims, newSkills);
+
+  // XP from the work actually done, plus bonuses for proving skills and
+  // new records (sessionXp.ts) — the level comes from this alone
+  const earned = earnedXp(session, feedback, {
+    verified: verified.events.filter((e) => e.outcome === "verified" || e.outcome === "raised").length,
+    records: newRecords.length,
+  });
+  const totalXp = userDoc.xp + earned.total + xpFromMissions;
+  const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }];
+  const trimmedHistory = history.slice(-30);
   const suggestions = [
     ...verified.suggestions,
     ...learned.suggestions.filter((s) => !verified.suggestions.some((v) => v.skill === s.skill)),
@@ -204,7 +211,7 @@ export async function completeSession(
       displayName: userDoc.displayName,
       photoURL: userDoc.photoURL,
       friendCode: userDoc.friendCode,
-      level: effectiveLevel(totalXp, newSkills, newMastery),
+      level: levelFromXp(totalXp),
       streak: newStreak,
       xp: totalXp,
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
@@ -218,12 +225,12 @@ export async function completeSession(
     // removed when a new week starts
     if (userDoc.globalBoard) {
       const stale = userDoc.week && userDoc.week.key !== week.key ? [userDoc.week.key] : [];
-      setGlobalBoardEntry(userDoc.uid, { displayName: userDoc.displayName, level: effectiveLevel(totalXp, newSkills, newMastery), week }, stale).catch(() => {});
+      setGlobalBoardEntry(userDoc.uid, { displayName: userDoc.displayName, level: levelFromXp(totalXp), week }, stale).catch(() => {});
     }
   }
 
-  const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
-  const newLevel = effectiveLevel(totalXp, newSkills, newMastery);
+  const oldLevel = levelFromXp(userDoc.xp);
+  const newLevel = levelFromXp(totalXp);
 
   return {
     patch,

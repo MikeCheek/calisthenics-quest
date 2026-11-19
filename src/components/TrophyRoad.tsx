@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import InfoIconButton from "@/components/InfoIconButton";
-import { pathChapters, nodeUnlocked, PathNode, effectiveLevel } from "@/lib/levelPath";
+import { pathChapters, nodeUnlocked, PathNode } from "@/lib/levelPath";
+import { levelFromXp } from "@/lib/xp";
 import { SKILL_FIELD_LABEL, StagedSkillKey, UserDoc } from "@/lib/types";
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import { useLanguage } from "@/context/LanguageContext";
@@ -23,7 +24,7 @@ export default function TrophyRoad({ userDoc }: { userDoc: UserDoc }) {
     setHasScrolled(true);
   }, [hasScrolled]);
 
-  const level = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const level = levelFromXp(userDoc.xp);
   const chapters = [...pathChapters()].reverse(); // highest chapter first -> level 1 ends up at the bottom
 
   return (

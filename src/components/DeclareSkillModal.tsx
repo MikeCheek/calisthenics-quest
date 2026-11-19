@@ -3,11 +3,9 @@
 import { useState } from "react";
 import Modal from "@/components/Modal";
 import SkillTabPicker from "@/components/SkillTabPicker";
-import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { saveProfile } from "@/lib/store";
-import { effectiveLevel } from "@/lib/levelPath";
+import { levelFromXp } from "@/lib/xp";
 import { UserDoc, SkillProfile, StagedSkillKey, SkillMastery } from "@/lib/types";
-import { Celebration } from "@/lib/sessionComplete";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -27,9 +25,8 @@ export default function DeclareSkillModal({
   const [skills, setSkills] = useState<SkillProfile>(userDoc.skills);
   const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(userDoc.skillMastery);
   const [saving, setSaving] = useState(false);
-  const [celebration, setCelebration] = useState<Celebration | null>(null);
 
-  const liveLevel = effectiveLevel(userDoc.xp, skills, mastery);
+  const liveLevel = levelFromXp(userDoc.xp);
 
   const close = () => {
     // reset drafts so reopening later starts from the real saved state,
@@ -39,9 +36,10 @@ export default function DeclareSkillModal({
     onClose();
   };
 
+  // Declared skills shape your sessions, not your level (it comes from
+  // training XP), so saving is just that.
   const save = async () => {
     setSaving(true);
-    const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
     try {
       await saveProfile(userDoc.uid, userDoc.body, skills, userDoc.equipment, userDoc.goalTracks, mastery);
     } catch {
@@ -51,22 +49,12 @@ export default function DeclareSkillModal({
     }
     await onSaved();
     setSaving(false);
-    const newLevel = effectiveLevel(userDoc.xp, skills, mastery);
-    if (newLevel > oldLevel) {
-      setCelebration({ leveledUp: true, newLevel, streakEvent: "none", newStreak: userDoc.streak });
-      setTimeout(() => {
-        setCelebration(null);
-        close();
-      }, 2600);
-    } else {
-      toast.success("Saved!");
-      close();
-    }
+    toast.success("Saved!");
+    close();
   };
 
   return (
     <>
-      <CelebrationOverlay celebration={celebration} />
       <Modal open={open} onClose={close} title={tx("Declare a new skill")}>
         <p className="text-xs text-muted mb-3">
           {tx("Just hit something new? Update it here — no need to redo the whole assessment.")}
