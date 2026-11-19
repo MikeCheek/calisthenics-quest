@@ -59,7 +59,7 @@ const en: TranslationDict = {
     start: "Start",
   },
   nav: {
-    home: "Home",
+    home: "Today",
     train: "Train",
     skills: "Skills",
     pair: "Pair",

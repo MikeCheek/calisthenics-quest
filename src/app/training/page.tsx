@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -10,15 +10,14 @@ import SessionView from "@/components/SessionView";
 import PlanReviewButton from "@/components/PlanReviewButton";
 import TrainSwitcher from "@/components/TrainSwitcher";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
-import { generateSession, pickFocus, availableFocuses, FOCUS_LABEL } from "@/lib/trainingGenerator";
+import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
-import { ExerciseFeedback, SkillTrack, TrainingSession } from "@/lib/types";
-import { adaptSession, adaptedCount, historySummary } from "@/lib/adaptation";
-import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
+import { ExerciseFeedback, TrainingSession } from "@/lib/types";
+import { adaptedCount, historySummary } from "@/lib/adaptation";
 import { useToast } from "@/context/ToastContext";
 import { Play, ChevronDown, Dices } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { fitSessionToMinutes } from "@/lib/sessionFit";
+import { useTodaysSession } from "@/hooks/useTodaysSession";
 import PageLoading from "@/components/PageLoading";
 
 export default function TrainingPage() {
@@ -27,7 +26,6 @@ export default function TrainingPage() {
   const { startSession, expand, session: globalSession, completed: globalCompleted, showReport } = useTrainingSession();
   const toast = useToast();
   const { tx } = useLanguage();
-  const [focusOverride, setFocusOverride] = useState<SkillTrack | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showFocusPicker, setShowFocusPicker] = useState(false);
   const [showFab, setShowFab] = useState(false);
@@ -50,26 +48,7 @@ export default function TrainingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const equipment = userDoc?.equipment;
-  const options = useMemo(() => (equipment ? availableFocuses(equipment) : []), [equipment]);
-  const focus = focusOverride ?? (equipment ? pickFocus(new Date(), equipment, userDoc?.goalTracks ?? []) : null);
-
-  const skillsKey = JSON.stringify(userDoc?.skills ?? null);
-  const equipmentKey = JSON.stringify(userDoc?.equipment ?? null);
-  const fitted = useMemo(() => {
-    if (!userDoc || !focus) return null;
-    // generated from the athlete's stages, then adapted to their own history
-    // of completing, skipping and struggling with specific exercises
-    const adapted = adaptSession(generateSession(userDoc.skills, userDoc.equipment, focus, new Date(), userDoc.body?.sessionLengthMinutes), userDoc.exerciseStats, userDoc.equipment);
-    // one Skill Check per session, verifying something the athlete claimed
-    const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), userDoc.equipment, focus);
-    // finally, fit everything to the athlete's chosen session length
-    return fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes);
-    // Only re-generate when stages, equipment or focus actually change — not
-    // when exercise stats update after logging, so the session just logged
-    // stays on screen (its adaptations kick in on the next visit).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsKey, equipmentKey, focus, !!userDoc]);
+  const { focus, options, fitted, setFocusOverride } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a

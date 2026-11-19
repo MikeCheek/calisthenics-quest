@@ -8,7 +8,7 @@ const it: TranslationDict = {
     start: "Inizia",
   },
   nav: {
-    home: "Home",
+    home: "Oggi",
     train: "Allena",
     skills: "Abilità",
     pair: "Coppia",
