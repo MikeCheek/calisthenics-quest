@@ -8,6 +8,7 @@ import { buildCoachContext } from "@/lib/coachContext";
 import { fetchSessionsBetween } from "@/lib/store";
 import { SessionRecord } from "@/lib/types";
 import { Send, Loader2, Bot } from "lucide-react";
+import { authedFetch } from "@/lib/apiClient";
 
 interface Msg {
   role: "user" | "assistant";
@@ -72,14 +73,14 @@ export default function CoachChat({ open, onClose }: { open: boolean; onClose: (
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/coach-chat", {
+      const res = await authedFetch("/api/coach-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next.slice(-12), context: buildCoachContext(userDoc, recent), locale }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.reply) {
-        setError(data.configured === false ? tx("The AI coach isn't set up on this server yet.") : data.error ?? tx("The coach couldn't answer — try again."));
+        setError(data.configured === false ? tx("The AI coach isn't set up on this server yet.") : (data.error ? tx(data.error) : tx("The coach couldn't answer — try again.")));
         return;
       }
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);

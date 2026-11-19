@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { guardAiRequest } from "@/lib/server/aiGuard";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,9 @@ export async function POST(req: NextRequest) {
       { status: 501 }
     );
   }
+
+  const caller = await guardAiRequest(req, "exercise-tip");
+  if (caller instanceof NextResponse) return caller;
 
   let body: RequestBody;
   try {

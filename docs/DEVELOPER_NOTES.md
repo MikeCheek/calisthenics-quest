@@ -781,6 +781,21 @@ repeat back sets/reps — it only ever returns coaching text. Same
 `OPENROUTER_API_KEY` setup as below; without it, the button just says AI
 tips aren't configured, and everything else keeps working.
 
+**Who may call the AI routes.** All four AI routes (`coach-chat`,
+`exercise-tip`, `plan-coach`, `plan-review`) start with
+`guardAiRequest` (`src/lib/server/aiGuard.ts`). The client sends its
+Firebase ID token through `authedFetch` (`src/lib/apiClient.ts`); the server
+verifies it without the Admin SDK (`src/lib/server/firebaseToken.ts`): RS256
+signature against Google's published `securetoken` certificates (cached for
+their `max-age`), audience = `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, issuer,
+expiry, issue/auth time and subject. Missing or bad token → 401. Then
+`RateLimiter` (`src/lib/server/rateLimit.ts`, a sliding window in memory)
+applies three budgets: per account per route per 10 minutes, per account per
+day across all routes (both smaller for guests, since anyone can make a guest
+account), and a global per-instance cap per minute. Over budget → 429 with
+`Retry-After`. The memory is per serverless instance, so this is best-effort;
+a shared store would make it exact (see `docs/NEXT_IDEAS.md`).
+
 **Live difficulty adjustment.** Each exercise also has small **−** / **+**
 buttons next to its sets/reps text. These bump the set count up or down for
 *that one session* only (`src/lib/exerciseTiming.ts`'s `adjustDetail`) — a

@@ -284,6 +284,7 @@ src/
     ├── demos/                                  # stick-figure rig and movement templates
     ├── shareCards.ts                           # share-card SVG builder
     ├── leaderboard.ts, coachContext.ts         # friends board, AI coach context
+    ├── server/                                 # AI route login check + rate limits
     └── i18n/                                   # English/Italian phrase tables
 tests/                   # unit tests for the modules above
 docs/
@@ -301,6 +302,9 @@ docs/
 - **AI features** send training data only (skills, what's verified or difficult,
   equipment, recent sessions, and your question) to OpenRouter — never your name, email
   or body stats. Chat conversations are not stored on a server.
+- **AI routes need a login.** Each request carries the user's Firebase ID token, which
+  the server checks against Google's public keys, and every account has a request budget
+  (smaller for guests) so the OpenRouter key can't be drained by strangers.
 - **Skill Check videos** never leave your device.
 - **Your controls:** export everything, reset progress in steps, or delete the account
   (which also removes you from friends' lists).
@@ -314,10 +318,13 @@ docs/
 - **Lock-screen controls** need a silent audio track while active, which can pause other
   apps' music on some phones — hence opt-in.
 - **AI answers** depend on the model configured in `OPENROUTER_MODEL`.
+- **AI rate limits are kept in memory** on each server instance, so they're a
+  best-effort cap rather than an exact one on serverless hosting.
 
 ## Documentation
 
 - [Developer notes](docs/DEVELOPER_NOTES.md) — how individual features work and why.
+- [Next ideas](docs/NEXT_IDEAS.md) — what to test, decide and build next.
 
 ## License
 
