@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Modal from "@/components/Modal";
 import { SKILL_DESCRIPTIONS } from "@/lib/skillDescriptions";
+import { SKILL_DESCRIPTIONS_IT } from "@/lib/skillDescriptions.it";
 import {
   StagedSkillKey,
   SkillProfile,
@@ -14,6 +15,7 @@ import {
 import { STAGE_LABEL } from "@/lib/stageOrder";
 import { pathNodesForSkill, isSkillAStretch, suggestEasierSkill } from "@/lib/levelPath";
 import { Sparkles } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function SkillInfoModal({
   skill,
@@ -34,6 +36,7 @@ export default function SkillInfoModal({
   showTrainCta?: boolean;
 }) {
   const router = useRouter();
+  const { tx, locale } = useLanguage();
 
   if (!skill) return null;
 
@@ -49,15 +52,15 @@ export default function SkillInfoModal({
   };
 
   return (
-    <Modal open={!!skill} onClose={onClose} title={SKILL_FIELD_LABEL[skill]}>
-      <p className="text-sm text-zinc-300 mb-3">{SKILL_DESCRIPTIONS[skill]}</p>
+    <Modal open={!!skill} onClose={onClose} title={tx(SKILL_FIELD_LABEL[skill])}>
+      <p className="text-sm text-zinc-300 mb-3">{(locale === "it" ? SKILL_DESCRIPTIONS_IT : SKILL_DESCRIPTIONS)[skill]}</p>
 
       {stage !== null && (
         <div className="text-xs text-muted mb-3">
-          Your stage: <span className="text-zinc-200">{STAGE_LABEL[stage] ?? stage}</span>
+          {tx("Your stage:")} <span className="text-zinc-200">{tx(STAGE_LABEL[stage] ?? stage)}</span>
           {stage !== "none" && (
             <>
-              {" "}· <span className="text-zinc-200">{MASTERY_LABEL[mastery]}</span>{" "}
+              {" "}· <span className="text-zinc-200">{tx(MASTERY_LABEL[mastery])}</span>{" "}
               <span className="text-muted">
                 ({"●".repeat(mastery)}
                 {"○".repeat(5 - mastery)})
@@ -69,7 +72,7 @@ export default function SkillInfoModal({
 
       {arc.length > 0 && (
         <div className="mb-4">
-          <div className="text-xs text-muted mb-1.5">Suggested arc on the trophy road</div>
+          <div className="text-xs text-muted mb-1.5">{tx("Suggested arc on the trophy road")}</div>
           <div className="flex flex-wrap gap-1.5">
             {arc.map((n) => (
               <span
@@ -80,7 +83,7 @@ export default function SkillInfoModal({
                     : "border-zinc-700 text-muted"
                 }`}
               >
-                Lv {n.level} · {STAGE_LABEL[n.stage ?? ""] ?? n.stage}
+                {tx("Lv {n}", { n: n.level })} · {tx(STAGE_LABEL[n.stage ?? ""] ?? n.stage ?? "")}
               </span>
             ))}
           </div>
@@ -92,10 +95,8 @@ export default function SkillInfoModal({
           <div className="flex items-start gap-2">
             <Sparkles size={14} className="text-orange-400 mt-0.5 shrink-0" />
             <div className="text-xs text-zinc-300">
-              This one&apos;s a stretch for level {playerLevel} — the road doesn&apos;t suggest it until
-              around level {arc[0]?.level}.{" "}
-              <span className="text-zinc-100">{SKILL_FIELD_LABEL[suggestion.skill]}</span> might be a
-              better fit right now.
+              {tx("This one's a stretch for level {n} — the road doesn't suggest it until around level {m}.", { n: playerLevel ?? 0, m: arc[0]?.level ?? 0 })}{" "}
+              {tx("{skill} might be a better fit right now.", { skill: tx(SKILL_FIELD_LABEL[suggestion.skill]) })}
             </div>
           </div>
           <div className="flex gap-2 mt-2">
@@ -103,13 +104,13 @@ export default function SkillInfoModal({
               onClick={() => goTrain(suggestion.skill!)}
               className="flex-1 py-2 rounded-lg text-xs bg-orange-500 hover:bg-orange-400 text-zinc-950"
             >
-              Train {SKILL_FIELD_LABEL[suggestion.skill]} instead
+              {tx("Train {skill} instead", { skill: tx(SKILL_FIELD_LABEL[suggestion.skill]) })}
             </button>
             <button
               onClick={() => goTrain(skill)}
               className="flex-1 py-2 rounded-lg text-xs border border-zinc-700 text-zinc-300 hover:border-orange-500"
             >
-              Train this anyway
+              {tx("Train this anyway")}
             </button>
           </div>
         </div>
@@ -118,7 +119,7 @@ export default function SkillInfoModal({
           onClick={() => goTrain(skill)}
           className="w-full py-2.5 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
         >
-          Train this skill →
+          {tx("Train this skill →")}
         </button>
       )}
     </Modal>

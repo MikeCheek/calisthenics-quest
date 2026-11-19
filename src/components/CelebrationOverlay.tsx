@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Celebration, StreakEvent } from "@/lib/sessionComplete";
 import { Flame, Snowflake, Sparkles, TrendingUp } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 type Item = { kind: "levelup"; level: number } | { kind: "streak"; event: StreakEvent; streak: number };
 
@@ -45,6 +46,7 @@ export default function CelebrationOverlay({ celebration }: { celebration: Celeb
 }
 
 function LevelUpCard({ level }: { level: number }) {
+  const { tx } = useLanguage();
   return (
     <div className="relative panel px-8 py-7 text-center animate-pop-in border-orange-500/50">
       <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
@@ -61,19 +63,20 @@ function LevelUpCard({ level }: { level: number }) {
         ))}
       </div>
       <Sparkles size={32} className="text-orange-400 mx-auto mb-2" />
-      <div className="heading text-xl text-zinc-100 mb-1">Level Up!</div>
+      <div className="heading text-xl text-zinc-100 mb-1">{tx("Level Up!")}</div>
       <div className="stat-mono text-5xl text-orange-400">{level}</div>
     </div>
   );
 }
 
 function StreakCard({ event, streak }: { event: StreakEvent; streak: number }) {
+  const { tx } = useLanguage();
   if (event === "unfrozen") {
     return (
       <div className="panel px-8 py-7 text-center animate-pop-in border-orange-500/50">
         <Flame size={40} className="text-orange-400 mx-auto mb-2 animate-thaw" />
-        <div className="heading text-lg text-zinc-100 mb-1">Streak unfrozen!</div>
-        <div className="text-xs text-zinc-400 mb-2">Rest days don&apos;t break it — welcome back.</div>
+        <div className="heading text-lg text-zinc-100 mb-1">{tx("Streak unfrozen!")}</div>
+        <div className="text-xs text-zinc-400 mb-2">{tx("Rest days don't break it — welcome back.")}</div>
         <div className="stat-mono text-4xl text-orange-400 flex items-center justify-center gap-1">
           {streak} <Snowflake size={18} className="text-muted" />
         </div>
@@ -84,8 +87,8 @@ function StreakCard({ event, streak }: { event: StreakEvent; streak: number }) {
     return (
       <div className="panel px-8 py-7 text-center animate-pop-in animate-gentle-shake border-zinc-700">
         <Flame size={40} className="text-muted mx-auto mb-2" />
-        <div className="heading text-lg text-zinc-100 mb-1">Fresh start</div>
-        <div className="text-xs text-zinc-400 mb-2">The streak reset — let&apos;s build it back up.</div>
+        <div className="heading text-lg text-zinc-100 mb-1">{tx("Fresh start")}</div>
+        <div className="text-xs text-zinc-400 mb-2">{tx("The streak reset — let's build it back up.")}</div>
         <div className="stat-mono text-4xl text-zinc-100">{streak}</div>
       </div>
     );
@@ -94,7 +97,7 @@ function StreakCard({ event, streak }: { event: StreakEvent; streak: number }) {
   return (
     <div className="panel px-8 py-7 text-center animate-pop-in border-orange-500/50">
       <Flame size={40} className="text-orange-400 mx-auto mb-2 animate-flame-pulse" />
-      <div className="heading text-lg text-zinc-100 mb-1">{label}</div>
+      <div className="heading text-lg text-zinc-100 mb-1">{tx(label)}</div>
       <div className="stat-mono text-4xl text-orange-400 flex items-center justify-center gap-1">
         {streak} <TrendingUp size={18} className="text-emerald-400" />
       </div>

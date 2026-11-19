@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import LandingWheelDemo from "@/components/LandingWheelDemo";
 import LandingProgressPreview from "@/components/LandingProgressPreview";
 import { Bot, Trophy, Users, Bell, Layers, RefreshCw } from "lucide-react";
@@ -20,6 +21,7 @@ const FEATURES: { icon: typeof Bot; title: string; body: string }[] = [
 export default function LandingPage() {
   const { user, userDoc, loading, signIn, startAsGuest } = useAuth();
   const [startingGuest, setStartingGuest] = useState(false);
+  const { tx } = useLanguage();
   const tryAsGuest = async () => {
     setStartingGuest(true);
     if (!(await startAsGuest())) setStartingGuest(false);
@@ -41,25 +43,23 @@ export default function LandingPage() {
         <div className="text-orange-400 text-4xl mb-2">▲</div>
         <h1 className="heading text-5xl text-zinc-100 mb-3">BarQuests</h1>
         <p className="text-zinc-400 mb-6">
-          Tailored calisthenics training for the outdoor bars. Level up your
-          front lever, planche, muscle-up and handstand — track XP, complete
-          missions, and train side-by-side with a friend.
+          {tx("Tailored calisthenics training for the outdoor bars. Level up your front lever, planche, muscle-up and handstand — track XP, complete missions, and train side-by-side with a friend.")}
         </p>
         <button
           onClick={() => signIn()}
           className="w-full py-3 rounded-lg heading tracking-wide bg-orange-500 hover:bg-orange-400 text-zinc-950"
         >
-          Sign in with Google
+          {tx("Sign in with Google")}
         </button>
         <button
           onClick={tryAsGuest}
           disabled={startingGuest}
           className="w-full mt-2 py-3 rounded-lg border border-zinc-700 text-zinc-200 hover:border-zinc-500 text-sm disabled:opacity-60"
         >
-          {startingGuest ? "Starting…" : "Try it first — no account needed"}
+          {startingGuest ? tx("Starting…") : tx("Try it first — no account needed")}
         </button>
         <p className="text-xs text-muted mt-2">
-          Take the assessment and train as a guest. Save your progress with Google whenever you like.
+          {tx("Take the assessment and train as a guest. Save your progress with Google whenever you like.")}
         </p>
       </div>
 
@@ -70,23 +70,22 @@ export default function LandingPage() {
 
       {/* What tracking looks like */}
       <div className="max-w-md mx-auto mb-10">
-        <h2 className="heading text-xl text-zinc-100 mb-1">See your progress add up</h2>
+        <h2 className="heading text-xl text-zinc-100 mb-1">{tx("See your progress add up")}</h2>
         <p className="text-sm text-zinc-400 mb-4">
-          Once you sign in, every session, skill, and streak gets tracked automatically.
-          Here&apos;s what that looks like — this is example data, not yours yet.
+          {tx("Once you sign in, every session, skill, and streak gets tracked automatically. Here's what that looks like — this is example data, not yours yet.")}
         </p>
         <LandingProgressPreview />
       </div>
 
       {/* Feature grid */}
       <div className="max-w-md mx-auto mb-10">
-        <h2 className="heading text-xl text-zinc-100 mb-4">Why make an account</h2>
+        <h2 className="heading text-xl text-zinc-100 mb-4">{tx("Why make an account")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {FEATURES.map(({ icon: Icon, title, body }) => (
             <div key={title} className="panel p-4">
               <Icon size={18} className="text-orange-400 mb-2" />
-              <div className="text-sm heading text-zinc-100 mb-1">{title}</div>
-              <div className="text-xs text-zinc-400">{body}</div>
+              <div className="text-sm heading text-zinc-100 mb-1">{tx(title)}</div>
+              <div className="text-xs text-zinc-400">{tx(body)}</div>
             </div>
           ))}
         </div>
@@ -98,14 +97,14 @@ export default function LandingPage() {
           onClick={() => signIn()}
           className="w-full py-3 rounded-lg heading tracking-wide bg-orange-500 hover:bg-orange-400 text-zinc-950"
         >
-          Sign in with Google
+          {tx("Sign in with Google")}
         </button>
-        <p className="text-xs text-muted mt-3">Free. Takes about a minute to set up.</p>
+        <p className="text-xs text-muted mt-3">{tx("Free. Takes about a minute to set up.")}</p>
       </div>
 
       <div className="max-w-md mx-auto text-center mt-8">
         <Link href="/about" className="text-xs text-muted hover:text-zinc-400">
-          About &amp; privacy
+          {tx("About & privacy")}
         </Link>
       </div>
     </main>

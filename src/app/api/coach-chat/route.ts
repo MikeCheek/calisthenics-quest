@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { guardAiRequest } from "@/lib/server/aiGuard";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest) {
   if (!apiKey) {
     return NextResponse.json({ configured: false, error: "The AI coach isn't configured on this server." }, { status: 501 });
   }
+
+  const caller = await guardAiRequest(req, "coach-chat");
+  if (caller instanceof NextResponse) return caller;
 
   let body: { messages?: ChatMessage[]; context?: string; locale?: string };
   try {

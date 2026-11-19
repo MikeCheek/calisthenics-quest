@@ -11,7 +11,8 @@ import { BadgeCheck, ChevronDown, Check, Lock, Target, Dices, Info, ArrowRight }
 
 // Skills as progressions rather than a flat list: each started skill shows
 // its chain of stages (done / current / next / locked); tapping opens the
-// full ladder. "Up next" pins the three most worthwhile next unlocks.
+// full ladder. "Up next" pins the three next unlocks the athlete is closest
+// to (see nextUnlocks in lib/skillTree.ts for the ranking).
 export default function SkillTree({
   userDoc,
   playerLevel,
@@ -67,6 +68,11 @@ export default function SkillTree({
                     <span className="text-orange-300">{tx(STAGE_LABEL[u.toStage] ?? u.toStage)}</span>
                   </div>
                   {u.fromStage !== "none" && <MasteryBar m={u.mastery} label={tx(MASTERY_LABEL[u.mastery])} />}
+                  {u.unconfirmed && (
+                    <div className="text-xs text-orange-300 mt-1.5">
+                      {tx("Prove {stage} in a Skill Check first — it'll come up in a session soon.", { stage: tx(STAGE_LABEL[u.fromStage] ?? u.fromStage) })}
+                    </div>
+                  )}
                 </button>
               </li>
             ))}

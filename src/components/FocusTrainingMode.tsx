@@ -321,7 +321,7 @@ export default function FocusTrainingMode() {
     if (easier) {
       setOverrides((prev) => ({ ...prev, [index]: { ...easier, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
       toast.success(`Swapped in ${easier.name}. Noted for future sessions.`);
-      say("Swapped in {x}", { x: speakableName(easier.name) }, true);
+      say("Swapped in {ex}", { ex: speakableName(easier.name) }, true);
     } else {
       toast.info("Nothing easier for this one — noted for future sessions. Skipping ahead.");
       if (isLastStep) setAllDoneScreen(true);

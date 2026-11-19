@@ -21,7 +21,7 @@ test("exercise details read naturally aloud (Italian)", () => {
 
 test("every spoken cue has an Italian version", () => {
   const cues = ["Voice coaching on", "Last set", "Ten seconds", "Rest {n} seconds", "Exercise complete", "Get ready",
-    "Session complete. Great work!", "Rest. Up next: {x}", "Swapped in {x}", "Set {a} of {b}", "Skill check."];
+    "Session complete. Great work!", "Rest. Up next: {x}", "Swapped in {ex}", "Set {a} of {b}", "Skill check."];
   assert.deepEqual(cues.filter((c) => translate("it", c) === c && c !== "Skill check."), []);
   assert.equal(translate("it", "Rest. Up next: {x}", { x: "Pull-ups" }), "Recupero. A seguire: Pull-ups");
 });

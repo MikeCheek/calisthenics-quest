@@ -5,7 +5,8 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { describeSuggestion } from "@/lib/adaptation";
 import { MASTERY_LABEL, SKILL_FIELD_LABEL } from "@/lib/types";
 import Modal from "@/components/Modal";
-import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban, Trophy, Share2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Brain, BadgeCheck, HelpCircle, Ban, Trophy, Share2, Sparkles, Flame } from "lucide-react";
+import { summaryLines } from "@/lib/sessionSummary";
 import ShareSheet from "@/components/ShareSheet";
 import type { ShareCard } from "@/lib/shareCards";
 import { useAuth } from "@/context/AuthContext";
@@ -20,12 +21,13 @@ import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 // something: a skill's mastery moved, or the engine thinks a stage change
 // is due. Stage changes need an explicit yes; "not now" snoozes for a week.
 export default function AdaptationReportModal() {
-  const { report, clearReport, resolveSuggestion } = useTrainingSession();
+  const { report, summary, clearReport, resolveSuggestion } = useTrainingSession();
   const [busy, setBusy] = useState<string | null>(null);
   const [shareCard, setShareCard] = useState<ShareCard | null>(null);
   const { userDoc } = useAuth();
   const { tx } = useLanguage();
   if (!report) return null;
+  const lines = summary ? summaryLines(summary.celebration, summary.xpGained) : null;
   const hasCoachNews =
     report.masteryChanges.length + report.suggestions.length + report.verifications.length + report.records.length > 0;
 
@@ -40,6 +42,24 @@ export default function AdaptationReportModal() {
     <>
     <Modal open onClose={clearReport} title={tx(hasCoachNews ? "Coach update" : "Session logged")}>
       <div className="space-y-4">
+        {lines && (
+          <div
+            className={`rounded-xl border p-3 flex items-center gap-3 animate-pop-in ${
+              summary!.celebration.leveledUp ? "border-orange-500/60 bg-orange-500/10" : "border-zinc-800 bg-zinc-900/60"
+            }`}
+          >
+            {summary!.celebration.leveledUp ? (
+              <Sparkles size={22} className="text-orange-400 shrink-0" />
+            ) : (
+              <Flame size={22} className={`shrink-0 ${summary!.celebration.streakEvent !== "none" ? "text-orange-400 animate-flame-pulse" : "text-muted"}`} />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="heading text-base text-zinc-100">{tx(lines.headline.text, lines.headline.vars)}</div>
+              {lines.detail && <div className="text-xs text-zinc-400">{tx(lines.detail.text, lines.detail.vars)}</div>}
+            </div>
+            <div className="stat-mono text-sm text-orange-400 shrink-0">{tx(lines.xp.text, lines.xp.vars)}</div>
+          </div>
+        )}
         {report.sessionRecord && (
           <button
             onClick={() => setShareCard({ kind: "session", record: report.sessionRecord! })}

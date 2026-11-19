@@ -12,6 +12,7 @@ import { TRACK_LABEL } from "@/lib/types";
 import { Sparkles, ChevronDown, ChevronUp, Moon } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import TrainSwitcher from "@/components/TrainSwitcher";
+import { authedFetch } from "@/lib/apiClient";
 
 const RANGE_OPTIONS: { value: PlanRange; label: string }[] = [
   { value: "day", label: "Today" },
@@ -73,7 +74,7 @@ export default function PlanPage() {
     if (useAI) {
       setAiStatus("loading");
       try {
-        const res = await fetch("/api/plan-coach", {
+        const res = await authedFetch("/api/plan-coach", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -137,7 +138,7 @@ export default function PlanPage() {
                     : "border-zinc-700 text-zinc-400"
                 }`}
               >
-                {o.label}
+                {tx(o.label)}
               </button>
             ))}
           </div>
@@ -162,17 +163,16 @@ export default function PlanPage() {
         </div>
 
         {aiStatus === "loading" && (
-          <div className="text-xs text-muted">Asking the AI coach for a few notes...</div>
+          <div className="text-xs text-muted">{tx("Asking the AI coach for a few notes…")}</div>
         )}
         {aiStatus === "unconfigured" && (
           <div className="panel p-3 text-xs text-muted">
-            AI coach notes aren&apos;t set up on this server (missing OPENROUTER_API_KEY) —
-            showing your plan without them. It still works fully without this.
+            {tx("AI coach notes aren't set up on this server — showing your plan without them. It still works fully without this.")}
           </div>
         )}
         {aiStatus === "error" && (
           <div className="panel p-3 text-xs text-muted">
-            {aiError} Showing your plan without AI notes.
+            {aiError ? tx(aiError) : ""} {tx("Showing your plan without AI notes.")}
           </div>
         )}
         {aiIntro && (

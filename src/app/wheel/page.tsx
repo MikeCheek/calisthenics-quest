@@ -84,7 +84,7 @@ export default function WheelPage() {
 
 function WheelContent() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
-  const { locale } = useLanguage();
+  const { locale, tx } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -297,7 +297,7 @@ function WheelContent() {
                 difficulty === d.value ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-400"
               }`}
             >
-              {d.label}
+              {tx(d.label)}
             </button>
           ))}
         </div>
@@ -319,7 +319,7 @@ function WheelContent() {
             <button
               onClick={() => setSuggestionDismissed(true)}
               className="text-muted hover:text-zinc-300 shrink-0"
-              aria-label="Dismiss suggestion"
+              aria-label={tx("Dismiss suggestion")}
             >
               <X size={14} />
             </button>

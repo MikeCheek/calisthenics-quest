@@ -15,6 +15,14 @@ import { useToast } from "@/context/ToastContext";
 import { plausibleDuration } from "@/lib/sessionHistory";
 import { lockScreenPref, startKeepAlive, stopKeepAlive } from "@/lib/mediaSession";
 
+// What the session earned, shown at the top of the post-session report so a
+// finished session ends in one window instead of a celebration overlay, a
+// toast and a modal stacked on top of each other.
+export interface SessionSummary {
+  celebration: Celebration;
+  xpGained: number;
+}
+
 interface TrainingSessionContextValue {
   session: TrainingSession | null;
   expanded: boolean;
@@ -31,7 +39,10 @@ interface TrainingSessionContextValue {
   finishSession: (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => Promise<void>;
   discardSession: () => void;
   report: AdaptationReport | null;
-  showReport: (r: AdaptationReport) => void;
+  summary: SessionSummary | null;
+  // returns false when there was nothing worth a report, so the caller can
+  // fall back to a celebration overlay or toast
+  showReport: (r: AdaptationReport, summary?: SessionSummary) => boolean;
   clearReport: () => void;
   resolveSuggestion: (s: StageSuggestion, accept: boolean) => Promise<void>;
 }
@@ -59,10 +70,17 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const clearCelebration = useCallback(() => setCelebration(null), []);
   const [report, setReport] = useState<AdaptationReport | null>(null);
-  const showReport = useCallback((r: AdaptationReport) => {
-    if (reportIsWorthShowing(r)) setReport(r);
+  const [summary, setSummary] = useState<SessionSummary | null>(null);
+  const showReport = useCallback((r: AdaptationReport, s?: SessionSummary) => {
+    if (!reportIsWorthShowing(r)) return false;
+    setReport(r);
+    setSummary(s ?? null);
+    return true;
   }, []);
-  const clearReport = useCallback(() => setReport(null), []);
+  const clearReport = useCallback(() => {
+    setReport(null);
+    setSummary(null);
+  }, []);
 
   // Accepting moves the skill's stage (the athlete's call, since it sets the
   // level); declining snoozes that suggestion for a week.
@@ -129,14 +147,13 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
         transitionRestRatio: extras?.transitionRestRatio,
         durationMin: plausibleDuration(startedAtRef.current),
       });
-      showReport(r);
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;
+      const shown = showReport(r, { celebration: c, xpGained });
       setCompleted(true);
       await refreshUserDoc();
-      if (c.leveledUp) {
-        setCelebration(c);
-      } else {
-        toast.success(`Session logged — you earned +${xpGained} XP.`);
+      if (!shown) {
+        if (c.leveledUp) setCelebration(c);
+        else toast.success(`Session logged — you earned +${xpGained} XP.`);
       }
     } catch {
       toast.error("Couldn't log your session — check your connection and try again.");
@@ -168,6 +185,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
         finishSession,
         discardSession,
         report,
+        summary,
         showReport,
         clearReport,
         resolveSuggestion,
