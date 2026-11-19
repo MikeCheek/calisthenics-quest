@@ -941,6 +941,10 @@ const IT_PHRASES: [string, string][] = [
   ["Reps", "Ripetizioni"],
   ["reps", "rip."],
   ["Time", "Tempo"],
+  // ---- effort ----
+  ["Finish here — {a} of {b} sets", "Chiudi qui — {a} di {b} serie"],
+  ["Eased up what's left by about {p}% — {a} easier, {b} with fewer sets.", "Alleggerito il resto di circa il {p}% — {a} più facili, {b} con meno serie."],
+  ["About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", "Circa il {n}% più leggera oggi — adattata all'energia che hai avuto nelle ultime sessioni."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

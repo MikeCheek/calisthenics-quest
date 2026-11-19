@@ -37,7 +37,10 @@ interface TrainingSessionContextValue {
   expand: () => void;
   togglePause: () => void;
   reportCurrentExercise: (name: string) => void;
-  finishSession: (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => Promise<void>;
+  finishSession: (
+    feedback?: ExerciseFeedback[],
+    extras?: { transitionRestRatio?: number; effort?: { planned: number; done: number; tired: boolean } }
+  ) => Promise<void>;
   discardSession: () => void;
   report: AdaptationReport | null;
   summary: SessionSummary | null;
@@ -169,12 +172,13 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
     setCurrentExerciseName(null);
   }, []);
 
-  const finishSession = useCallback(async (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => {
+  const finishSession = useCallback(async (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number; effort?: { planned: number; done: number; tired: boolean } }) => {
     if (!session || !userDoc || completed) return;
     try {
       const { patch, celebration: c, report: r } = await completeSession(userDoc, session, {
         feedback,
         transitionRestRatio: extras?.transitionRestRatio,
+        effort: extras?.effort,
         durationMin: plausibleDuration(startedAtRef.current),
       });
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;

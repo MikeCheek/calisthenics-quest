@@ -28,6 +28,7 @@ export default function ExerciseRow({
   onResetAdjust,
   onCantDo,
   onSkip,
+  onStopEarly,
   timerLog,
   onTimerLog,
   checkValue,
@@ -50,6 +51,7 @@ export default function ExerciseRow({
   onResetAdjust: () => void;
   onCantDo?: () => void;
   onSkip?: () => void;
+  onStopEarly?: (setsDone: number) => void;
   timerLog?: TimerLog;
   onTimerLog?: (log: TimerLog) => void;
   checkValue?: number | boolean;
@@ -244,7 +246,7 @@ export default function ExerciseRow({
 
             {timerMounted && (
               <div className={timerOpen ? "" : "hidden"}>
-                <ExerciseTimer key={exercise.name} exercise={displayedExercise} onLog={onTimerLog} />
+                <ExerciseTimer key={exercise.name} exercise={displayedExercise} onLog={onTimerLog} onStopEarly={onStopEarly} />
               </div>
             )}
             {exercise.check && onCheckChange && (

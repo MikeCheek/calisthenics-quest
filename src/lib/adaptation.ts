@@ -1,3 +1,4 @@
+import { feedbackWeight } from "./effort";
 import {
   Exercise,
   ExerciseFeedback,
@@ -99,7 +100,14 @@ export function applyExerciseFeedback(
     if (t?.holdRatio !== undefined) s.hr = [...(s.hr ?? []), +t.holdRatio.toFixed(2)].slice(-TIMING_HISTORY);
     if (t?.repRatio !== undefined) s.rp = [...(s.rp ?? []), +t.repRatio.toFixed(2)].slice(-TIMING_HISTORY);
 
-    if (fb.outcome === "done") {
+    // "too hard", a skip or an early stop near the end of a session is
+    // mostly tiredness: it counts for less (effort.ts)
+    const w = feedbackWeight(fb.fatigue);
+    const stoppedEarly = fb.outcome === "done" && fb.setsDone !== undefined;
+    if (stoppedEarly) {
+      s.done += 1;
+      s.p = clamp(s.p + 0.5 * w, P_MIN, P_MAX);
+    } else if (fb.outcome === "done") {
       s.done += 1;
       // "done", but the timer shows broken holds or repeated mid-set
       // pauses: count it as done without crediting it toward easing/step-ups
@@ -109,10 +117,10 @@ export function applyExerciseFeedback(
       if (fb.repDelta) s.rd = clamp((s.rd ?? 0) + fb.repDelta, -REP_DELTA_LIMIT, REP_DELTA_LIMIT);
     } else if (fb.outcome === "skipped") {
       s.skipped += 1;
-      s.p = clamp(s.p + 1, P_MIN, P_MAX);
+      s.p = clamp(+(s.p + 1 * w).toFixed(2), P_MIN, P_MAX);
     } else {
       s.tooHard += 1;
-      s.p = clamp(s.p + 2, P_MIN, P_MAX);
+      s.p = clamp(+(s.p + 2 * w).toFixed(2), P_MIN, P_MAX);
       // a lowered rep count that was *still* too hard shouldn't stick as the baseline
       if ((s.rd ?? 0) > 0) s.rd = 0;
     }
@@ -312,9 +320,11 @@ export function applySkillFeedback(
     const userStage = (skills as unknown as Record<string, string>)[loc.skill] ?? "none";
     const rel = stageIndex(loc.skill, loc.stage) - stageIndex(loc.skill, userStage);
     let d = 0;
-    if (fb.outcome === "done") d = fb.timing?.struggled ? 0 : rel >= 1 ? 2 : rel === 0 ? 1 : 0;
-    else if (fb.outcome === "tooHard") d = rel >= 1 ? -1 : -2; // struggling above your stage is expected
-    else d = rel >= 0 ? -0.5 : 0;
+    const w = feedbackWeight(fb.fatigue);
+    if (fb.outcome === "done" && fb.setsDone !== undefined) d = 0; // stopped early: neither credit nor blame
+    else if (fb.outcome === "done") d = fb.timing?.struggled ? 0 : rel >= 1 ? 2 : rel === 0 ? 1 : 0;
+    else if (fb.outcome === "tooHard") d = (rel >= 1 ? -1 : -2) * w; // struggling above your stage is expected
+    else d = (rel >= 0 ? -0.5 : 0) * w;
     delta[loc.skill] = (delta[loc.skill] ?? 0) + d;
   }
 

@@ -1,3 +1,4 @@
+import { EFFORT_HISTORY } from "./effort";
 import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { applyCheckResults, syncClaims } from "./verification";
@@ -85,7 +86,14 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
 export async function completeSession(
   userDoc: UserDoc,
   session: TrainingSession,
-  opts: { isPaired?: boolean; feedback?: ExerciseFeedback[]; transitionRestRatio?: number; durationMin?: number } = {}
+  opts: {
+    isPaired?: boolean;
+    feedback?: ExerciseFeedback[];
+    transitionRestRatio?: number;
+    durationMin?: number;
+    // effort planned and done, and whether "I'm tired" was pressed (effort.ts)
+    effort?: { planned: number; done: number; tired: boolean };
+  } = {}
 ): Promise<CompleteSessionResult> {
   const feedback = opts.feedback ?? [];
   const alreadyLoggedToday = userDoc.lastSessionDateISO ? isToday(userDoc.lastSessionDateISO) : false;
@@ -160,6 +168,14 @@ export async function completeSession(
     records,
     ...(opts.transitionRestRatio !== undefined
       ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) }
+      : {}),
+    ...(opts.effort && opts.effort.planned > 0
+      ? {
+          effortHistory: [
+            ...(userDoc.effortHistory ?? []),
+            { at: new Date().toISOString(), planned: opts.effort.planned, done: opts.effort.done, tired: opts.effort.tired },
+          ].slice(-EFFORT_HISTORY),
+        }
       : {}),
     xp: totalXp,
     streak: newStreak,

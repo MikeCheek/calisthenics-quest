@@ -1,3 +1,4 @@
+import type { EffortSample } from "./effort";
 // Core domain types for BarQuests
 
 export type Locale = "en" | "it";
@@ -268,6 +269,10 @@ export interface ExerciseFeedback {
   checkVideoKey?: string; // an on-device clip of the Skill Check attempt
   detail?: string; // what was actually prescribed on screen, after adjustments
   sets?: SetRecord[]; // clean per-set results from the timer, when used
+  // how far through the session's effort the athlete was when they marked
+  // it (0–1, see effort.ts) — "too hard" late in a session weighs less
+  fatigue?: number;
+  setsDone?: number; // fewer than prescribed: stopped early, only these logged
 }
 
 // ---- session history ----
@@ -283,6 +288,7 @@ export interface ExerciseRecord {
   detail?: string;
   sets?: SetRecord[];
   checkResult?: number | boolean;
+  setsDone?: number; // stopped early: only this many sets were done
 }
 
 export interface PersonalRecord {
@@ -449,6 +455,9 @@ export interface UserDoc {
   week?: WeekStats;
   // opted in to the global weekly leaderboard (everyone, not just friends)
   globalBoard?: boolean;
+  // effort planned vs done in recent sessions, and whether "I'm tired" was
+  // pressed — sessions are balanced against it (effort.ts)
+  effortHistory?: EffortSample[];
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

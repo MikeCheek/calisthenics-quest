@@ -62,6 +62,14 @@ and forget how your last session went. BarQuests is built around four ideas:
   automatically.
 - **Lock-screen controls** *(opt-in)* — exercise, rest (with a progress bar) and
   next/previous on your lock screen.
+- **Effort-aware** — every exercise has effort points (sets × how hard it is on the
+  trophy road × how big each set is), so the app knows how far through a session you
+  really are. *Too hard* or a skip near the end counts for less (it's mostly
+  tiredness), *I'm tired* cuts what's left by more the earlier you are (easier swaps
+  early, a set or two near the end — never the Skill Check), and when you keep running
+  out of energy at the same point, sessions are trimmed to fit and say so.
+- **Log only the sets you did** — *Finish here* between sets ends the exercise with
+  just those sets logged; your totals and the learning count only what you did.
 - **Sessions that survive interruptions** — the session in progress, where you are in it
   and any running timer are kept on the phone: close the app, reload or let the phone
   kill it, and it picks up where you left off. Timers keep real time while the phone is

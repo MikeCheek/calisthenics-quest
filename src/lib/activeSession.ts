@@ -26,6 +26,9 @@ export interface GuidedProgress {
   checkVideos: Record<number, string | undefined>;
   restEndsAt: number | null; // between-exercise rest, when one is running
   restLeft: number | null; // …or the seconds left when it was paused
+  earlyStops?: Record<number, number>; // step -> sets done when stopped early
+  fatigueAt?: Record<number, number>; // step -> fatigue when skipped
+  tiredAt?: number | null; // effort done when "I'm tired" was pressed
 }
 
 export interface SavedSession {

@@ -15,6 +15,7 @@ export default function TodaySessionCard({
   focusLabel,
   inProgress,
   doneToday,
+  lighterBy = 0,
   onStart,
   onResume,
 }: {
@@ -22,6 +23,7 @@ export default function TodaySessionCard({
   focusLabel: string;
   inProgress: boolean;
   doneToday: boolean;
+  lighterBy?: number; // % trimmed to fit recent energy (effort.ts)
   onStart: () => void;
   onResume: () => void;
 }) {
@@ -78,6 +80,12 @@ export default function TodaySessionCard({
           <Sparkles size={13} /> +{session.estXp} XP
         </span>
       </div>
+
+      {lighterBy > 0 && (
+        <p className="text-xs text-sky-400/90 mt-2">
+          {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}
+        </p>
+      )}
 
       <ol className="mt-4 space-y-2">
         {shown.map((e, i) => (

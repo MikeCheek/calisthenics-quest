@@ -24,12 +24,13 @@ export interface Volume {
 
 const NONE: Volume = { reps: 0, holdSec: 0, estimated: false };
 
-export function exerciseVolume(e: Pick<ExerciseRecord, "outcome" | "detail" | "sets" | "checkResult">): Volume {
+export function exerciseVolume(e: Pick<ExerciseRecord, "outcome" | "detail" | "sets" | "checkResult" | "setsDone">): Volume {
   if (e.outcome !== "done") return NONE;
   const detail = e.detail ?? "";
   // "3 x 10 per side" is 10 a side; "3 x 20 (10 per side)" is 20 in all
   const sides = /\b(per|each) side\b/i.test(detail) && !/\(\s*\d+\s*(per|each) side\s*\)/i.test(detail) ? 2 : 1;
-  const timing = parseTiming(detail);
+  // stopped early: only the sets done count
+  const timing = { ...parseTiming(detail), ...(e.setsDone !== undefined ? { sets: e.setsDone } : {}) };
 
   // measured: logged reps / timer holds
   const sets = e.sets ?? [];

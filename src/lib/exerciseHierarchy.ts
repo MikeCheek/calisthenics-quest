@@ -245,3 +245,15 @@ export function exercisesForSkillStage(skill: StagedSkillKey, stage: string): st
   }
   return [...names];
 }
+
+// Where an exercise sits on its ladder (0 = easiest), for effort points.
+export function exerciseRung(name: string): { index: number; length: number } | null {
+  const group = findExerciseGroup(name);
+  if (!group) return null;
+  for (const preset of [ALL_EQUIPMENT, NO_EQUIPMENT]) {
+    const list = hierarchyFor(group, preset);
+    const idx = list.findIndex((e) => e.name === name);
+    if (idx !== -1) return { index: idx, length: list.length };
+  }
+  return null;
+}

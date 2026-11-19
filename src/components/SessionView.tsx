@@ -14,6 +14,8 @@ import Modal from "@/components/Modal";
 import { Play, Clock, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizeDetail } from "@/lib/i18n/detail";
+import { exerciseEffort, fatigueOf, stepsOf, totalEffort } from "@/lib/effort";
+import { parseTiming } from "@/lib/exerciseTiming";
 
 type SessionLevel = "easier" | "default" | "harder";
 
@@ -37,7 +39,7 @@ export default function SessionView({
 }: {
   session: TrainingSession;
   equipment?: TrainingEquipment;
-  onComplete?: (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => void;
+  onComplete?: (feedback: ExerciseFeedback[], meta: { durationMin?: number; effort?: { planned: number; done: number; tired: boolean } }) => void;
   completed?: boolean;
   onStartFocusMode?: () => void;
 }) {
@@ -47,6 +49,8 @@ export default function SessionView({
   // every "too hard" press, in order — the exercise it was pressed on, not
   // the easier one swapped in for it
   const [tooHard, setTooHard] = useState<ExerciseFeedback[]>([]);
+  // how far through the effort the athlete was when skipping (lib/effort.ts)
+  const [fatigueAt, setFatigueAt] = useState<Record<string, number>>({});
   // raw timer logs and Skill Check results, per row
   const [timerLogs, setTimerLogs] = useState<Record<string, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<string, number | boolean | undefined>>({});
@@ -62,6 +66,7 @@ export default function SessionView({
   const eq = equipment ?? DEFAULT_LOOKUP_EQUIPMENT;
 
   const toggleSkip = (key: string) => {
+    if (!skipped.has(key)) setFatigueAt((prev) => ({ ...prev, [key]: fatigueNow() }));
     setSkipped((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
@@ -125,7 +130,7 @@ export default function SessionView({
   };
 
   const swapForEasier = (key: string, currentExercise: Exercise, setTitle: string) => {
-    setTooHard((prev) => [...prev, { name: currentExercise.name, outcome: "tooHard", setTitle }]);
+    setTooHard((prev) => [...prev, { name: currentExercise.name, outcome: "tooHard", setTitle, fatigue: fatigueNow() }]);
     const easier = findEasierExercise(currentExercise.name, eq);
     if (!easier) {
       toast.warning(`No easier variation for ${currentExercise.name} — noted, future sessions will ease off. Try fewer reps for now.`);
@@ -154,6 +159,24 @@ export default function SessionView({
     return originalEx;
   };
 
+  // effort (lib/effort.ts): planned for the session, and done so far — the
+  // ticked-off rows, at their adjusted set counts
+  const plannedEffort = totalEffort(stepsOf(session));
+  const effortDone = () => {
+    let n = 0;
+    session.sets.forEach((set) => {
+      const exempt = HIERARCHY_EXEMPT_SETS.has(set.title);
+      set.exercises.forEach((originalEx, i) => {
+        const key = `${set.title}-${i}`;
+        if (!done.has(key)) return;
+        const ex = effectiveFor(key, originalEx, exempt);
+        n += exerciseEffort({ name: ex.name, detail: adjustDetail(ex.detail, individualDelta[key] ?? 0) }, set.title);
+      });
+    });
+    return +n.toFixed(1);
+  };
+  const fatigueNow = () => +fatigueOf(effortDone(), plannedEffort).toFixed(2);
+
   const collectFeedback = (): ExerciseFeedback[] => {
     const out: ExerciseFeedback[] = [...tooHard];
     session.sets.forEach((set) => {
@@ -179,6 +202,7 @@ export default function SessionView({
           timing: summarizeTimerLog(timerLogs[key]),
           detail: adjustDetail(ex.detail, individualDelta[key] ?? 0),
           sets: isDone ? cleanSets(timerLogs[key]) : undefined,
+          ...(!isDone && fatigueAt[key] !== undefined ? { fatigue: fatigueAt[key] } : {}),
           check: ex.check,
           checkResult,
           checkVideoKey: ex.check ? checkVideos[key] : undefined,
@@ -278,6 +302,11 @@ export default function SessionView({
                         checkVideoKey={checkVideos[key]}
                         onCheckVideo={(v) => setCheckVideos((prev) => ({ ...prev, [key]: v }))}
                         onSkip={() => toggleSkip(key)}
+                        // "Finish here" in the row's timer: the row keeps only the sets done
+                        onStopEarly={(n) => {
+                          bump(key, n - parseTiming(displayedDetail).sets);
+                          if (!done.has(key)) toggleDone(key);
+                        }}
                       />
                     );
                   })}
@@ -291,7 +320,9 @@ export default function SessionView({
       {onComplete && (
         <button
           disabled={completed}
-          onClick={() => onComplete(collectFeedback(), { durationMin: plausibleDuration(startedAt) })}
+          onClick={() =>
+            onComplete(collectFeedback(), { durationMin: plausibleDuration(startedAt), effort: { planned: plannedEffort, done: effortDone(), tired: false } })
+          }
           className={`mt-5 w-full py-2.5 rounded-lg heading tracking-wide text-sm ${
             completed
               ? "bg-zinc-800 text-muted cursor-not-allowed"

@@ -26,8 +26,12 @@ export default function ExerciseTimer({
   onLog,
   onEvent,
   persist,
+  onStopEarly,
 }: {
   exercise: Exercise;
+  // "Finish here" between sets: called with how many sets were done, then
+  // the exercise completes with only those logged
+  onStopEarly?: (setsDone: number) => void;
   // guided mode: keep this timer on the device (see lib/activeSession.ts),
   // so a reload mid-set picks up at the same set, phase and time
   persist?: { sessionId: string; step: number };
@@ -363,6 +367,16 @@ export default function ExerciseTimer({
     emitLog();
   };
 
+  // Done fewer sets than prescribed: log just those and finish.
+  const finishEarly = () => {
+    // the rest was cut short, so it isn't recorded as a rest sample
+    onStopEarly?.(set);
+    playCompleteSound();
+    emitEvent({ type: "done" }, `done-${set}`);
+    setPhase("done");
+    setRunning(false);
+  };
+
   const skip = () => {
     if (phase === "countdown") {
       beginWork();
@@ -452,6 +466,14 @@ export default function ExerciseTimer({
               <SkipForward size={16} />
             </button>
           </div>
+          {phase === "rest" && onStopEarly && (
+            <button
+              onClick={finishEarly}
+              className="mt-3 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-zinc-500"
+            >
+              {tx("Finish here — {a} of {b} sets", { a: set, b: timing.sets })}
+            </button>
+          )}
         </div>
       )}
 

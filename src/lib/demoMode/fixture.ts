@@ -6,6 +6,7 @@ import { effectiveLevel } from "../levelPath";
 import { currentWeekKey, generateWeeklyMissions } from "../missions";
 import { statKey } from "../adaptation";
 import { boardName } from "../leaderboard";
+import { stepsOf, totalEffort } from "../effort";
 
 // Example data for demo mode (see flag.ts). Fictional athlete, clearly
 // labeled in the UI; never written anywhere.
@@ -123,6 +124,16 @@ export function demoUserDoc(): UserDoc {
       [statKey("Negative pull-ups")]: { p: 0, done: 6, skipped: 0, tooHard: 0, rr: [1.4, 1.3, 1.5], last: iso(2) },
     },
     skillProgress: { backLever: { score: 4 }, lSit: { score: 3 } },
+    // ran out of energy a little past halfway, twice recently — so the
+    // demo shows a session balanced to it
+    effortHistory: (() => {
+      const planned = totalEffort(stepsOf(generateSession(skills, DEFAULT_EQUIPMENT, "handstand", new Date(), 45)));
+      return [
+        { at: iso(6), planned, done: +(planned * 0.55).toFixed(1), tired: true },
+        { at: iso(4), planned, done: +(planned * 0.6).toFixed(1), tired: true },
+        { at: iso(2), planned, done: +(planned * 0.5).toFixed(1), tired: false },
+      ];
+    })(),
     transitionRest: [1.3, 1.2, 1.35],
   };
 }

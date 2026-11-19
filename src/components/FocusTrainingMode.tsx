@@ -23,6 +23,7 @@ import { localizeDetail } from "@/lib/i18n/detail";
 import { loadActiveSession, loadTimer, saveGuidedProgress, secondsLeftOf } from "@/lib/activeSession";
 import { clockTime, closeTrainingNotice, keepScreenOn, letScreenSleep, showTrainingNotice, TrainingNotice } from "@/lib/backgroundSession";
 import { parseTiming } from "@/lib/exerciseTiming";
+import { exerciseEffort, fatigueOf, planEaseUp, totalEffort } from "@/lib/effort";
 
 interface Step {
   key: string;
@@ -106,6 +107,12 @@ export default function FocusTrainingMode() {
   const [timerLogs, setTimerLogs] = useState<Record<number, TimerLog>>({});
   const [checkResults, setCheckResults] = useState<Record<number, number | boolean | undefined>>({});
   const [checkVideos, setCheckVideos] = useState<Record<number, string | undefined>>({});
+  // effort (lib/effort.ts): sets done when stopped early, fatigue at each
+  // skip, and the effort done when "I'm tired" was pressed
+  const [earlyStops, setEarlyStops] = useState<Record<number, number>>({});
+  const [fatigueAt, setFatigueAt] = useState<Record<number, number>>({});
+  const [tiredAt, setTiredAt] = useState<number | null>(null);
+  const plannedEffort = useMemo(() => totalEffort(steps), [steps]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [restWasLearned, setRestWasLearned] = useState(false);
 
@@ -169,6 +176,9 @@ export default function FocusTrainingMode() {
     setTimerLogs(g?.timerLogs ?? {});
     setCheckResults(g?.checkResults ?? {});
     setCheckVideos(g?.checkVideos ?? {});
+    setEarlyStops(g?.earlyStops ?? {});
+    setFatigueAt(g?.fatigueAt ?? {});
+    setTiredAt(g?.tiredAt ?? null);
     transitionSamples.current = [];
     restMeter.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,9 +200,12 @@ export default function FocusTrainingMode() {
       checkVideos,
       restEndsAt: resting && !paused ? Date.now() + (restSecondsLeft ?? 0) * 1000 : null,
       restLeft: resting && paused ? restSecondsLeft : null,
+      earlyStops,
+      fatigueAt,
+      tiredAt,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, index, completedSteps, skippedSteps, overrides, tooHard, timerLogs, checkResults, checkVideos, resting, paused]);
+  }, [session, index, completedSteps, skippedSteps, overrides, tooHard, timerLogs, checkResults, checkVideos, resting, paused, earlyStops, fatigueAt, tiredAt]);
 
   const rawCurrent = steps[index];
   const current = useMemo(
@@ -404,7 +417,22 @@ export default function FocusTrainingMode() {
   };
 
   // Skip: move on without the rest period, and remember it was skipped.
+  // effort done so far: finished exercises (only the sets done, if stopped
+  // early) plus the sets already done of the current one
+  const effortDone = () => {
+    let n = 0;
+    completedSteps.forEach((i) => {
+      const st = steps[i];
+      if (st) n += exerciseEffort(overrides[i] ?? st.exercise, st.setTitle, earlyStops[i]);
+    });
+    const doneSets = completedSteps.has(index) ? 0 : timerLogs[index]?.sets.length ?? 0;
+    if (doneSets) n += exerciseEffort(current.exercise, current.setTitle, doneSets);
+    return +n.toFixed(1);
+  };
+  const fatigueNow = () => +fatigueOf(effortDone(), plannedEffort).toFixed(2);
+
   const handleSkip = () => {
+    setFatigueAt((prev) => ({ ...prev, [index]: fatigueNow() }));
     setSkippedSteps((prev) => new Set(prev).add(index));
     if (isLastStep) {
       setAllDoneScreen(true);
@@ -417,7 +445,7 @@ export default function FocusTrainingMode() {
   // down right away so the athlete can keep going.
   const handleTooHard = () => {
     const ex = current.exercise;
-    setTooHard((prev) => [...prev, { name: ex.name, outcome: "tooHard", setTitle: current.setTitle }]);
+    setTooHard((prev) => [...prev, { name: ex.name, outcome: "tooHard", setTitle: current.setTitle, fatigue: fatigueNow() }]);
     const easier = findEasierExercise(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT);
     if (easier) {
       setOverrides((prev) => ({ ...prev, [index]: { ...easier, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
@@ -448,6 +476,8 @@ export default function FocusTrainingMode() {
         timing: summarizeTimerLog(timerLogs[i]),
         detail: ex.detail,
         sets: isDone ? cleanSets(timerLogs[i]) : undefined,
+        ...(isDone && earlyStops[i] !== undefined ? { setsDone: earlyStops[i] } : {}),
+        ...(!isDone && fatigueAt[i] !== undefined ? { fatigue: fatigueAt[i] } : {}),
         check: ex.check,
         checkResult,
         checkVideoKey: ex.check ? checkVideos[i] : undefined,
@@ -456,25 +486,28 @@ export default function FocusTrainingMode() {
     return out;
   };
 
+  // "I'm tired": cut what's left by an amount that depends on how far in
+  // you are — about half early on, a fifth near the end (lib/effort.ts)
   const handleTired = () => {
-    const updates: Record<number, Exercise> = { ...overrides };
-    let swapped = 0;
-    for (let i = index; i < steps.length; i++) {
-      const step = steps[i];
-      if (HIERARCHY_EXEMPT_SETS.has(step.setTitle)) continue;
-      const currentEx = updates[i] ?? step.exercise;
-      const easier = findEasierExercise(currentEx.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT);
-      if (easier) {
-        updates[i] = easier;
-        swapped++;
-      }
-    }
-    setOverrides(updates);
-    if (swapped > 0) {
-      toast.success(`Eased up what's left — ${swapped} swapped for something gentler.`);
-    } else {
+    const f = fatigueNow();
+    if (tiredAt === null) setTiredAt(effortDone());
+    const withOverrides = steps.map((s, i) => ({ setTitle: s.setTitle, exercise: overrides[i] ?? s.exercise }));
+    const { changes, cut, before } = planEaseUp(withOverrides, index, f, (name) =>
+      findEasierExercise(name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT)
+    );
+    if (!changes.length) {
       toast.info("Everything left is already about as easy as it gets — hang in there.");
+      return;
     }
+    setOverrides((prev) => {
+      const next = { ...prev };
+      for (const c of changes) next[c.index] = c.exercise;
+      return next;
+    });
+    const easier = changes.filter((c) => c.kind === "easier").length;
+    const fewer = changes.length - easier;
+    const pct = before > 0 ? Math.round((cut / before) * 100) : 0;
+    toast.success(`Eased up what's left by about ${pct}% — ${easier} easier, ${fewer} with fewer sets.`);
   };
 
   const mm = restSecondsLeft !== null ? String(Math.floor(restSecondsLeft / 60)).padStart(2, "0") : "00";
@@ -578,6 +611,7 @@ export default function FocusTrainingMode() {
             onClick={() =>
               finishSession(collectFeedback(), {
                 transitionRestRatio: summarizeTimerLog({ sets: [], rests: transitionSamples.current, workPauses: 0 })?.restRatio,
+                effort: { planned: plannedEffort, done: tiredAt ?? effortDone(), tired: tiredAt !== null },
               })
             }
             className="w-full max-w-xs py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
@@ -636,6 +670,7 @@ export default function FocusTrainingMode() {
                 key={`${current.key}-${current.exercise.name}`}
                 exercise={current.exercise}
                 persist={{ sessionId: session.id, step: index }}
+                onStopEarly={(n) => setEarlyStops((prev) => ({ ...prev, [index]: n }))}
                 // a Skill Check waits on "Next" so the result can be logged first
                 onComplete={current.exercise.check ? undefined : markCompleteAndAdvance}
                 externallyPaused={paused}

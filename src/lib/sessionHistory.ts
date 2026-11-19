@@ -95,6 +95,7 @@ export function buildSessionRecord(
           detail: f.detail,
           sets: f.sets,
           checkResult: f.checkResult,
+          ...(f.setsDone !== undefined ? { setsDone: f.setsDone } : {}),
         }))
     : session.sets.flatMap((s) => s.exercises.map((e) => ({ name: e.name, setTitle: s.title, outcome: "done" as const, detail: e.detail })));
   return {

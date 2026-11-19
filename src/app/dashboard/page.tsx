@@ -30,7 +30,7 @@ export default function TodayPage() {
   const { tx, locale } = useLanguage();
   const router = useRouter();
   const { session: activeSession, completed: activeCompleted, startSession, expand } = useTrainingSession();
-  const { focus, fitted, check } = useTodaysSession(userDoc);
+  const { focus, fitted, check, lighterBy } = useTodaysSession(userDoc);
   const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
@@ -90,6 +90,7 @@ export default function TodayPage() {
           focusLabel={FOCUS_LABEL[focus]}
           inProgress={!!activeSession && !activeCompleted}
           doneToday={doneToday}
+          lighterBy={lighterBy}
           onStart={() => startSession(fitted.session)}
           onResume={expand}
         />

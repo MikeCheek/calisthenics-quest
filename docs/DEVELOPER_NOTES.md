@@ -1138,6 +1138,29 @@ progress and isn't reversible) so you never have to reopen the full screen
 just to pause or bail out.
 
 
+**Effort points** (`src/lib/effort.ts`). effort = sets × difficulty (1–5)
+× load (1 for a normal set; 1.2–1.4 for 12+ reps or 30+ s; ×1.3 per side).
+Difficulty is a skill exercise's stage level on the trophy road (one scale
+across skills), else its rung on its strength ladder; warm-ups 0.5,
+finishers 1.5. Low-rep sets of hard exercises still count as full sets.
+- *Fatigue* = effort done ÷ planned, at the moment of "too hard" or a skip,
+  stored on the feedback. `feedbackWeight` scales the learning: full weight
+  up to 40% through, down to 0.35 by 85%.
+- *"I'm tired"* (`planEaseUp`) cuts what's left by 50% / 35% / 20% (before
+  35%, 70%, after): easier rungs first (at no more sets, and only if
+  lighter), then a set off the heaviest; never the warm-up or the Skill
+  Check, never below 2 sets except near the end.
+- *Finish here* between sets logs only the sets done (`setsDone`): counted
+  as done with a small, fatigue-weighted signal; mastery neither credited
+  nor blamed; totals count only those sets.
+- *Balanced sessions*: each logged session stores planned/done effort and
+  whether "I'm tired" was pressed (`effortHistory`, last 8). Once you've run
+  out in 2 of the last 6, `effortCapacity` (median of those, raised by full
+  sessions since) caps the session at +10%: accessory sets are trimmed
+  first, then main-focus ones; never the warm-up, the Skill Check or the
+  main skill's first exercise. Today and the session page say how much
+  lighter.
+
 **Interruptions and the background** (`src/lib/activeSession.ts`,
 `src/lib/backgroundSession.ts`).
 - *Kept on the device.* The session in progress (`barquests:activeSession`:
