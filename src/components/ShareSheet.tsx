@@ -7,7 +7,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useToast } from "@/context/ToastContext";
 import { buildCardSvg, cardFileName, CardFormat, CARD_SIZE, ShareCard } from "@/lib/shareCards";
 import { svgToPngBlob, shareOrDownload, downloadBlob } from "@/lib/shareImage";
-import { effectiveLevel } from "@/lib/levelPath";
+import { levelFromXp } from "@/lib/xp";
 import { claimCounts, syncClaims } from "@/lib/verification";
 import { Share2, Download, Loader2, Video } from "lucide-react";
 import { loadClip } from "@/lib/videoProof";
@@ -34,7 +34,7 @@ export default function ShareSheet({ card, onClose }: { card: ShareCard | null; 
     const claims = claimCounts(syncClaims(userDoc.claims, userDoc.skills));
     return buildCardSvg(card, {
       format,
-      level: effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery),
+      level: levelFromXp(userDoc.xp),
       verified: claims.verified,
       verifiedTotal: claims.total,
       streak: userDoc.streak,

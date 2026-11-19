@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ExerciseFeedback, TrainingSession } from "@/lib/types";
-import { completeSession, Celebration } from "@/lib/sessionComplete";
+import { awardXp, completeSession, Celebration } from "@/lib/sessionComplete";
+import { XP_RULES } from "@/lib/sessionXp";
 import {
   AdaptationReport,
   StageSuggestion,
@@ -14,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { plausibleDuration } from "@/lib/sessionHistory";
 import { lockScreenPref, startKeepAlive, stopKeepAlive } from "@/lib/mediaSession";
+import { clearActiveSession, loadActiveSession, saveActiveSession } from "@/lib/activeSession";
 
 // What the session earned, shown at the top of the post-session report so a
 // finished session ends in one window instead of a celebration overlay, a
@@ -36,7 +38,10 @@ interface TrainingSessionContextValue {
   expand: () => void;
   togglePause: () => void;
   reportCurrentExercise: (name: string) => void;
-  finishSession: (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => Promise<void>;
+  finishSession: (
+    feedback?: ExerciseFeedback[],
+    extras?: { transitionRestRatio?: number; effort?: { planned: number; done: number; tired: boolean } }
+  ) => Promise<void>;
   discardSession: () => void;
   report: AdaptationReport | null;
   summary: SessionSummary | null;
@@ -91,7 +96,11 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
         if (accept) {
           const next = acceptStageSuggestion(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.skillProgress ?? {}, s);
           await updateProgress(userDoc.uid, { skills: next.skills, skillMastery: next.mastery, skillProgress: next.progress });
-          toast.success(s.direction === "up" ? "Stage updated — new progressions from your next session." : "Stage eased — next sessions will rebuild it.");
+          if (s.direction === "up") {
+            // stepping up a stage earned in training is worth a bonus (sessionXp.ts)
+            await awardXp(userDoc, XP_RULES.stageUp);
+            toast.success(`Stage updated — new progressions from your next session. +${XP_RULES.stageUp} XP`);
+          } else toast.success("Stage eased — next sessions will rebuild it.");
         } else {
           await updateProgress(userDoc.uid, { skillProgress: snoozeStageSuggestion(userDoc.skillProgress ?? {}, s) });
         }
@@ -114,6 +123,34 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   // guided mode measures duration from when it was started
   const startedAtRef = useRef<number | null>(null);
 
+  // ---- kept on this device, so closing or reloading doesn't lose it ----
+  const uid = userDoc?.uid ?? null;
+  const restoredFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!uid || restoredFor.current === uid) return;
+    restoredFor.current = uid;
+    const saved = loadActiveSession(uid);
+    if (!saved) return;
+    startedAtRef.current = saved.startedAt;
+    setSession(saved.session);
+    setPaused(saved.paused);
+    setCompleted(false);
+    // opened from the "training in progress" notification: straight back in;
+    // otherwise the resume bubble shows and one tap reopens it
+    const url = new URL(window.location.href);
+    const fromNotice = url.searchParams.get("resume") === "1";
+    setExpanded(fromNotice);
+    if (fromNotice) {
+      url.searchParams.delete("resume"); // a later reload shouldn't reopen it again
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid || !session) return;
+    saveActiveSession({ uid, startedAt: startedAtRef.current, session, paused });
+  }, [uid, session, paused]);
+
   const startSession = useCallback((s: TrainingSession) => {
     startedAtRef.current = Date.now();
     // lock-screen controls need audio started from this tap (opt-in)
@@ -132,6 +169,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
 
   const discardSession = useCallback(() => {
     stopKeepAlive();
+    clearActiveSession();
     setSession(null);
     setExpanded(false);
     setPaused(false);
@@ -139,12 +177,13 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
     setCurrentExerciseName(null);
   }, []);
 
-  const finishSession = useCallback(async (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number }) => {
+  const finishSession = useCallback(async (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number; effort?: { planned: number; done: number; tired: boolean } }) => {
     if (!session || !userDoc || completed) return;
     try {
       const { patch, celebration: c, report: r } = await completeSession(userDoc, session, {
         feedback,
         transitionRestRatio: extras?.transitionRestRatio,
+        effort: extras?.effort,
         durationMin: plausibleDuration(startedAtRef.current),
       });
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;
@@ -160,6 +199,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       return;
     }
     stopKeepAlive();
+    clearActiveSession();
     setSession(null);
     setExpanded(false);
     setPaused(false);

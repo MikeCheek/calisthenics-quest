@@ -3,6 +3,10 @@
 import { UserDoc, ExerciseStat, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
 import { median } from "@/lib/timingLearning";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { updateProgress } from "@/lib/store";
+import { forgetStruggles } from "@/lib/adaptation";
 import { Brain, TrendingDown, TrendingUp, Timer, Hourglass } from "lucide-react";
 
 // Turns the raw learning memory into a few readable lines: what's being
@@ -14,6 +18,18 @@ function prettyName(key: string): string {
 
 export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
   const { tx } = useLanguage();
+  const { refreshUserDoc } = useAuth();
+  const toast = useToast();
+  // a "too hard" or skip remembered by mistake: stop easing it off
+  const canDo = async (key: string) => {
+    try {
+      await updateProgress(userDoc.uid, { exerciseStats: forgetStruggles(userDoc.exerciseStats ?? {}, key) });
+      await refreshUserDoc();
+      toast.success("Got it — sessions won't ease this one off any more.");
+    } catch {
+      toast.error("Couldn't save that — try again.");
+    }
+  };
   const entries = Object.entries(userDoc.exerciseStats ?? {}) as [string, ExerciseStat][];
   const struggling = entries.filter(([, s]) => s.p >= 2).sort((a, b) => b[1].p - a[1].p).slice(0, 4);
   const progressing = entries.filter(([, s]) => s.p <= -3).sort((a, b) => a[1].p - b[1].p).slice(0, 4);
@@ -58,7 +74,12 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
           {struggling.length > 0 && (
             <Group icon={<TrendingDown size={14} className="text-orange-400" />} title={tx("Being eased off")}>
               {struggling.map(([k, s]) => (
-                <Row key={k} name={prettyName(k)} detail={tx("{a} too hard · {b} skipped", { a: s.tooHard, b: s.skipped })} />
+                <Row
+                  key={k}
+                  name={prettyName(k)}
+                  detail={tx("{a} too hard · {b} skipped", { a: s.tooHard, b: s.skipped })}
+                  action={{ label: tx("I can do this"), onClick: () => canDo(k) }}
+                />
               ))}
             </Group>
           )}
@@ -100,11 +121,19 @@ function Group({ icon, title, children }: { icon: React.ReactNode; title: string
   );
 }
 
-function Row({ name, detail }: { name: string; detail: string }) {
+function Row({ name, detail, action }: { name: string; detail: string; action?: { label: string; onClick: () => void } }) {
   return (
     <div className="flex items-center justify-between gap-2 text-sm">
       <span className="text-zinc-200 truncate">{name}</span>
       <span className="text-xs text-muted shrink-0">{detail}</span>
+      {action && (
+        <button
+          onClick={action.onClick}
+          className="text-xs px-2 py-0.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-emerald-600 hover:text-emerald-300 shrink-0"
+        >
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }

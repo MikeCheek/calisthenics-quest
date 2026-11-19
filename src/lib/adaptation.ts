@@ -1,3 +1,4 @@
+import { feedbackWeight } from "./effort";
 import {
   Exercise,
   ExerciseFeedback,
@@ -21,7 +22,7 @@ import { adjustDetail } from "./exerciseTiming";
 import { STAGE_ORDER, STAGE_LABEL, stageIndex } from "./stageOrder";
 import { median, scaleHoldDetail, round5 } from "./timingLearning";
 import type { VerificationEvent } from "./verification";
-import type { PersonalRecord, SessionRecord } from "./types";
+import type { ExerciseOutcome, PersonalRecord, SessionRecord } from "./types";
 
 // ---------------------------------------------------------------------------
 // Learning from activity.
@@ -99,7 +100,14 @@ export function applyExerciseFeedback(
     if (t?.holdRatio !== undefined) s.hr = [...(s.hr ?? []), +t.holdRatio.toFixed(2)].slice(-TIMING_HISTORY);
     if (t?.repRatio !== undefined) s.rp = [...(s.rp ?? []), +t.repRatio.toFixed(2)].slice(-TIMING_HISTORY);
 
-    if (fb.outcome === "done") {
+    // "too hard", a skip or an early stop near the end of a session is
+    // mostly tiredness: it counts for less (effort.ts)
+    const w = feedbackWeight(fb.fatigue);
+    const stoppedEarly = fb.outcome === "done" && fb.setsDone !== undefined;
+    if (stoppedEarly) {
+      s.done += 1;
+      s.p = clamp(s.p + 0.5 * w, P_MIN, P_MAX);
+    } else if (fb.outcome === "done") {
       s.done += 1;
       // "done", but the timer shows broken holds or repeated mid-set
       // pauses: count it as done without crediting it toward easing/step-ups
@@ -109,10 +117,10 @@ export function applyExerciseFeedback(
       if (fb.repDelta) s.rd = clamp((s.rd ?? 0) + fb.repDelta, -REP_DELTA_LIMIT, REP_DELTA_LIMIT);
     } else if (fb.outcome === "skipped") {
       s.skipped += 1;
-      s.p = clamp(s.p + 1, P_MIN, P_MAX);
+      s.p = clamp(+(s.p + 1 * w).toFixed(2), P_MIN, P_MAX);
     } else {
       s.tooHard += 1;
-      s.p = clamp(s.p + 2, P_MIN, P_MAX);
+      s.p = clamp(+(s.p + 2 * w).toFixed(2), P_MIN, P_MAX);
       // a lowered rep count that was *still* too hard shouldn't stick as the baseline
       if ((s.rd ?? 0) > 0) s.rd = 0;
     }
@@ -312,9 +320,11 @@ export function applySkillFeedback(
     const userStage = (skills as unknown as Record<string, string>)[loc.skill] ?? "none";
     const rel = stageIndex(loc.skill, loc.stage) - stageIndex(loc.skill, userStage);
     let d = 0;
-    if (fb.outcome === "done") d = fb.timing?.struggled ? 0 : rel >= 1 ? 2 : rel === 0 ? 1 : 0;
-    else if (fb.outcome === "tooHard") d = rel >= 1 ? -1 : -2; // struggling above your stage is expected
-    else d = rel >= 0 ? -0.5 : 0;
+    const w = feedbackWeight(fb.fatigue);
+    if (fb.outcome === "done" && fb.setsDone !== undefined) d = 0; // stopped early: neither credit nor blame
+    else if (fb.outcome === "done") d = fb.timing?.struggled ? 0 : rel >= 1 ? 2 : rel === 0 ? 1 : 0;
+    else if (fb.outcome === "tooHard") d = (rel >= 1 ? -1 : -2) * w; // struggling above your stage is expected
+    else d = (rel >= 0 ? -0.5 : 0) * w;
     delta[loc.skill] = (delta[loc.skill] ?? 0) + d;
   }
 
@@ -417,4 +427,52 @@ export function historySummary(
   if (verified.length) parts.push(`verified in training: ${verified.join(", ")}`);
   if (shaky.length) parts.push(`claimed but failed a check: ${shaky.join(", ")}`);
   return parts.join("; ");
+}
+
+// ---- correcting a mistake after the session ----
+// "Too hard" (or a skip) that was really done: take back exactly what it
+// did to the exercise's memory and the skill's progress, then count it as
+// done. Warm-up/finisher and Skill Check rows don't feed the learning.
+export function correctToDone(
+  stats: Record<string, ExerciseStat>,
+  progress: Partial<Record<StagedSkillKey, SkillProgress>>,
+  skills: SkillProfile,
+  ex: { name: string; setTitle: string; outcome: ExerciseOutcome; fatigue?: number },
+  nowISO: string = new Date().toISOString()
+): { stats: Record<string, ExerciseStat>; progress: Partial<Record<StagedSkillKey, SkillProgress>> } {
+  if (ex.outcome === "done" || HIERARCHY_EXEMPT_SETS.has(ex.setTitle)) return { stats, progress };
+  const w = feedbackWeight(ex.fatigue);
+  const k = statKey(ex.name);
+  const s = { ...(stats[k] ?? emptyStat(nowISO)) };
+  if (ex.outcome === "tooHard") {
+    s.tooHard = Math.max(0, s.tooHard - 1);
+    s.p = clamp(+(s.p - 2 * w).toFixed(2), P_MIN, P_MAX);
+  } else {
+    s.skipped = Math.max(0, s.skipped - 1);
+    s.p = clamp(+(s.p - 1 * w).toFixed(2), P_MIN, P_MAX);
+  }
+  s.done += 1;
+  s.p = clamp(s.p - 1, P_MIN, P_MAX);
+
+  const nextProgress = { ...progress };
+  const loc = exerciseStage(ex.name);
+  if (loc) {
+    const userStage = (skills as unknown as Record<string, string>)[loc.skill] ?? "none";
+    const rel = stageIndex(loc.skill, loc.stage) - stageIndex(loc.skill, userStage);
+    const before = ex.outcome === "tooHard" ? (rel >= 1 ? -1 : -2) * w : (rel >= 0 ? -0.5 : 0) * w;
+    const asDone = rel >= 1 ? 2 : rel === 0 ? 1 : 0;
+    const p = nextProgress[loc.skill] ?? { score: 0 };
+    nextProgress[loc.skill] = { ...p, score: +(p.score - before + asDone).toFixed(2) };
+  }
+  return { stats: { ...stats, [k]: s }, progress: nextProgress };
+}
+
+// "I can do this": forget the struggles remembered for an exercise, so
+// sessions stop easing it off.
+// `key` is the exercise's stats key (statKey of its name).
+export function forgetStruggles(stats: Record<string, ExerciseStat>, key: string): Record<string, ExerciseStat> {
+  const k = key;
+  const s = stats[k];
+  if (!s) return stats;
+  return { ...stats, [k]: { ...s, p: Math.min(s.p, 0), tooHard: 0, skipped: 0, rd: (s.rd ?? 0) < 0 ? 0 : s.rd } };
 }

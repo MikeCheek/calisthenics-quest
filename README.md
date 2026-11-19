@@ -82,7 +82,21 @@ you have any health concerns.
   exercises that appear in sessions, plus the common mistakes for each movement.
 - **Per-set logging** — log reps in the timer's rest screen; holds are measured
   automatically.
-- **Lock-screen controls** *(opt-in)* — exercise, rest and next/previous on your lock screen.
+- **Lock-screen controls** *(opt-in)* — exercise, rest (with a progress bar) and
+  next/previous on your lock screen.
+- **Effort-aware** — every exercise has effort points (sets × how hard it is on the
+  trophy road × how big each set is), so the app knows how far through a session you
+  really are. *Too hard* or a skip near the end counts for less (it's mostly
+  tiredness), *I'm tired* cuts what's left by more the earlier you are (easier swaps
+  early, a set or two near the end — never the Skill Check), and when you keep running
+  out of energy at the same point, sessions are trimmed to fit and say so.
+- **Log only the sets you did** — *Finish here* between sets ends the exercise with
+  just those sets logged; your totals and the learning count only what you did.
+- **Sessions that survive interruptions** — the session in progress, where you are in it
+  and any running timer are kept on the phone: close the app, reload or let the phone
+  kill it, and it picks up where you left off. Timers keep real time while the phone is
+  locked, the screen stays on during guided mode, and a *training in progress*
+  notification (current exercise, when the rest ends) brings you back with one tap.
 
 ### Learning and verification
 - **Adaptive sessions** — swaps in an easier variation after “too hard”, brings the
@@ -108,6 +122,13 @@ you have any health concerns.
   chain of stages with your current one highlighted.
 - **Proven** — verified skills, the skill wall and the skill radar.
 - **Trophy road** — the next milestones, with the full level-by-level road one tap away.
+- **Level from experience only** — what you declare shapes your sessions, not your level.
+  XP comes from the work you do (harder exercises earn more, only the sets you did
+  count), with bonuses for proving a skill (+40), new records (+10) and stepping up a
+  stage (+75).
+- **Take back a mistake** — *Undo* a "too hard" swap during a session; afterwards mark a
+  "too hard" or skipped exercise *Actually done* in your history, or tap *I can do this*
+  on anything the coach is easing off.
 
 ### Coach
 - **Ask your coach** — an AI chat that answers questions about *your* training data.
@@ -119,6 +140,10 @@ you have any health concerns.
 ### Me
 - **Activity** — your XP over time, a calendar, month totals, every session with its
   sets, and personal bests.
+- **Your totals** — reps and time per exercise this month, this year or all time
+  ("128 toes-to-bar in November"), added up from your sessions: what you logged, or the
+  prescription for sets you marked done (marked ≈). Warm-ups don't count, and max sets
+  only count when logged.
 
 ### Social
 - **Friends** — add by code, nudge each other, and see a **weekly leaderboard** with a
@@ -389,6 +414,11 @@ docs/
 - **Leaderboard totals are self-reported** by each player's device. The global board
   hides weeks no real athlete could log, but it isn't tamper-proof — that would need
   the totals computed on a server.
+- **No true background timer.** Browsers suspend web pages that aren't on screen, so a
+  timer can't beep or move on by itself while the app is closed — it catches up the
+  moment you're back, and the notification shows an end time instead of a live
+  countdown. The notification needs notification permission, and on iPhone the app
+  installed to the home screen (iOS 16.4+). A native app could do more.
 - **Lock-screen controls** need a silent audio track while active, which can pause other
   apps' music on some phones — hence opt-in.
 - **AI answers** depend on the model configured in `OPENROUTER_MODEL`.

@@ -11,7 +11,7 @@ import { Bot, Trophy, Users, Bell, Layers, RefreshCw } from "lucide-react";
 
 const FEATURES: { icon: typeof Bot; title: string; body: string }[] = [
   { icon: Layers, title: "50 tracked skills", body: "From front lever to iron cross and manna — each with its own progressions." },
-  { icon: Trophy, title: "Trophy road", body: "A Clash Royale-style path where already-mastered skills raise your level immediately." },
+  { icon: Trophy, title: "Trophy road", body: "A Clash Royale-style path you climb by training — harder work and proven skills earn more XP." },
   { icon: Bot, title: "AI coaching tips", body: "On-demand technique cues and common mistakes for any exercise." },
   { icon: Users, title: "Train with a friend", body: "Share a code and get sessions tailored to each of your levels, side by side." },
   { icon: RefreshCw, title: "Built around your gear", body: "Bar, rings, bands, or just the ground — sessions adapt to what you actually have." },

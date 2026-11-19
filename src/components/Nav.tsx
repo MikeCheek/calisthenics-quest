@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { levelProgress } from "@/lib/levelPath";
 import { CalendarCheck, Layers, Bot, Users, User, BadgeCheck } from "lucide-react";
 import { claimCounts, syncClaims } from "@/lib/verification";
 
@@ -12,7 +12,7 @@ export default function Nav() {
   const { userDoc } = useAuth();
   const { t } = useLanguage();
   const pathname = usePathname();
-  const progress = userDoc ? effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery) : null;
+  const progress = userDoc ? levelProgress(userDoc.xp) : null;
   const claims = userDoc ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
 
   // Each tab owns a group of routes, so it stays highlighted on its

@@ -16,7 +16,7 @@ import NextMilestones from "@/components/NextMilestones";
 import TrophyRoad from "@/components/TrophyRoad";
 import SkillInfoModal from "@/components/SkillInfoModal";
 import DeclareSkillModal from "@/components/DeclareSkillModal";
-import { effectiveXpProgress } from "@/lib/levelPath";
+import { levelProgress } from "@/lib/levelPath";
 import { StagedSkillKey, TRACK_LABEL } from "@/lib/types";
 import { Sparkles, Target } from "lucide-react";
 
@@ -51,7 +51,7 @@ export default function SkillsPage() {
 
   if (loading || !userDoc) return <PageLoading />;
 
-  const level = effectiveXpProgress(userDoc.xp, userDoc.skills, userDoc.skillMastery).level;
+  const level = levelProgress(userDoc.xp).level;
 
   const selectTab = (next: SkillsTab) => {
     setTab(next);

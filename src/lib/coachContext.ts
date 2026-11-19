@@ -1,6 +1,6 @@
 import { SessionRecord, UserDoc, SKILL_FIELD_LABEL, TRACK_LABEL, StagedSkillKey, MASTERY_LABEL, DEFAULT_MASTERY } from "./types";
 import { STAGE_LABEL } from "./stageOrder";
-import { effectiveLevel } from "./levelPath";
+import { levelFromXp } from "./xp";
 import { syncClaims, claimLabel } from "./verification";
 import { historySummary } from "./adaptation";
 
@@ -15,7 +15,7 @@ export const MAX_CONTEXT_CHARS = 3000;
 
 export function buildCoachContext(userDoc: UserDoc, recent: SessionRecord[] = []): string {
   const lines: string[] = [];
-  const level = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
+  const level = levelFromXp(userDoc.xp);
   lines.push(`Level ${level}; ${userDoc.totalSessionsCompleted} sessions logged; current streak ${userDoc.streak} days.`);
 
   const rec = userDoc.skills as unknown as Record<string, string>;

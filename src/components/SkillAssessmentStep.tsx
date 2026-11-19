@@ -19,7 +19,7 @@ import {
   visibleLadders,
   visibleSides,
 } from "@/lib/assessment";
-import { effectiveLevel } from "@/lib/levelPath";
+import { levelFromXp } from "@/lib/xp";
 import SkillTabPicker from "@/components/SkillTabPicker";
 import ScrollPicker from "@/components/ScrollPicker";
 import { Check, Settings2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
@@ -78,7 +78,7 @@ export default function SkillAssessmentStep({
     setPhase("area");
   };
 
-  const level = effectiveLevel(currentXp, skills, mastery);
+  const level = levelFromXp(currentXp);
 
   if (phase === "manual") {
     return (

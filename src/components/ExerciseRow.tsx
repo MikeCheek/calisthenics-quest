@@ -28,6 +28,8 @@ export default function ExerciseRow({
   onResetAdjust,
   onCantDo,
   onSkip,
+  onStopEarly,
+  onUndoSwap,
   timerLog,
   onTimerLog,
   checkValue,
@@ -50,6 +52,8 @@ export default function ExerciseRow({
   onResetAdjust: () => void;
   onCantDo?: () => void;
   onSkip?: () => void;
+  onStopEarly?: (setsDone: number) => void;
+  onUndoSwap?: () => void;
   timerLog?: TimerLog;
   onTimerLog?: (log: TimerLog) => void;
   checkValue?: number | boolean;
@@ -153,7 +157,20 @@ export default function ExerciseRow({
             <div className="flex items-start justify-between gap-2">
               <div className={`text-sm font-medium ${isDone ? "text-zinc-400 line-through" : "text-zinc-100"}`}>
                 {exercise.name}
-                {isSwapped && <span className="text-xs text-orange-400 font-normal"> ({tx("swapped, easier")})</span>}
+                {isSwapped && (
+                  <span className="text-xs text-orange-400 font-normal">
+                    {" "}({tx("swapped, easier")}
+                    {onUndoSwap && (
+                      <>
+                        {" · "}
+                        <button onClick={onUndoSwap} className="underline text-zinc-300 hover:text-zinc-100">
+                          {tx("Undo")}
+                        </button>
+                      </>
+                    )}
+                    )
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
@@ -244,7 +261,7 @@ export default function ExerciseRow({
 
             {timerMounted && (
               <div className={timerOpen ? "" : "hidden"}>
-                <ExerciseTimer key={exercise.name} exercise={displayedExercise} onLog={onTimerLog} />
+                <ExerciseTimer key={exercise.name} exercise={displayedExercise} onLog={onTimerLog} onStopEarly={onStopEarly} />
               </div>
             )}
             {exercise.check && onCheckChange && (

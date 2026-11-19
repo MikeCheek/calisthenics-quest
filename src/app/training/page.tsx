@@ -48,7 +48,7 @@ export default function TrainingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { focus, options, fitted, setFocusOverride } = useTodaysSession(userDoc);
+  const { focus, options, fitted, lighterBy, setFocusOverride } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -63,11 +63,12 @@ export default function TrainingPage() {
     return <PageLoading />;
   }
 
-  const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => {
+  const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number; effort?: { planned: number; done: number; tired: boolean } }) => {
     try {
       const { patch, celebration: c, report } = await completeSession(userDoc, displayedSession, {
         feedback,
         durationMin: meta.durationMin,
+        effort: meta.effort,
       });
       const gained = (patch.xp ?? userDoc.xp) - userDoc.xp;
       setXpGained(gained);
@@ -156,6 +157,12 @@ export default function TrainingPage() {
             <Link href="/profile?tab=settings" className="text-orange-400 hover:underline">
               {tx("Change")}
             </Link>
+          </div>
+        )}
+
+        {lighterBy > 0 && !aiAppliedSession && !completed && (
+          <div className="text-xs text-sky-400/90 px-1">
+            {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}
           </div>
         )}
 

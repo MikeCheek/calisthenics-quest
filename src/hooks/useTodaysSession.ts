@@ -6,6 +6,7 @@ import { availableFocuses, generateSession, pickFocus } from "@/lib/trainingGene
 import { adaptSession } from "@/lib/adaptation";
 import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
+import { balanceSession, effortCapacity } from "@/lib/effort";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -57,13 +58,16 @@ export function useTodaysSession(userDoc: UserDoc | null) {
     );
     // one Skill Check per session, verifying something the athlete claimed
     const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), userDoc.equipment, focus);
-    // finally, fit everything to the athlete's chosen session length
-    return { fitted: fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes), check };
+    // fit everything to the athlete's chosen session length…
+    const fitted = fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes);
+    // …and within the effort they've had energy for lately (effort.ts)
+    const balanced = balanceSession(fitted.session, effortCapacity(userDoc.effortHistory));
+    return { fitted: { ...fitted, session: balanced.session }, check, lighterBy: balanced.trimmed };
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillsKey, equipmentKey, focus, !!userDoc]);
 
-  return { focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, setFocusOverride };
+  return { focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride };
 }
