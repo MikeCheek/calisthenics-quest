@@ -30,10 +30,10 @@ Unit tests and builds pass, but these flows depend on real browsers, phones or s
 
 ## 2. Decisions to make
 
-- **Rank and exercise names**: they stay in English on purpose (the community uses
-  them). Confirm that's what Italian users want.
+None open right now.
 
-Decided and done: a session now ends in a single summary window (level-up, streak and
+Decided and done: rank titles and exercise names stay in English in every language
+(enforced by `tests/names-stay-english.test.ts`); a session now ends in a single summary window (level-up, streak and
 XP sit at the top of the report instead of separate overlays and toasts); "Up next"
 ranks by how close you are to the next stage, then by trophy-road distance, with goals
 as a tie-breaker; the skill descriptions are translated to Italian.

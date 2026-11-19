@@ -9,8 +9,10 @@ import IT_PHRASES from "./phrases.it";
 // to English. Templates also translate *generated* strings: "Eased from
 // Pull-ups — you skipped it recently" matches "Eased from {x} — you skipped
 // it recently" and is rebuilt in Italian, with captured values translated
-// too when they're known phrases (stage names etc.). Exercise names stay
-// English, as everywhere else in the app.
+// too when they're known phrases (stage names etc.) — except {ex}
+// placeholders, which hold exercise names: those stay English whatever the
+// language (a product decision, like rank titles), even when an exercise
+// shares its name with a skill that is translated.
 // ---------------------------------------------------------------------------
 
 const exact = new Map<string, string>(IT_PHRASES);
@@ -50,7 +52,7 @@ function translateIt(s: string): string {
     const m = s.match(t.re);
     if (!m) continue;
     const vars: Record<string, string> = {};
-    t.names.forEach((n, i) => (vars[n] = exact.get(m[i + 1]) ?? m[i + 1]));
+    t.names.forEach((n, i) => (vars[n] = n === "ex" ? m[i + 1] : exact.get(m[i + 1]) ?? m[i + 1]));
     return fill(t.it, vars);
   }
   return s;

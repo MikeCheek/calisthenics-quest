@@ -289,11 +289,11 @@ const IT_PHRASES: [string, string][] = [
   ["Pause training", "Metti in pausa"],
 
   // ---- adaptation notes (generated) ----
-  ["Eased from {x} — you marked it too hard recently", "Alleggerito da {x} — di recente l'hai segnato troppo difficile"],
-  ["Eased from {x} — you skipped it recently", "Alleggerito da {x} — di recente l'hai saltato"],
+  ["Eased from {ex} — you marked it too hard recently", "Alleggerito da {ex} — di recente l'hai segnato troppo difficile"],
+  ["Eased from {ex} — you skipped it recently", "Alleggerito da {ex} — di recente l'hai saltato"],
   ["One set fewer — you marked it too hard recently", "Una serie in meno — di recente l'hai segnato troppo difficile"],
   ["One set fewer — you skipped it recently", "Una serie in meno — di recente l'hai saltato"],
-  ["Stepped up from {x} — you've been nailing it", "Salito da {x} — lo stai dominando"],
+  ["Stepped up from {ex} — you've been nailing it", "Salito da {ex} — lo stai dominando"],
   ["+1 set — consistently completed", "+1 serie — completato con costanza"],
   ["{n} set, as you usually adjust", "{n} serie, come regoli di solito"],
   ["{n} sets, as you usually adjust", "{n} serie, come regoli di solito"],
@@ -609,7 +609,6 @@ const IT_PHRASES: [string, string][] = [
   ["Get ready", "Preparati"],
   ["Session complete. Great work!", "Sessione completata. Ottimo lavoro!"],
   ["Rest. Up next: {x}", "Recupero. A seguire: {x}"],
-  ["Swapped in {x}", "Sostituito con {x}"],
 
   // ---- share cards ----
   ["Verified in training", "Verificato in allenamento"],
@@ -886,8 +885,10 @@ const IT_PHRASES: [string, string][] = [
   ["Removing your account…", "Rimozione dell'account…"],
 
   // ---- toasts (templates first, then fixed) ----
-  ["Swapped in {x} — one step easier.", "Sostituito con {x} — un gradino più facile."],
-  ["Swapped in {x}. Noted for future sessions.", "Sostituito con {x}. Ne terremo conto nelle prossime sessioni."],
+  ["Swapped in {ex} — one step easier.", "Sostituito con {ex} — un gradino più facile."],
+  ["Swapped in {ex}. Noted for future sessions.", "Sostituito con {ex}. Ne terremo conto nelle prossime sessioni."],
+  // general form after the specific ones, or it would swallow them
+  ["Swapped in {ex}", "Sostituito con {ex}"],
   ["No easier variation for {x} — noted, future sessions will ease off. Try fewer reps for now.", "Nessuna variante più facile per {x} — annotato, le prossime sessioni saranno più leggere. Per ora prova meno ripetizioni."],
   ["Eased up what's left — {n} swapped for something gentler.", "Alleggerito il resto — {n} sostituiti con qualcosa di più leggero."],
   ["Added {x}!", "{x} aggiunto!"],

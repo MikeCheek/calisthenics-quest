@@ -40,7 +40,7 @@ export default function LandingProgressPreview() {
         <div className="panel p-4">
           <div className="text-xs text-muted uppercase tracking-wide mb-1">{tx("Example — Level")}</div>
           <div className="heading text-2xl text-zinc-100">{tx("Lv {n}", { n: MOCK_LEVEL })}</div>
-          <div className="text-xs text-orange-400 stat-mono mb-2">{tx(MOCK_RANK)}</div>
+          <div className="text-xs text-orange-400 stat-mono mb-2">{MOCK_RANK}</div>
           <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
             <div className="h-full bg-gradient-to-r from-orange-600 to-orange-400" style={{ width: `${MOCK_XP_PCT}%` }} />
           </div>
