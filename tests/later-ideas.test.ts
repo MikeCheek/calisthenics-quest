@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCoachContext, MAX_CONTEXT_CHARS } from "../src/lib/coachContext";
-import { addToWeek, rankBoard, weeklyChallenge, weekNumber, BoardEntry } from "../src/lib/leaderboard";
+import { addToWeek, rankBoard, weeklyChallenge, weekNumber, BoardEntry, boardName, globalWeekField, plausibleWeek } from "../src/lib/leaderboard";
 import { buildTcx, canExportTcx, tcxFileName } from "../src/lib/workoutExport";
 import { silentWavDataUri } from "../src/lib/mediaSession";
 import { clipExtension } from "../src/lib/videoProof";
@@ -87,4 +87,24 @@ test("silent keep-alive audio is a valid WAV", () => {
 test("clip file extensions follow the recorded container", () => {
   assert.equal(clipExtension("video/mp4"), "mp4");
   assert.equal(clipExtension("video/webm"), "webm");
+});
+
+// ---- global leaderboard ----
+
+test("global board: one field per week, names shortened for strangers", () => {
+  assert.equal(globalWeekField("2026-W47"), "gw_2026W47");
+  assert.notEqual(globalWeekField("2026-W47"), globalWeekField("2026-W48"));
+  assert.equal(boardName("Michele Pulvirenti"), "Michele P.");
+  assert.equal(boardName("Anna Maria de luca"), "Anna L.");
+  assert.equal(boardName("Sam"), "Sam");
+  assert.equal(boardName("  "), "Athlete");
+});
+
+test("global board hides weeks no real athlete could log", () => {
+  assert.equal(plausibleWeek({ sessions: 5, minutes: 240, verified: 2, xp: 980 }), true);
+  assert.equal(plausibleWeek({ sessions: 80, minutes: 240, verified: 2, xp: 980 }), false);
+  assert.equal(plausibleWeek({ sessions: 5, minutes: 9000, verified: 2, xp: 980 }), false);
+  assert.equal(plausibleWeek({ sessions: 5, minutes: 240, verified: 2, xp: 999999 }), false);
+  assert.equal(plausibleWeek({ sessions: -1, minutes: 0, verified: 0, xp: 0 }), false);
+  assert.equal(plausibleWeek({ sessions: Number.NaN, minutes: 0, verified: 0, xp: 0 }), false);
 });

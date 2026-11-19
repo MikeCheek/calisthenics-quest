@@ -7,10 +7,12 @@
 // does, so the swap can't break a screen.
 
 import type { BodyProfile, Friend, Ping, PublicProfile, SessionRecord, SkillMastery, SkillProfile, SkillTrack, StagedSkillKey, TrainingEquipment, UserDoc } from "../types";
-import type { PairingDoc } from "../store";
-import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
+import type { GlobalBoardRow, PairingDoc } from "../store";
+import type { Metric } from "../leaderboard";
+import type { WeekStats } from "../types";
+import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 
-export type { PairingDoc };
+export type { GlobalBoardRow, PairingDoc };
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const pause = () => new Promise((r) => setTimeout(r, 120)); // feel like a network
@@ -22,6 +24,8 @@ const state = {
   pings: [] as Ping[],
   sessions: demoSessions(),
   pairings: new Map<string, PairingDoc>(),
+  // uid -> this week's totals, for players on the global board
+  global: new Map<string, GlobalBoardRow>(DEMO_GLOBAL_BOARD.map((r) => [r.uid, r])),
 };
 
 const friendListeners = new Set<(f: Friend[]) => void>();
@@ -160,4 +164,20 @@ export async function fetchSessionsBetween(_uid: string, fromISO: string, toISO:
   return clone(state.sessions.filter((s) => s.finishedAt >= fromISO && s.finishedAt < toISO)).sort((a, b) =>
     b.finishedAt.localeCompare(a.finishedAt)
   );
+}
+
+export async function setGlobalBoardEntry(uid: string, week: WeekStats | null, _clearWeekKeys: string[] = []): Promise<void> {
+  if (!week) {
+    state.global.delete(uid);
+    return;
+  }
+  const u = state.users.get(uid);
+  state.global.set(uid, { uid, displayName: u?.displayName ?? "Athlete", level: u?.level ?? 1, week: clone(week) });
+}
+
+export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: number): Promise<GlobalBoardRow[]> {
+  await pause();
+  return clone([...state.global.values()].filter((r) => r.week.key === weekKey))
+    .sort((a, b) => b.week[metric] - a.week[metric])
+    .slice(0, count);
 }

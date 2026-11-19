@@ -13,7 +13,9 @@ import {
   limit,
   writeBatch,
   where,
+  deleteField,
 } from "firebase/firestore";
+import { globalWeekField, Metric } from "./leaderboard";
 import { db } from "./firebase";
 import {
   BodyProfile,
@@ -28,6 +30,7 @@ import {
   UserDoc,
   DEFAULT_SKILLS,
   SessionRecord,
+  WeekStats,
 } from "./types";
 
 export async function fetchUserDoc(uid: string): Promise<UserDoc | null> {
@@ -304,4 +307,34 @@ export async function fetchSessionsBetween(uid: string, fromISO: string, toISO: 
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as SessionRecord) }));
+}
+
+// ---- global weekly leaderboard (opt-in) ----
+export interface GlobalBoardRow {
+  uid: string;
+  displayName: string;
+  photoURL?: string;
+  level: number;
+  week: WeekStats;
+}
+
+// Writes this week's totals to the board (or removes them with `null`), and
+// clears the given older weeks so past totals don't linger on the profile.
+export async function setGlobalBoardEntry(uid: string, week: WeekStats | null, clearWeekKeys: string[] = []): Promise<void> {
+  const fields: Record<string, unknown> = {};
+  for (const k of clearWeekKeys) fields[globalWeekField(k)] = deleteField();
+  if (week) {
+    fields[globalWeekField(week.key)] = { sessions: week.sessions, minutes: week.minutes, verified: week.verified, xp: week.xp };
+  }
+  if (Object.keys(fields).length) await setDoc(doc(db, "profiles", uid), fields, { merge: true });
+}
+
+export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: number): Promise<GlobalBoardRow[]> {
+  const field = globalWeekField(weekKey);
+  const snap = await getDocs(query(collection(db, "profiles"), orderBy(`${field}.${metric}`, "desc"), limit(count)));
+  return snap.docs.map((d) => {
+    const data = d.data() as Partial<PublicProfile> & Record<string, unknown>;
+    const w = data[field] as Omit<WeekStats, "key">;
+    return { uid: d.id, displayName: data.displayName ?? "Athlete", photoURL: data.photoURL, level: data.level ?? 1, week: { key: weekKey, ...w } };
+  });
 }

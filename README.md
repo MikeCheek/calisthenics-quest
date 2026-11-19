@@ -101,6 +101,9 @@ and forget how your last session went. BarQuests is built around four ideas:
 ### Social
 - **Friends** — add by code, nudge each other, and see a **weekly leaderboard** with a
   rotating challenge (sessions, minutes, skills proven, XP).
+- **Global leaderboard** — switch the board to *Everyone* to see the week's top 50
+  across the app. It's opt-in: you only appear after joining, as first name and last
+  initial, and you can leave any time.
 - **Train together** — a shared session where each person gets work at their own level;
   with one bar between you, rests double so you take turns.
 - **Share cards** — session, verified-skill and personal-best images in story or square
@@ -336,8 +339,9 @@ docs/
 
 - **Apple Health and Google Health Connect** can't be written from a web app; that
   would need a native wrapper. Sessions can be exported as `.tcx` instead.
-- **Leaderboard totals are self-reported** by each player's device — fine for friendly
-  competition, not tamper-proof.
+- **Leaderboard totals are self-reported** by each player's device. The global board
+  hides weeks no real athlete could log, but it isn't tamper-proof — that would need
+  the totals computed on a server.
 - **Lock-screen controls** need a silent audio track while active, which can pause other
   apps' music on some phones — hence opt-in.
 - **AI answers** depend on the model configured in `OPENROUTER_MODEL`.

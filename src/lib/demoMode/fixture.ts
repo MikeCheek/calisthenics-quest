@@ -1,4 +1,5 @@
 import type { Friend, PublicProfile, SessionRecord, SkillProfile, SkillTrack, StagedSkillKey, SkillMastery, UserDoc } from "../types";
+import type { GlobalBoardRow } from "../store";
 import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_NOTIFICATIONS, DEFAULT_SKILLS } from "../types";
 import { generateSession } from "../trainingGenerator";
 import { effectiveLevel } from "../levelPath";
@@ -149,3 +150,28 @@ export const DEMO_FRIENDS: Friend[] = DEMO_FRIEND_PROFILES.map((p, i) => ({
   displayName: p.displayName,
   addedAtISO: iso(30 + i * 10),
 }));
+
+// strangers on the global board this week (the friends appear there too)
+const STRANGERS: [string, string, number, [number, number, number, number]][] = [
+  ["demo-g-lena", "Lena K.", 31, [5, 240, 2, 980]],
+  ["demo-g-marco", "Marco R.", 27, [4, 190, 1, 760]],
+  ["demo-g-yuki", "Yuki T.", 19, [4, 150, 0, 610]],
+  ["demo-g-omar", "Omar S.", 24, [3, 120, 1, 450]],
+  ["demo-g-ines", "Inès D.", 14, [2, 70, 0, 260]],
+  ["demo-g-bad", "Totally Real", 99, [80, 9000, 90, 999999]], // implausible: hidden from the board
+];
+
+export const DEMO_GLOBAL_BOARD: GlobalBoardRow[] = [
+  ...STRANGERS.map(([uid, name, level, w]) => ({
+    uid,
+    displayName: name,
+    level,
+    week: { key: currentWeekKey(), sessions: w[0], minutes: w[1], verified: w[2], xp: w[3] },
+  })),
+  ...DEMO_FRIEND_PROFILES.filter((p) => (p.week?.sessions ?? 0) > 0).map((p) => ({
+    uid: p.uid,
+    displayName: p.displayName,
+    level: p.level,
+    week: p.week!,
+  })),
+];

@@ -11,7 +11,8 @@ import {
 } from "firebase/firestore";
 import { deleteUser, reauthenticateWithPopup, signOut, User } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase";
-import { syncPublicProfile } from "./store";
+import { setGlobalBoardEntry, syncPublicProfile } from "./store";
+import { currentWeekKey } from "./missions";
 import { clearClips } from "./videoProof";
 import {
   DEFAULT_BODY,
@@ -66,6 +67,7 @@ export async function resetSkills(userDoc: UserDoc): Promise<void> {
     skills: DEFAULT_SKILLS,
     skillMastery: {},
   }).catch(() => {});
+  await clearBoardEntry(userDoc);
 }
 
 // Start over as a brand-new athlete, keeping the account and friends.
@@ -107,6 +109,7 @@ export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
     skills: DEFAULT_SKILLS,
     skillMastery: {},
   }).catch(() => {});
+  await clearBoardEntry(userDoc);
 }
 
 // Everything stored about the athlete, as a downloadable JSON file.
@@ -192,4 +195,12 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
     if (user.isAnonymous) await signOut(auth);
     else throw err;
   }
+}
+
+// A reset takes the player's totals off the global board too (they come
+// back with their next session if they're still opted in).
+async function clearBoardEntry(userDoc: UserDoc): Promise<void> {
+  if (!userDoc.friendCode || !userDoc.globalBoard) return;
+  const keys = [currentWeekKey(), ...(userDoc.week?.key ? [userDoc.week.key] : [])];
+  await setGlobalBoardEntry(userDoc.uid, null, keys).catch(() => {});
 }

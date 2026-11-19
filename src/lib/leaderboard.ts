@@ -77,3 +77,28 @@ export function rankBoard(entries: BoardEntry[], metric: Metric, weekKey: string
     return { ...e, rank };
   });
 }
+
+// ---- global board (everyone who opted in) ----
+// Each week's totals sit in their own profile field, named after the week
+// (gw_2026W47), so "top of this week" is a plain sort on one field — which
+// Firestore indexes automatically, no composite index to set up — and
+// players who haven't trained this week simply aren't in it.
+export const GLOBAL_BOARD_SIZE = 50;
+
+export function globalWeekField(weekKey: string): string {
+  return `gw_${weekKey.replace(/[^0-9A-Za-z]/g, "")}`;
+}
+
+// Totals are self-reported by each player's device, so numbers no real week
+// could produce are left off the public board rather than shown.
+export function plausibleWeek(w: Pick<WeekStats, "sessions" | "minutes" | "verified" | "xp">): boolean {
+  const ok = (n: unknown, max: number) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= max;
+  return ok(w.sessions, 21) && ok(w.minutes, 1800) && ok(w.verified, 30) && ok(w.xp, 20000);
+}
+
+// Strangers see first name + last initial ("Michele P."), not the full name.
+export function boardName(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "Athlete";
+  return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+}

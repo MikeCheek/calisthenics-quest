@@ -4,7 +4,7 @@ import { applyCheckResults, syncClaims } from "./verification";
 import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
 import { addToWeek } from "./leaderboard";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
-import { updateProgress, syncPublicProfile, saveSessionRecord } from "./store";
+import { updateProgress, syncPublicProfile, saveSessionRecord, setGlobalBoardEntry } from "./store";
 import { effectiveLevel } from "./levelPath";
 
 export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
@@ -198,6 +198,12 @@ export async function completeSession(
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
     });
+    // the global board, for players who joined it; last week's entry is
+    // removed when a new week starts
+    if (userDoc.globalBoard) {
+      const stale = userDoc.week && userDoc.week.key !== week.key ? [userDoc.week.key] : [];
+      setGlobalBoardEntry(userDoc.uid, week, stale).catch(() => {});
+    }
   }
 
   const oldLevel = effectiveLevel(userDoc.xp, userDoc.skills, userDoc.skillMastery);
