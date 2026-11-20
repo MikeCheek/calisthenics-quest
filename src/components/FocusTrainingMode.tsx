@@ -650,7 +650,7 @@ export default function FocusTrainingMode() {
                 <button
                   onClick={() => setInfoOpen(true)}
                   className="p-1 text-muted hover:text-orange-400"
-                  aria-label={`Details for ${current.exercise.name}`}
+                  aria-label={tx("Details for {ex}", { ex: current.exercise.name })}
                 >
                   <Info size={18} />
                 </button>

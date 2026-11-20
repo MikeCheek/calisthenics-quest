@@ -256,7 +256,7 @@ function WheelContent() {
     <>
       <Nav />
       <CelebrationOverlay celebration={celebration} />
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-2xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div>
           <h1 className="heading text-2xl text-zinc-100">Bonus wheel</h1>
           <p className="text-zinc-400 text-sm">
@@ -409,7 +409,7 @@ function WheelContent() {
         {composed && spinPhase === "composed" && (
           <div className="panel p-4 animate-slide-up-in border-orange-500/40">
             <div className="flex items-center justify-between mb-1">
-              <div className="heading text-lg text-zinc-100">{composed.name}</div>
+              <h2 className="heading text-lg text-zinc-100">{composed.name}</h2>
               {modifier && modifier.kind !== "none" && (
                 <span
                   className={`text-xs px-2 py-1 rounded-full border ${

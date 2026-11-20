@@ -42,7 +42,7 @@ export default function TodaySessionCard({
         <div className="flex items-start gap-3">
           <CheckCircle2 size={26} className="text-emerald-400 shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="heading text-xl text-zinc-100">{tx("Done for today")}</div>
+            <h2 className="heading text-xl text-zinc-100">{tx("Done for today")}</h2>
             <p className="text-sm text-zinc-400 mt-0.5">{tx("Rest is part of the plan — your next session adapts to what you just did.")}</p>
           </div>
         </div>

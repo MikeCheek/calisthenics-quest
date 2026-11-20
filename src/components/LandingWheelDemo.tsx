@@ -62,9 +62,9 @@ export default function LandingWheelDemo() {
 
   return (
     <div className="panel p-4">
-      <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
+      <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
         <Dices size={16} className="text-orange-400" /> {tx("Try the bonus wheel")}
-      </div>
+      </h2>
       <p className="text-xs text-muted mb-3">
         {tx("No account needed — pick a skill and spin for a real exercise, exactly like the wheel you'll get once you sign in.")}
       </p>

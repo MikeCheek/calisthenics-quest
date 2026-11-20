@@ -133,3 +133,26 @@ html, body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* reduced motion also covers smooth scrolling (scrollIntoView, scroll-smooth) */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* the skip link and dialogs move focus to <main> / the panel: no ring there */
+main:focus,
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Pinch-zoom is allowed now, so iOS Safari would also zoom in on any field
+   with text under 16px when it's tapped. 16px fields on iOS prevent that. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

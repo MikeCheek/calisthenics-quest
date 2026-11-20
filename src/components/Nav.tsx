@@ -10,7 +10,7 @@ import { claimCounts, syncClaims } from "@/lib/verification";
 
 export default function Nav() {
   const { userDoc } = useAuth();
-  const { t } = useLanguage();
+  const { t, tx } = useLanguage();
   const pathname = usePathname();
   const progress = userDoc ? levelProgress(userDoc.xp) : null;
   const claims = userDoc ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
@@ -32,26 +32,34 @@ export default function Nav() {
       <header className="border-b border-zinc-800 bg-zinc-950">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
           <Link href="/dashboard" className="heading text-base text-zinc-100 flex items-center gap-1.5">
-            <span className="text-orange-400">▲</span> BarQuests
+            <span className="text-orange-400" aria-hidden="true">▲</span> BarQuests
           </Link>
           {/* sign-out lives in Profile → Account; the header just shows where you stand */}
           {progress && (
-            <Link href="/skills" className="text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2">
+            <Link
+              href="/skills"
+              className="text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2"
+              aria-label={
+                tx("Level {n}", { n: progress.level }) +
+                (claims.total > 0 ? ` · ${tx("{a} of {b} skills verified", { a: claims.verified, b: claims.total })}` : "")
+              }
+            >
               <span>LV {progress.level}</span>
               {claims.total > 0 && (
                 <span className="flex items-center gap-0.5 text-emerald-400/90">
-                  <BadgeCheck size={12} /> {claims.verified}/{claims.total}
+                  <BadgeCheck size={12} aria-hidden="true" /> {claims.verified}/{claims.total}
                 </span>
               )}
             </Link>
           )}
         </div>
         {/* desktop-only secondary nav row, since bottom tabs are the mobile-first primary nav */}
-        <nav className="hidden sm:flex max-w-5xl mx-auto px-4 gap-1 pb-2">
+        <nav className="hidden sm:flex max-w-5xl mx-auto px-4 gap-1 pb-2" aria-label={tx("Main menu")}>
           {TABS.map((t) => (
             <Link
               key={t.href}
               href={t.href}
+              aria-current={isActive(t.routes) ? "page" : undefined}
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                 isActive(t.routes)
                   ? "border-orange-500 text-zinc-100 bg-orange-600/10"
@@ -65,7 +73,7 @@ export default function Nav() {
       </header>
 
       {/* fixed bottom tab bar — primary navigation on phones */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 safe-bottom">
+      <nav aria-label={tx("Main menu")} className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 safe-bottom">
         <div className="flex">
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -74,11 +82,12 @@ export default function Nav() {
               <Link
                 key={t.href}
                 href={t.href}
+                aria-current={active ? "page" : undefined}
                 className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs ${
                   active ? "text-orange-400" : "text-muted"
                 }`}
               >
-                <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+                <Icon size={20} strokeWidth={active ? 2.4 : 2} aria-hidden="true" />
                 {t.label}
               </Link>
             );

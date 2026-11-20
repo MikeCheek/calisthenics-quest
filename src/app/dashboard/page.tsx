@@ -65,7 +65,7 @@ export default function TodayPage() {
   return (
     <>
       <Nav />
-      <main className="max-w-xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <header className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs text-muted">{dateLine}</p>

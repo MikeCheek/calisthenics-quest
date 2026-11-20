@@ -118,7 +118,7 @@ export default function PlanPage() {
   return (
     <>
       <Nav />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div>
           <TrainSwitcher active="week" />
           <h1 className="heading text-2xl text-zinc-100 mt-4">{tx("Training plan")}</h1>

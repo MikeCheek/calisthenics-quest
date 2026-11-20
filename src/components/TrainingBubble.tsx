@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { Dumbbell, Pause, Play, X } from "lucide-react";
 
@@ -12,6 +13,7 @@ export default function TrainingBubble() {
   const { session, expanded, paused, currentExerciseName, expand, togglePause, discardSession } =
     useTrainingSession();
 
+  const { tx } = useLanguage();
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(
     null
@@ -67,32 +69,41 @@ export default function TrainingBubble() {
       onPointerCancel={() => (dragRef.current = null)}
       style={{ left: current.x, top: current.y, width: BUBBLE_SIZE, touchAction: "none" }}
       className="fixed z-[150] rounded-full bg-zinc-900 border-2 border-orange-500 shadow-xl cursor-grab active:cursor-grabbing select-none animate-pop-in"
-      role="button"
-      aria-label="Resume training"
+      role="group"
+      aria-label={tx("Training in progress")}
     >
       <div className="relative w-full h-full flex items-center justify-center p-2">
-        {paused ? (
-          <Pause size={20} className="text-orange-400" />
-        ) : (
-          <Dumbbell size={20} className="text-orange-400 animate-flame-pulse" />
-        )}
+        {/* taps are handled by the drag logic above; this button is the
+            keyboard and screen-reader way in (e.detail 0 = not a pointer) */}
+        <button
+          type="button"
+          onClick={(e) => e.detail === 0 && expand()}
+          className="rounded-full p-1"
+          aria-label={tx("Resume training")}
+        >
+          {paused ? (
+            <Pause size={20} className="text-orange-400" />
+          ) : (
+            <Dumbbell size={20} className="text-orange-400 animate-flame-pulse" />
+          )}
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             togglePause();
           }}
           className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-zinc-300"
-          aria-label={paused ? "Resume" : "Pause"}
+          aria-label={paused ? tx("Resume") : tx("Pause")}
         >
           {paused ? <Play size={11} /> : <Pause size={11} />}
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm("End this training session without logging it?")) discardSession();
+            if (window.confirm(tx("End this training session without logging it?"))) discardSession();
           }}
           className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-muted"
-          aria-label="End session"
+          aria-label={tx("End session")}
         >
           <X size={10} />
         </button>

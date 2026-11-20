@@ -196,7 +196,7 @@ export default function DangerZone() {
       <SaveProgressPrompt />
       <section className="panel p-4 space-y-3">
         <div>
-          <h3 className="heading text-base text-zinc-100">{tx("Your data")}</h3>
+          <h2 className="heading text-base text-zinc-100">{tx("Your data")}</h2>
           <p className="text-xs text-muted">{tx("Everything BarQuests stores about you, yours to take.")}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -221,7 +221,7 @@ export default function DangerZone() {
       <section className="rounded-2xl border border-red-500/30 bg-red-500/[0.03] p-4 space-y-3">
         <div className="flex items-center gap-2">
           <AlertTriangle size={16} className="text-red-400" />
-          <h3 className="heading text-base text-red-300">{tx("Danger zone")}</h3>
+          <h2 className="heading text-base text-red-300">{tx("Danger zone")}</h2>
         </div>
         <p className="text-xs text-muted -mt-1">{tx("From a gentle refresh to permanent deletion. Each one tells you exactly what goes.")}</p>
         <ul className="space-y-2">

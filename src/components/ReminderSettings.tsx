@@ -53,10 +53,10 @@ export default function ReminderSettings() {
   return (
     <div className="panel p-4">
       <div className="flex items-center justify-between mb-1">
-        <div className="heading text-base text-zinc-100 flex items-center gap-2">
+        <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
           {prefs.enabled ? <Bell size={16} className="text-orange-400" /> : <BellOff size={16} className="text-muted" />}
           {tx("Training reminders")}
-        </div>
+        </h2>
         <button
           onClick={toggle}
           disabled={saving || !supported}

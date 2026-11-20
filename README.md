@@ -2,7 +2,7 @@
 
 # ▲ BarQuests
 
-**Calisthenics training that places you per skill, adapts to every set, and proves your level.**
+**Your calisthenics journey — training that places you per skill, adapts to every set, and proves your level.**
 
 A mobile-first web app (installable as a PWA) for people who train on outdoor bars —
 front lever, planche, muscle-up, handstand and 46 more skills.
@@ -162,6 +162,9 @@ you have any health concerns.
   account, each showing exactly what it removes and keeps.
 - `.tcx` export of any session, for platforms that import workout files (e.g. Strava,
   Garmin Connect).
+- **Accessible** — works with a keyboard and screen readers (skip link, real headings,
+  labelled controls, dialogs that keep focus, announced messages), pinch-zoom allowed,
+  WCAG AA contrast; checked with axe on every screen.
 
 <details>
 <summary><b>More screenshots</b></summary>
@@ -253,6 +256,10 @@ CRON_SECRET=...                                            # server only, any lo
 # optional — App Check (Fraud Defense key; or NEXT_PUBLIC_RECAPTCHA_SITE_KEY for classic reCAPTCHA v3)
 NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY=...
 APP_CHECK_MODE=monitor          # off | monitor | enforce
+
+# optional — the public address for search engines and link previews; on Vercel
+# the production address is used automatically, set this for a custom domain
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
 ```
 
 5. **Firestore → Rules** — paste the rules below.
@@ -408,6 +415,12 @@ The app deploys to [Vercel](https://vercel.com) as a standard Next.js project: i
 the repository, add the same environment variables, and add your deployment's domain
 under **Firebase → Authentication → Settings → Authorized domains** so Google sign-in
 works there.
+
+Search engines see the landing page and About only (`/sitemap.xml`, `/robots.txt`); the
+signed-in screens have their own tab titles but are kept out of the index. Link
+previews use the generated picture from `src/app/opengraph-image.tsx`. To get the app
+listed sooner, add the site to [Google Search Console](https://search.google.com/search-console)
+and submit `https://<your-domain>/sitemap.xml`.
 
 ## Project structure
 

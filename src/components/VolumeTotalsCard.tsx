@@ -56,9 +56,9 @@ export default function VolumeTotalsCard({ userDoc }: { userDoc: UserDoc }) {
   return (
     <section className="panel p-4">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="heading text-base text-zinc-100 flex items-center gap-2">
+        <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
           <Sigma size={16} className="text-orange-400" /> {tx("Your totals")}
-        </div>
+        </h2>
         <div className="flex p-0.5 rounded-lg bg-zinc-800/60 gap-0.5" role="tablist" aria-label={tx("Period")}>
           {(
             [

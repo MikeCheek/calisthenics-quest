@@ -61,7 +61,7 @@ export default function ProfilePage() {
   }, [loading, user, userDoc, router]);
 
   if (loading || !userDoc) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
+    return <main id="main" tabIndex={-1} className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
   }
 
   const progress = levelProgress(userDoc.xp);
@@ -80,7 +80,7 @@ export default function ProfilePage() {
   return (
     <>
       <Nav />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         {/* hero */}
         <section className="panel p-4 relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
@@ -140,7 +140,7 @@ export default function ProfilePage() {
           <div className="space-y-4 animate-overlay-fade-in">
             <VolumeTotalsCard userDoc={userDoc} />
             <div className="panel p-4">
-              <div className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</div>
+              <h2 className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</h2>
               <XPHistoryChart history={userDoc.xpHistory ?? []} />
             </div>
             <SessionHistory userDoc={userDoc} />
@@ -151,9 +151,9 @@ export default function ProfilePage() {
           <div className="space-y-4 animate-overlay-fade-in">
             <Link href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <div className="heading text-base text-zinc-100 flex items-center gap-2">
+                <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
                   <Ruler size={16} className="text-orange-400" /> {tx("Body & schedule")}
-                </div>
+                </h2>
                 <span className="text-xs text-zinc-400 flex items-center gap-1">
                   <Pencil size={12} /> {tx("Edit")}
                 </span>
@@ -170,9 +170,9 @@ export default function ProfilePage() {
 
             <Link href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <div className="heading text-base text-zinc-100 flex items-center gap-2">
+                <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
                   <MapPin size={16} className="text-orange-400" /> {tx("Where you train")}
-                </div>
+                </h2>
                 <span className="text-xs text-zinc-400 flex items-center gap-1">
                   <Pencil size={12} /> {tx("Edit")}
                 </span>
@@ -192,9 +192,9 @@ export default function ProfilePage() {
             </Link>
 
             <div className="panel p-4">
-              <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
+              <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
                 <Globe size={16} className="text-orange-400" /> {t("profile", "language")}
-              </div>
+              </h2>
               <p className="text-xs text-muted mb-3">{t("profile", "languageHint")}</p>
               <div className="flex p-1 rounded-xl bg-zinc-800/60 gap-1">
                 {(["en", "it"] as Locale[]).map((l) => (

@@ -48,9 +48,9 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
 
   return (
     <div className="panel p-4">
-      <div className="heading text-base text-zinc-100 flex items-center gap-2 mb-1">
+      <h2 className="heading text-base text-zinc-100 flex items-center gap-2 mb-1">
         <Brain size={16} className="text-sky-400" /> {tx("Coach insights")}
-      </div>
+      </h2>
       <p className="text-xs text-muted mb-3">{tx("What your training has taught the coach so far.")}</p>
 
       {empty ? (

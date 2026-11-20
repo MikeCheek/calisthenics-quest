@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BodyProfile,
   SkillProfile,
@@ -52,6 +52,16 @@ export default function OnboardingStepper({
 }) {
   const { tx } = useLanguage();
   const [step, setStep] = useState(0);
+  // on each new step, focus its title so screen readers announce where you are
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    titleRef.current?.focus();
+  }, [step]);
   const [body, setBody] = useState<BodyProfile>(initialBody);
   const [skills, setSkills] = useState<SkillProfile>(initialSkills);
   const [equipment, setEquipment] = useState<TrainingEquipment>(initialEquipment);
@@ -90,7 +100,9 @@ export default function OnboardingStepper({
         <div className="text-xs text-orange-400 mb-0.5">
           {tx("Step {a} of {b}", { a: step + 1, b: STEPS.length })}
         </div>
-        <h2 className="heading text-xl text-zinc-100">{tx(STEPS[step])}</h2>
+        <h1 ref={titleRef} tabIndex={-1} className="heading text-xl text-zinc-100">
+          {tx(STEPS[step])}
+        </h1>
       </div>
 
       {step === 0 && (

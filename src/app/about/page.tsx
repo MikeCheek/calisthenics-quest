@@ -16,7 +16,7 @@ export default function AboutPage() {
   return (
     <>
       {user && <Nav />}
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5">
+      <main id="main" tabIndex={-1} className="max-w-2xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5">
         <div className="flex items-center gap-2">
           <Link href={user ? "/profile" : "/"} className="text-sm text-zinc-400 flex items-center gap-1 shrink-0">
             <ChevronLeft size={16} /> {tx(ABOUT.back)}
@@ -30,9 +30,9 @@ export default function AboutPage() {
 
         {/* Who made this */}
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
             <Info size={16} className="text-orange-400" /> {tx(ABOUT.whoTitle)}
-          </div>
+          </h2>
           <p className="text-sm text-zinc-300 mb-4">
             {tx(ABOUT.whoBefore)} <span className="text-zinc-100 font-medium">Michele Pulvirenti</span>
             {tx(ABOUT.whoAfter)}
@@ -76,9 +76,9 @@ export default function AboutPage() {
 
         {/* Privacy notice */}
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
             <ShieldCheck size={16} className="text-orange-400" /> {tx(ABOUT.privacyTitle)}
-          </div>
+          </h2>
           <div className="text-sm text-zinc-300 space-y-3">
             {(
               [
@@ -97,9 +97,9 @@ export default function AboutPage() {
 
         {/* Cookie policy */}
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
             <Cookie size={16} className="text-orange-400" /> {tx(ABOUT.cookieTitle)}
-          </div>
+          </h2>
           <div className="text-sm text-zinc-300 space-y-2">
             <p>{tx(ABOUT.cookieIntro)}</p>
             <p>{tx(ABOUT.localIntro)}</p>
@@ -114,7 +114,7 @@ export default function AboutPage() {
 
         {/* Other useful info */}
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2">{tx(ABOUT.otherTitle)}</div>
+          <h2 className="heading text-base text-zinc-100 mb-2">{tx(ABOUT.otherTitle)}</h2>
           <div className="text-sm text-zinc-300 space-y-2">
             <p>{tx(ABOUT.notMedical)}</p>
             <p>{tx(ABOUT.builtWith)}</p>
