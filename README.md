@@ -214,7 +214,8 @@ see [Project structure](#project-structure).
 - **OpenRouter** for the optional AI features (coach chat, exercise tips, plan review)
 - No chart, animation or i18n libraries — charts, the stick-figure rig and the
   translation layer are small, purpose-built modules
-- Unit tests with Node's built-in test runner (`npm test`) — no extra dependencies
+- Unit tests with Node's built-in test runner (`npm test`), and browser tests with
+  Playwright and axe (`npm run e2e`) on every screen; both run on every pull request
 
 ## Getting started
 
@@ -413,6 +414,7 @@ or out of range keeps its default. Set `NEXT_PUBLIC_REMOTE_CONFIG=off` to skip i
 npm run dev        # http://localhost:3000
 npm run demo       # same, signed in as an example athlete — no Firebase needed
 npm test           # unit tests
+npm run e2e        # browser tests: every screen + accessibility scan (Playwright)
 npm run lint
 npm run build && npm start   # production build
 ```
