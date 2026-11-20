@@ -1074,8 +1074,9 @@ README).
   their local reminder hour, once a day, unless they've trained
   (`reminderSchedule.ts`). Gone tokens are pruned. With push active, the local
   in-app reminder timer stands down. Signing out removes the device's token.
-- *App Check* (`firebase.ts`, `src/lib/server/appCheck*.ts`): reCAPTCHA v3 on
-  the client when `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` is set; `authedFetch` sends
+- *App Check* (`firebase.ts`, `src/lib/server/appCheck*.ts`): Fraud Defense
+  (reCAPTCHA Enterprise) with `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`, or classic
+  reCAPTCHA v3 with `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`; `authedFetch` sends
   the token, and the AI and push routes verify it against the App Check JWKS
   (issuer/audience = the project number). `APP_CHECK_MODE`: off / monitor
   (log only) / enforce.

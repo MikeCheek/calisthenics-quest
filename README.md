@@ -250,8 +250,8 @@ NEXT_PUBLIC_FIREBASE_VAPID_KEY=...
 FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}   # server only, keep secret
 CRON_SECRET=...                                            # server only, any long random string
 
-# optional — App Check
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=...
+# optional — App Check (Fraud Defense key; or NEXT_PUBLIC_RECAPTCHA_SITE_KEY for classic reCAPTCHA v3)
+NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY=...
 APP_CHECK_MODE=monitor          # off | monitor | enforce
 ```
 
@@ -364,9 +364,11 @@ screen, iOS 16.4+).
 
 **App Check** — proves requests to the AI and push routes (and, if you enforce it
 there, Firestore) come from your app.
-1. **App Check → Apps → Register** the web app with **reCAPTCHA v3**, using a site
-   key created for your domain(s) in the reCAPTCHA admin console; put the site key in
-   `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`.
+1. In Google Cloud (same project) → **Security → Fraud Defense** (formerly reCAPTCHA
+   Enterprise), create a **Website** key for your domain(s). In **Firebase → App Check
+   → Apps**, register the web app with **Fraud Defense** using that key, and put the
+   same key in `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY`. (Classic reCAPTCHA v3 is
+   deprecated; it still works with `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`.)
 2. Start with `APP_CHECK_MODE=monitor`: requests without a valid token are only logged.
    Once the logs and the App Check console show your real traffic passing, switch to
    `enforce` — and, if you like, enforce it for Firestore in the console too.
