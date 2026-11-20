@@ -125,3 +125,9 @@ test("security rules: nothing private is listable, and the board rules match the
   const notes = readFileSync("docs/DEVELOPER_NOTES.md", "utf8");
   assert.ok(notes.includes(rules.trim().slice(0, 2000)), "docs/DEVELOPER_NOTES.md rules differ from the README's");
 });
+
+test("every reminder line has an Italian version", () => {
+  const { REMINDER_LINES } = require("../src/lib/reminderMessages") as typeof import("../src/lib/reminderMessages");
+  const { translate } = require("../src/lib/i18n/tx") as typeof import("../src/lib/i18n/tx");
+  for (const line of REMINDER_LINES) assert.notEqual(translate("it", line), line, line);
+});

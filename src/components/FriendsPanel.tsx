@@ -16,6 +16,7 @@ import { pickReminderLine } from "@/lib/reminderMessages";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { Copy, UserPlus, Zap, Users2, UserMinus } from "lucide-react";
+import { pushToFriend } from "@/lib/pushClient";
 
 export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (friend: Friend) => void }) {
   const { userDoc } = useAuth();
@@ -74,6 +75,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
 
   const handleNudge = async (friend: Friend) => {
     await sendPing(friend.uid, userDoc.uid, userDoc.displayName, pickReminderLine());
+    pushToFriend(friend.uid, "nudge");
     setNudged(friend.uid);
     setTimeout(() => setNudged(null), 2500);
   };

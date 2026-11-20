@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, initializeFirestore, Firestore } from "firebase/firestore";
 import { DEMO_MODE } from "./demoMode/flag";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider, AppCheck } from "firebase/app-check";
 
 const firebaseConfig = {
   // demo mode never talks to Firebase; a placeholder lets it start without a .env
@@ -14,6 +15,29 @@ const firebaseConfig = {
 };
 
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// App Check: set up first, so Firestore and Auth requests carry its token
+// too. Uses Google Cloud Fraud Defense (formerly reCAPTCHA Enterprise) with
+// NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY — the recommended provider, since
+// classic reCAPTCHA is deprecated — or classic reCAPTCHA v3 with
+// NEXT_PUBLIC_RECAPTCHA_SITE_KEY. Only in the browser, never in demo mode.
+// For local development, NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN can hold a debug
+// token registered in the Firebase console.
+function makeAppCheck(): AppCheck | null {
+  const enterpriseKey = process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY;
+  const v3Key = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  if (typeof window === "undefined" || (!enterpriseKey && !v3Key) || DEMO_MODE) return null;
+  const debug = process.env.NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN;
+  if (debug) (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = debug;
+  const provider = enterpriseKey ? new ReCaptchaEnterpriseProvider(enterpriseKey) : new ReCaptchaV3Provider(v3Key!);
+  try {
+    return initializeAppCheck(firebaseApp, { provider, isTokenAutoRefreshEnabled: true });
+  } catch {
+    return null; // already initialised (hot reload) or unsupported
+  }
+}
+export const appCheck = makeAppCheck();
+
 export const auth = getAuth(firebaseApp);
 // Optional fields (a guest has no photoURL, for instance) are left out of
 // writes instead of failing them: Firestore rejects `undefined` values by

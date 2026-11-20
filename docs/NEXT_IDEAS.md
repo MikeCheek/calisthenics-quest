@@ -48,12 +48,10 @@ as a tie-breaker; the skill descriptions are translated to Italian.
   locations.
 - **Tamper-proof stats**: weekly totals and XP are reported by each device. Moving that
   calculation into Cloud Functions would make leaderboards trustworthy.
-- **Shared AI rate limits and App Check**: today's limits live in each server
-  instance's memory. A shared store (Upstash Redis or a Firestore counter) would make
-  them exact, and Firebase App Check would stop scripts that aren't the real app.
+- **Shared AI rate limits**: today's limits live in each server instance's memory. A
+  shared store (Upstash Redis or a Firestore counter) would make them exact. (App Check
+  is in — see the README.)
 - **Form checks from video**: use pose estimation (e.g. MediaPipe) in the browser to
   check holds and reps in Skill Check videos, so the videos never leave the device.
 - **Native wrapper**: a Capacitor build would allow writing to Apple Health and Health
   Connect, and more reliable notifications.
-- **Push notifications through FCM**: so reminders and nudges arrive even when the app
-  hasn't been opened recently.

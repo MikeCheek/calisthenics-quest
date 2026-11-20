@@ -11,6 +11,7 @@ import PingsListener from "@/components/PingsListener";
 import TrainingSessionOverlays from "@/components/TrainingSessionOverlays";
 import LocaleSync from "@/components/LocaleSync";
 import DemoBadge from "@/components/DemoBadge";
+import RemoteConfigLoader from "@/components/RemoteConfigLoader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -74,6 +75,7 @@ export default function RootLayout({
         </ToastProvider>
         <PWARegister />
         <DemoBadge />
+        <RemoteConfigLoader />
       </body>
     </html>
   );

@@ -23,6 +23,7 @@ import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
 import PageLoading from "@/components/PageLoading";
+import { pushToFriend } from "@/lib/pushClient";
 
 type Mode = "choose" | "create" | "join";
 
@@ -99,6 +100,7 @@ function PairContent() {
       userDoc.equipment
     );
     await sendPairingInvite(friend.uid, userDoc.uid, userDoc.displayName, newCode);
+    pushToFriend(friend.uid, "pairing_invite", newCode);
     setInvitedName(friend.displayName);
     setCode(newCode);
     setMode("create");

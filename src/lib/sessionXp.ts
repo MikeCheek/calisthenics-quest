@@ -1,5 +1,6 @@
 import type { ExerciseFeedback, TrainingSession } from "./types";
 import { exerciseEffort, stepsOf, totalEffort } from "./effort";
+import { tuning } from "./tuning";
 
 // ---------------------------------------------------------------------------
 // XP comes from the training you actually do — the level is experience only.
@@ -13,11 +14,16 @@ import { exerciseEffort, stepsOf, totalEffort } from "./effort";
 // Declaring skills in the assessment earns nothing.
 // ---------------------------------------------------------------------------
 
-export const XP_RULES = { session: 15, perEffort: 4, verified: 40, record: 10, stageUp: 75 } as const;
+// current values (Remote Config can tune them; see tuning.ts)
+export function xpRules() {
+  const t = tuning();
+  return { session: t.xpSession, perEffort: t.xpPerEffort, verified: t.xpVerified, record: t.xpRecord, stageUp: t.xpStageUp };
+}
 
 // What a session is worth if you do all of it (shown before you start).
 export function plannedXp(session: TrainingSession): number {
-  return XP_RULES.session + Math.round(totalEffort(stepsOf(session)) * XP_RULES.perEffort);
+  const r = xpRules();
+  return r.session + Math.round(totalEffort(stepsOf(session)) * r.perEffort);
 }
 
 export interface EarnedXp {
@@ -47,7 +53,8 @@ export function earnedXp(
       effort += exerciseEffort({ name: f.name, detail }, f.setTitle, f.setsDone);
     }
   }
-  const work = Math.round(effort * XP_RULES.perEffort);
-  const bonus = extras.verified * XP_RULES.verified + extras.records * XP_RULES.record;
-  return { total: XP_RULES.session + work + bonus, work, bonus };
+  const r = xpRules();
+  const work = Math.round(effort * r.perEffort);
+  const bonus = extras.verified * r.verified + extras.records * r.record;
+  return { total: r.session + work + bonus, work, bonus };
 }

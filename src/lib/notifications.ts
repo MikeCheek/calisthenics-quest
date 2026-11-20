@@ -32,8 +32,8 @@ async function showNotification(title: string, body: string, tag: string) {
   new Notification(title, { body, tag, icon: "/icons/icon-192.png" });
 }
 
-export async function fireTrainingReminder() {
-  await showNotification("BarQuests", pickReminderLine(), "training-reminder");
+export async function fireTrainingReminder(translate: (s: string) => string = (s) => s) {
+  await showNotification("BarQuests", translate(pickReminderLine()), "training-reminder");
 }
 
 export async function firePing(fromName: string, message: string) {
@@ -46,7 +46,7 @@ export async function firePing(fromName: string, message: string) {
 // in the background, shortly after) — there's no server component here, so
 // it can't wake a fully closed app. See README for the FCM-based alternative
 // if you want guaranteed delivery when the app isn't running.
-export function scheduleDailyReminder(time: string): () => void {
+export function scheduleDailyReminder(time: string, translate?: (s: string) => string): () => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let cancelled = false;
 
@@ -59,7 +59,7 @@ export function scheduleDailyReminder(time: string): () => void {
     const delay = next.getTime() - now.getTime();
 
     timeoutId = setTimeout(() => {
-      fireTrainingReminder();
+      fireTrainingReminder(translate);
       scheduleNext();
     }, delay);
   };

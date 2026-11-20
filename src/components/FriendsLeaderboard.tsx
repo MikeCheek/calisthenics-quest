@@ -15,6 +15,7 @@ import {
   weeklyChallenge,
 } from "@/lib/leaderboard";
 import { useToast } from "@/context/ToastContext";
+import { useTuning } from "@/hooks/useTuning";
 import { levelProgress } from "@/lib/levelPath";
 import { currentWeekKey } from "@/lib/missions";
 import { Friend } from "@/lib/types";
@@ -31,6 +32,11 @@ export default function FriendsLeaderboard() {
   const [scope, setScope] = useState<Scope>("friends");
   const [global, setGlobal] = useState<BoardEntry[] | null>(null);
   const [joining, setJoining] = useState(false);
+  // the global board can be switched off from Remote Config (tuning.ts)
+  const { featureGlobalBoard } = useTuning();
+  useEffect(() => {
+    if (!featureGlobalBoard) setScope("friends");
+  }, [featureGlobalBoard]);
   const weekKey = currentWeekKey();
   const challenge = weeklyChallenge(weekKey);
   const [metric, setMetric] = useState<Metric>(challenge.metric);
@@ -144,6 +150,7 @@ export default function FriendsLeaderboard() {
           <div className="heading text-base text-zinc-100 flex items-center gap-2">
             <Trophy size={16} className="text-amber-400" /> {tx("This week")}
           </div>
+          {featureGlobalBoard && (
           <div className="flex p-0.5 rounded-lg bg-zinc-800/60 gap-0.5" role="tablist" aria-label={tx("Leaderboard")}>
             {(
               [
@@ -162,6 +169,7 @@ export default function FriendsLeaderboard() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <div className="flex p-1 rounded-xl bg-zinc-800/60 gap-1 mb-3" role="tablist">

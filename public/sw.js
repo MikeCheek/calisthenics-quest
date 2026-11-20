@@ -1,4 +1,4 @@
-const CACHE_NAME = "barquests-v1";
+const CACHE_NAME = "barquests-v2";
 const APP_SHELL = ["/", "/dashboard", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -15,6 +15,32 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Push messages from the app's server (Firebase Cloud Messaging, data-only:
+// { title, body, url, tag }). While the app is open and focused it shows the
+// nudge or reminder itself, so the notification is only shown otherwise.
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = {};
+  }
+  const data = payload.data || payload;
+  if (!data || !data.title) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      if (clientList.some((c) => c.focused)) return;
+      return self.registration.showNotification(data.title, {
+        body: data.body || "",
+        tag: data.tag || "barquests",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: { url: data.url || "/dashboard" },
+      });
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

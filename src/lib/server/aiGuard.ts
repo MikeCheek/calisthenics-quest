@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { googleKeyLookup, verifyFirebaseIdToken, VerifiedUser } from "./firebaseToken";
+import { VerifiedUser } from "./firebaseToken";
+import { verifyCaller } from "./caller";
+import { checkAppCheck } from "./appCheck";
 import { LimitRule, RateLimiter } from "./rateLimit";
 
 // Shared gate for the AI routes: every call must carry a valid Firebase ID
@@ -45,23 +47,11 @@ function tooMany(error: string, retryAfterS: number) {
 
 /** Returns the verified user, or a response to send back instead. */
 export async function guardAiRequest(req: NextRequest, route: AiRoute): Promise<VerifiedUser | NextResponse> {
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  if (!projectId) {
-    console.error(`[${route}] NEXT_PUBLIC_FIREBASE_PROJECT_ID missing — can't verify callers`);
-    return NextResponse.json({ configured: false, error: "The AI coach isn't configured on this server." }, { status: 501 });
-  }
-
-  const header = req.headers.get("authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  if (!token) return NextResponse.json({ error: AI_ERRORS.signIn }, { status: 401 });
-
-  let user: VerifiedUser;
-  try {
-    user = await verifyFirebaseIdToken(token, { projectId, getKey: googleKeyLookup });
-  } catch (e) {
-    console.log(`[${route}] rejected token: ${(e as Error).message}`);
-    return NextResponse.json({ error: AI_ERRORS.signIn }, { status: 401 });
-  }
+  const caller = await verifyCaller(req, route, AI_ERRORS.signIn);
+  if (caller instanceof NextResponse) return caller;
+  const user = caller;
+  const appCheck = await checkAppCheck(req, route);
+  if (appCheck) return appCheck;
 
   const tier = user.anonymous ? 1 : 0;
   const global = limiter.check("global", GLOBAL);

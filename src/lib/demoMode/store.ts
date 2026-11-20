@@ -184,3 +184,7 @@ export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: n
 export async function updateSessionRecord(_uid: string, sessionId: string, fields: Pick<SessionRecord, "exercises" | "xp">): Promise<void> {
   state.sessions = state.sessions.map((s) => (s.id === sessionId ? { ...s, ...clone(fields) } : s));
 }
+
+// demo mode never registers for push (no messaging); kept for the same API
+export async function addPushToken(_uid: string, _token: string, _tz: string): Promise<void> {}
+export async function removePushToken(_uid: string, _token: string): Promise<void> {}

@@ -113,7 +113,9 @@ test("AI route error messages never include upstream details, and all have Itali
   const { readFileSync, readdirSync } = await import("node:fs");
   const { join } = await import("node:path");
   const dir = join(process.cwd(), "src/app/api");
-  for (const route of readdirSync(dir)) {
+  // every route.ts under api/, however deep
+  const routes = (readdirSync(dir, { recursive: true }) as string[]).filter((f) => f.endsWith("route.ts")).map((f) => f.replace(/\/route\.ts$/, ""));
+  for (const route of routes) {
     const src = readFileSync(join(dir, route, "route.ts"), "utf8");
     assert.ok(!/error:\s*`/.test(src), `${route}: templated error message (could leak details)`);
     assert.ok(!/error:\s*err/.test(src), `${route}: raw exception sent to the user`);

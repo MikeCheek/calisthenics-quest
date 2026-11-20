@@ -23,6 +23,7 @@ import { auth, googleProvider } from "@/lib/firebase";
 import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
 import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
 import { useToast } from "@/context/ToastContext";
+import { disablePush } from "@/lib/pushClient";
 import {
   DEFAULT_BODY,
   DEFAULT_EQUIPMENT,
@@ -235,6 +236,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      // this device stops getting this account's pushes
+      if (auth.currentUser) await disablePush(auth.currentUser.uid);
       await firebaseSignOut(auth);
     } catch {
       toast.error("Couldn't sign out — try again.");
