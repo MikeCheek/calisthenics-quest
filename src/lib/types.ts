@@ -444,6 +444,8 @@ export interface UserDoc {
   xpHistory: XPHistoryPoint[];
   // "Done!" replies to friends' challenge nudges that earned XP today (nudges.ts)
   nudgeXp?: { day: string; count: number };
+  // XP bets placed on the bonus wheel today (bonusWheel.ts)
+  wheelBets?: { day: string; count: number };
   notifications: NotificationPrefs;
   friendCode: string;
   createdAt: string;

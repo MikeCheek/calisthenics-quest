@@ -1,39 +1,55 @@
 "use client";
 
-import { useEffect, useRef, useState, Suspense } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown, Shuffle, Volume2, VolumeX, Coins, Sparkles, Check } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { localizedDescription } from "@/lib/exerciseTiming";
+import { useToast } from "@/context/ToastContext";
 import Nav from "@/components/Nav";
-import ExerciseTimer from "@/components/ExerciseTimer";
-import ExerciseTipButton from "@/components/ExerciseTipButton";
+import Modal from "@/components/Modal";
+import PageLoading from "@/components/PageLoading";
+import PrizeWheel, { SEGMENT_STYLE } from "@/components/PrizeWheel";
 import ModifierReel, { ReelPhase } from "@/components/ModifierReel";
+import ExerciseTimer from "@/components/ExerciseTimer";
+import ExerciseDemo from "@/components/ExerciseDemo";
+import ExerciseTipButton from "@/components/ExerciseTipButton";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
+import { updateProgress } from "@/lib/store";
+import { awardXp, Celebration } from "@/lib/sessionComplete";
 import { Exercise, StagedSkillKey, SKILL_FIELD_LABEL } from "@/lib/types";
-import { wheelPoolWeighted, wheelTrackAvailable } from "@/lib/wheelPool";
-import { isSkillAStretch, suggestEasierSkill, firstPathLevelForSkill } from "@/lib/levelPath";
+import { localizeDetail } from "@/lib/i18n/detail";
+import { localizedDescription } from "@/lib/exerciseTiming";
+import { isSkillAStretch } from "@/lib/levelPath";
 import { levelFromXp } from "@/lib/xp";
 import {
-  Modifier,
-  ModifierType,
-  QuantityOption,
-  pickRandomModifierType,
-  pickRandomQuantity,
-  composeModifier,
-  applyModifier,
-  modifierXpMultiplier,
-  modifierFlatXpBonus,
+  BASE_XP,
+  BET_SPOTS,
+  BETS_PER_DAY,
+  Bet,
+  CHIPS,
+  SEGMENTS,
+  SegmentValue,
+  betReturn,
+  betsLeft,
+  bonusCards,
+  maxStake,
+  payout,
+  pickExercise,
+  stageOffset,
+  wheelSkillAvailable,
+} from "@/lib/bonusWheel";
+import {
   ALL_MODIFIER_TYPES,
   ALL_QUANTITY_LABELS,
+  Modifier,
+  applyModifier,
+  composeModifier,
+  modifierFlatXpBonus,
+  modifierXpMultiplier,
+  pickRandomModifierType,
+  pickRandomQuantity,
 } from "@/lib/wheelModifiers";
-import { awardXp, Celebration } from "@/lib/sessionComplete";
-import { playBeep } from "@/lib/sound";
-import { Sparkles, X, Shuffle } from "lucide-react";
-import SkillInfoModal from "@/components/SkillInfoModal";
-import InfoIconButton from "@/components/InfoIconButton";
-import PageLoading from "@/components/PageLoading";
-import { localizeDetail } from "@/lib/i18n/detail";
 
 const SKILL_ORDER: StagedSkillKey[] = [
   "frontLever", "backLever", "planche", "muscleUp", "handstand", "humanFlag", "pistolSquat", "lSit",
@@ -49,37 +65,28 @@ const SKILL_ORDER: StagedSkillKey[] = [
   "invertedCross", "victorianCross",
 ];
 
-const DIFFICULTIES: { value: -1 | 0 | 1; label: string }[] = [
-  { value: -1, label: "Easier" },
-  { value: 0, label: "Your level" },
-  { value: 1, label: "Harder" },
-];
-
-const WEDGE_COLORS = ["#f97316", "#18181b", "#ea580c", "#27272a", "#fb923c", "#3f3f46", "#c2410c", "#52525b"];
-
-// Sequencing per the requested reveal order: modifier TYPE stops first,
-// then its QUANTITY, and only then does the wheel itself land on the
-// exercise — the wheel keeps spinning underneath the whole time and its
-// CSS transition duration is set to finish exactly when this schedule says
-// it should.
-const TYPE_SPIN_MS = 2000;
-const QTY_SPIN_MS = 1200;
-const WHEEL_REVEAL_DELAY_MS = 1000;
-const WHEEL_SPIN_MS = TYPE_SPIN_MS + QTY_SPIN_MS + WHEEL_REVEAL_DELAY_MS;
-
-const BASE_BONUS_XP = 10;
-
-type SpinPhase = "idle" | "spinning" | "composed";
-
 const TYPE_LABELS = ALL_MODIFIER_TYPES.map((t) => t.label);
+const SOUND_KEY = "barquests:wheel-sound";
+const localDay = () => new Date().toLocaleDateString("en-CA");
+
+// The reels above the wheel stop while it's still turning, one after the other
+const TYPE_STOP_MS = 2200;
+const QTY_STOP_MS = 3600;
+
+type Phase = "betting" | "spinning" | "bonus" | "exercise";
+
+interface Result {
+  segment: SegmentValue;
+  skill: StagedSkillKey;
+  exercise: Exercise; // with the bonus/malus applied
+  baseXp: number;
+  modifier: Modifier;
+  bet: Bet | null;
+}
 
 export default function WheelPage() {
   return (
-    <Suspense
-      fallback={
-        <PageLoading />
-      }
-    >
+    <Suspense fallback={<PageLoading />}>
       <WheelContent />
     </Suspense>
   );
@@ -88,31 +95,39 @@ export default function WheelPage() {
 function WheelContent() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const { locale, tx } = useLanguage();
+  const toast = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const requested = useSearchParams().get("skill") as StagedSkillKey | null;
 
-  const requestedSkill = searchParams.get("skill") as StagedSkillKey | null;
-
-  const [track, setTrack] = useState<StagedSkillKey>(requestedSkill ?? "frontLever");
-  const [difficulty, setDifficulty] = useState<-1 | 0 | 1>(0);
-  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
-  const [infoSkill, setInfoSkill] = useState<StagedSkillKey | null>(null);
-  const [rotation, setRotation] = useState(0);
-  const [spinPhase, setSpinPhase] = useState<SpinPhase>("idle");
-  const [landedExercise, setLandedExercise] = useState<Exercise | null>(null);
-
+  const [track, setTrack] = useState<StagedSkillKey | "surprise">(requested ?? "surprise");
+  const [skillSheet, setSkillSheet] = useState(false);
+  const [chip, setChip] = useState(CHIPS[0]);
+  const [bet, setBet] = useState<Bet | null>(null);
+  const [phase, setPhase] = useState<Phase>("betting");
+  const [spin, setSpin] = useState<{ index: number; id: number } | null>(null);
+  const [landed, setLanded] = useState<number | null>(null);
   const [typePhase, setTypePhase] = useState<ReelPhase>("idle");
   const [qtyPhase, setQtyPhase] = useState<ReelPhase>("idle");
-  const [revealedType, setRevealedType] = useState<ModifierType | null>(null);
-  const [revealedQuantity, setRevealedQuantity] = useState<QuantityOption | null>(null);
   const [modifier, setModifier] = useState<Modifier | null>(null);
-
-  const [composed, setComposed] = useState<Exercise | null>(null);
-  const [xpAwarded, setXpAwarded] = useState<number | null>(null);
+  const [cards, setCards] = useState<ReturnType<typeof bonusCards>>([]);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
+  const [banked, setBanked] = useState<number | null>(null);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const [sound, setSound] = useState(true);
+  const pending = useRef<{ segment: SegmentValue; skill: StagedSkillKey; modifier: Modifier; bet: Bet | null } | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [displayPool, setDisplayPool] = useState<Exercise[]>([]);
-  const spinPoolRef = useRef<Exercise[]>([]);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      setSound(localStorage.getItem(SOUND_KEY) !== "off");
+    } catch {
+      /* default on */
+    }
+    const pendingTimers = timers.current;
+    return () => pendingTimers.forEach(clearTimeout);
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -120,341 +135,405 @@ function WheelContent() {
     else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
   }, [loading, user, userDoc, router]);
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const available = useMemo(() => (userDoc ? SKILL_ORDER.filter((s) => wheelSkillAvailable(s, userDoc.equipment)) : []), [userDoc]);
 
-  // Recompute the visible wheel only while idle — freezing it during a spin
-  // (rather than reshuffling on every re-render) is what keeps the wedges
-  // visually stable while the wheel is animating.
+  // a skill asked for in the link but not possible with this equipment
   useEffect(() => {
-    if (!userDoc || spinPhase !== "idle") return;
-    setDisplayPool(wheelPoolWeighted(track, userDoc.skills, userDoc.equipment, difficulty));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userDoc, track, difficulty, spinPhase]);
+    if (track !== "surprise" && available.length && !available.includes(track)) setTrack("surprise");
+  }, [available, track]);
 
-  if (loading || !userDoc) {
-    return <PageLoading />;
-  }
+  if (loading || !userDoc) return <PageLoading />;
 
-  const playerLevel = levelFromXp(userDoc.xp);
-  const trackIsStretch = isSkillAStretch(track, playerLevel) && !suggestionDismissed;
-  const easierSuggestion = trackIsStretch ? suggestEasierSkill(playerLevel, userDoc.skills) : null;
-  const firstLevel = firstPathLevelForSkill(track);
+  const today = localDay();
+  const left = betsLeft(userDoc.wheelBets, today);
+  const cap = maxStake(userDoc.xp);
+  const level = levelFromXp(userDoc.xp);
+  const busy = phase === "spinning";
 
-  const currentPool = displayPool;
-  const segCount = Math.max(1, currentPool.length);
-  const anglePer = 360 / segCount;
-  const gradient = currentPool
-    .map((_, i) => `${WEDGE_COLORS[i % WEDGE_COLORS.length]} ${i * anglePer}deg ${(i + 1) * anglePer}deg`)
-    .join(", ");
-
-  const spin = () => runSpin(currentPool);
-
-  const spinRandomSkill = () => {
-    if (spinPhase !== "idle" || availableSkills.length === 0) return;
-    const randomSkill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
-    const randomDifficulty = ([-1, 0, 1] as const)[Math.floor(Math.random() * 3)];
-    const pool = wheelPoolWeighted(randomSkill, userDoc.skills, userDoc.equipment, randomDifficulty);
-    setTrack(randomSkill);
-    setDifficulty(randomDifficulty);
-    setSuggestionDismissed(false);
-    setDisplayPool(pool);
-    // runSpin sets spinPhase to "spinning" synchronously in this same
-    // event handler, so the pool-recompute effect above (which only fires
-    // while idle) never gets a chance to reshuffle what we just set here —
-    // both updates land in the same React batch.
-    runSpin(pool);
+  const toggleSound = () => {
+    setSound((s) => {
+      try {
+        localStorage.setItem(SOUND_KEY, s ? "off" : "on");
+      } catch {
+        /* not important */
+      }
+      return !s;
+    });
   };
 
-  const runSpin = (pool: Exercise[]) => {
-    if (spinPhase !== "idle" || pool.length === 0) return;
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
+  const placeBet = (on: SegmentValue) => {
+    if (busy || phase !== "betting") return;
+    if (bet?.on === on) return setBet(null); // tap again to take it back
+    if (left === 0) return toast.info(tx("No bets left today — spin for fun, or come back tomorrow."));
+    if (chip > cap) return toast.info(tx("You can bet up to {n} XP right now — what you've earned into this level.", { n: cap }));
+    setBet({ on, stake: chip });
+  };
 
-    const segs = Math.max(1, pool.length);
-    const anglePerSeg = 360 / segs;
+  const startSpin = async () => {
+    if (busy || !available.length) return;
+    const skill = track === "surprise" ? available[Math.floor(Math.random() * available.length)] : track;
+    const index = Math.floor(Math.random() * SEGMENTS.length);
+    const type = pickRandomModifierType();
+    const mod = composeModifier(type, pickRandomQuantity(type));
+    const placed = bet && bet.stake <= cap && left > 0 ? bet : null;
+    pending.current = { segment: SEGMENTS[index], skill, modifier: mod, bet: placed };
 
-    spinPoolRef.current = pool;
-    setLandedExercise(null);
-    setRevealedType(null);
-    setRevealedQuantity(null);
+    // the stake goes now; anything won comes with the completed exercise
+    if (placed) {
+      try {
+        await updateProgress(userDoc.uid, {
+          xp: userDoc.xp - placed.stake,
+          wheelBets: { day: today, count: (userDoc.wheelBets?.day === today ? userDoc.wheelBets.count : 0) + 1 },
+        });
+        await refreshUserDoc();
+      } catch {
+        toast.error("Something went wrong — try again.");
+        return;
+      }
+    }
+
+    setResult(null);
+    setBanked(null);
+    setLanded(null);
+    setCards([]);
+    setPicked(null);
     setModifier(null);
-    setComposed(null);
-    setXpAwarded(null);
-    setSpinPhase("spinning");
+    setPhase("spinning");
     setTypePhase("cycling");
     setQtyPhase("cycling");
-
-    // Pre-select every winner up front so each reel's reveal is just a
-    // scheduled disclosure of an already-decided outcome.
-    const winnerExerciseIdx = Math.floor(Math.random() * pool.length);
-    const winnerType = pickRandomModifierType();
-    const winnerQuantity = pickRandomQuantity(winnerType);
-
-    const winnerCenter = winnerExerciseIdx * anglePerSeg + anglePerSeg / 2;
-    const target = (360 - winnerCenter) % 360;
-    const base = rotation - (rotation % 360);
-    setRotation(base + 360 * 6 + target);
-
-    const t1 = setTimeout(() => {
-      setTypePhase("revealed");
-      setRevealedType(winnerType);
-      playBeep(700, 220);
-    }, TYPE_SPIN_MS);
-
-    const t2 = setTimeout(() => {
-      setQtyPhase("revealed");
-      setRevealedQuantity(winnerQuantity);
-      const m = composeModifier(winnerType, winnerQuantity);
-      setModifier(m);
-      playBeep(winnerType.kind === "golden" ? 950 : 850, 260);
-    }, TYPE_SPIN_MS + QTY_SPIN_MS);
-
-    const t3 = setTimeout(() => {
-      const finalModifier = composeModifier(winnerType, winnerQuantity);
-      const exercise = spinPoolRef.current[winnerExerciseIdx];
-      setLandedExercise(exercise);
-      setComposed(applyModifier(exercise, finalModifier));
-      setSpinPhase("composed");
-      playBeep(winnerType.kind === "golden" ? 1200 : 1046, winnerType.kind === "golden" ? 500 : 350);
-    }, WHEEL_SPIN_MS);
-
-    timers.current = [t1, t2, t3];
+    setSpin({ index, id: Date.now() });
+    timers.current.push(
+      setTimeout(() => {
+        setModifier(mod);
+        setTypePhase("revealed");
+      }, TYPE_STOP_MS),
+      setTimeout(() => setQtyPhase("revealed"), QTY_STOP_MS)
+    );
   };
 
-  const resetSpin = () => {
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-    setSpinPhase("idle");
-    setLandedExercise(null);
-    setTypePhase("idle");
-    setQtyPhase("idle");
-    setRevealedType(null);
-    setRevealedQuantity(null);
-    setModifier(null);
-    setComposed(null);
-    setXpAwarded(null);
-  };
-
-  const handleExerciseComplete = async () => {
-    if (xpAwarded !== null) return; // already awarded for this spin
-    const multiplier = modifier ? modifierXpMultiplier(modifier) : 1;
-    const flatBonus = modifier ? modifierFlatXpBonus(modifier) : 0;
-    const amount = BASE_BONUS_XP * multiplier + flatBonus;
-    const result = await awardXp(userDoc, amount);
-    setXpAwarded(amount);
-    if (result.leveledUp) {
-      setCelebration({ leveledUp: true, newLevel: result.newLevel, streakEvent: "none", newStreak: userDoc.streak });
+  const onLanded = (index: number) => {
+    const p = pending.current;
+    if (!p) return;
+    setLanded(index);
+    if (p.segment === "bonus") {
+      setCards(bonusCards(p.skill, userDoc.skills, userDoc.equipment));
+      setPhase("bonus");
+    } else {
+      const picked = pickExercise(p.skill, userDoc.skills, userDoc.equipment, stageOffset(p.segment));
+      if (!picked) return setPhase("betting");
+      setResult({ segment: p.segment, skill: p.skill, exercise: applyModifier(picked.exercise, p.modifier), baseXp: BASE_XP[String(p.segment)], modifier: p.modifier, bet: p.bet });
+      setPhase("exercise");
     }
+    const won = betReturn(p.bet, p.segment);
+    if (p.bet) {
+      if (won) toast.success(tx("Your bet hit! Complete the exercise to collect {n} XP.", { n: won }));
+      else toast.info(tx("No luck this time — the exercise still earns its XP."));
+    }
+    setBet(null);
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+  };
+
+  const pickCard = (i: number) => {
+    const p = pending.current;
+    if (picked !== null || !p) return;
+    setPicked(i);
+    const c = cards[i];
+    setTimeout(() => {
+      setResult({ segment: "bonus", skill: p.skill, exercise: applyModifier(c.exercise, p.modifier), baseXp: c.xp, modifier: p.modifier, bet: p.bet });
+      setPhase("exercise");
+    }, 1400);
+  };
+
+  const exerciseXp = (r: Result) => Math.round(r.baseXp * modifierXpMultiplier(r.modifier) + modifierFlatXpBonus(r.modifier));
+
+  const complete = async () => {
+    if (!result || banked !== null) return;
+    const amount = Math.max(0, exerciseXp(result)) + betReturn(result.bet, result.segment);
+    const r = await awardXp(userDoc, amount);
+    setBanked(amount);
+    if (r.leveledUp) setCelebration({ leveledUp: true, newLevel: r.newLevel, streakEvent: "none", newStreak: userDoc.streak });
     await refreshUserDoc();
   };
 
-  const availableSkills = SKILL_ORDER.filter((s) => wheelTrackAvailable(s, userDoc.equipment));
-  const spinning = spinPhase === "spinning";
-  const isGolden = revealedType?.kind === "golden";
+  const again = () => {
+    setPhase("betting");
+    setResult(null);
+    setLanded(null);
+    setTypePhase("idle");
+    setQtyPhase("idle");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const skillName = (s: StagedSkillKey | "surprise") => (s === "surprise" ? tx("Surprise me") : SKILL_FIELD_LABEL[s]);
+  const spotName = (v: SegmentValue) => (v === "bonus" ? tx("Bonus") : String(v));
 
   return (
     <>
       <Nav />
       <CelebrationOverlay celebration={celebration} />
-      <main id="main" tabIndex={-1} className="max-w-2xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
-        <div>
-          <h1 className="heading text-2xl text-zinc-100">Bonus wheel</h1>
-          <p className="text-zinc-400 text-sm">
-            Pick a skill and a difficulty, spin, and let chance pick your bonus exercise —
-            with a randomized bonus or malus thrown in.
+      <main id="main" tabIndex={-1} className="max-w-xl mx-auto px-4 py-5 pb-28 sm:pb-8 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="heading text-2xl text-zinc-100">{tx("Bonus wheel")}</h1>
+            <p className="text-sm text-zinc-400">{tx("Spin for a bonus exercise. The number is how hard it is — and what a bet on it pays.")}</p>
+          </div>
+          <button
+            onClick={toggleSound}
+            className="w-11 h-11 shrink-0 rounded-xl border border-zinc-700 text-zinc-300 flex items-center justify-center"
+            aria-label={sound ? tx("Sound off") : tx("Sound on")}
+            aria-pressed={sound}
+          >
+            {sound ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+        </div>
+
+        {/* skill */}
+        <button
+          onClick={() => setSkillSheet(true)}
+          disabled={busy}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-zinc-700 bg-zinc-900 text-left disabled:opacity-60"
+          aria-haspopup="dialog"
+        >
+          <span>
+            <span className="block text-xs text-zinc-400">{tx("Skill")}</span>
+            <span className="block text-base text-zinc-100 font-medium flex items-center gap-1.5">
+              {track === "surprise" && <Shuffle size={16} className="text-orange-400" />}
+              {skillName(track)}
+            </span>
+          </span>
+          <ChevronDown size={20} className="text-zinc-400" />
+        </button>
+
+        {/* reels and wheel */}
+        <section className="panel p-3 sm:p-4" aria-label={tx("Bonus wheel")}>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <ModifierReel phase={typePhase} cyclingLabels={TYPE_LABELS.map((l) => tx(l))} resultLabel={modifier ? tx(modifier.typeLabel) : null} golden={modifier?.kind === "golden"} idleLabel={tx("Bonus / malus")} />
+            <ModifierReel phase={qtyPhase} cyclingLabels={ALL_QUANTITY_LABELS.map((l) => tx(l))} resultLabel={modifier ? tx(modifier.quantity.label) : null} golden={modifier?.kind === "golden"} idleLabel={tx("Amount")} />
+          </div>
+          <div className="mx-auto w-full max-w-[22rem]">
+            <PrizeWheel
+              segments={SEGMENTS}
+              spin={spin}
+              onLanded={onLanded}
+              sound={sound}
+              highlight={phase === "spinning" ? null : landed}
+              label={landed === null ? tx("Prize wheel") : tx("Landed on {v}", { v: spotName(SEGMENTS[landed]) })}
+            />
+          </div>
+          <p className="sr-only" aria-live="polite">
+            {phase === "spinning" ? tx("Spinning…") : landed !== null ? tx("Landed on {v}", { v: spotName(SEGMENTS[landed]) }) : ""}
           </p>
-        </div>
+        </section>
 
-        <div>
-          <div className="text-xs text-zinc-400 mb-1.5 flex items-center gap-1.5">
-            Skill: <span className="text-zinc-200">{SKILL_FIELD_LABEL[track]}</span>
-            <InfoIconButton onClick={() => setInfoSkill(track)} label={`About ${SKILL_FIELD_LABEL[track]}`} />
-            <span className="ml-auto">{availableSkills.length} available</span>
-          </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
-            {availableSkills.map((s) => (
-              <button
-                key={s}
-                disabled={spinning}
-                onClick={() => {
-                  setTrack(s);
-                  setSuggestionDismissed(false);
-                }}
-                className={`shrink-0 px-3 py-2 rounded-lg text-sm border whitespace-nowrap disabled:opacity-50 ${
-                  track === s ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-400"
-                }`}
-              >
-                {SKILL_FIELD_LABEL[s]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-1.5">
-          {DIFFICULTIES.map((d) => (
-            <button
-              key={d.value}
-              disabled={spinning}
-              onClick={() => setDifficulty(d.value)}
-              className={`flex-1 py-1.5 rounded-lg text-sm border disabled:opacity-50 ${
-                difficulty === d.value ? "border-orange-500 bg-orange-500/10 text-zinc-100" : "border-zinc-700 text-zinc-400"
-              }`}
-            >
-              {tx(d.label)}
-            </button>
-          ))}
-        </div>
-
-        {trackIsStretch && easierSuggestion?.skill && (
-          <div className="panel p-3 border-orange-500/40 flex items-start gap-2">
-            <Sparkles size={14} className="text-orange-400 mt-0.5 shrink-0" />
-            <div className="flex-1 text-xs text-zinc-300">
-              {SKILL_FIELD_LABEL[track]} is a bit of a stretch for level {playerLevel} — the road
-              doesn&apos;t suggest it until around level {firstLevel}.{" "}
-              <button
-                onClick={() => setTrack(easierSuggestion.skill!)}
-                className="text-orange-400 underline"
-              >
-                Try {SKILL_FIELD_LABEL[easierSuggestion.skill]} instead
-              </button>
-              , or keep going.
+        {/* betting board */}
+        {(phase === "betting" || phase === "spinning") && (
+          <section className="panel p-3 sm:p-4" aria-labelledby="bet-title">
+            <div className="flex items-baseline justify-between mb-2">
+              <h2 id="bet-title" className="heading text-base text-zinc-100 flex items-center gap-1.5">
+                <Coins size={16} className="text-amber-400" /> {tx("Bet XP (optional)")}
+              </h2>
+              <span className="text-xs text-zinc-400">{tx("{n} of {m} bets left today", { n: left, m: BETS_PER_DAY })}</span>
             </div>
-            <button
-              onClick={() => setSuggestionDismissed(true)}
-              className="text-muted hover:text-zinc-300 shrink-0"
-              aria-label={tx("Dismiss suggestion")}
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
-
-        <div className="panel p-4">
-          {/* modifier reels sit above the wheel — type resolves first, then quantity */}
-          <div className="mb-4">
-            <div className="text-xs text-muted mb-1.5 text-center uppercase tracking-wide">Bonus / malus</div>
-            <div className="grid grid-cols-2 gap-2">
-              <ModifierReel
-                phase={typePhase}
-                cyclingLabels={TYPE_LABELS}
-                resultLabel={revealedType?.label ?? null}
-                golden={isGolden}
-                idleLabel="Modifier"
-              />
-              <ModifierReel
-                phase={qtyPhase}
-                cyclingLabels={ALL_QUANTITY_LABELS}
-                resultLabel={revealedQuantity?.label ?? null}
-                golden={isGolden}
-                idleLabel="Amount"
-              />
+            <div className="grid grid-cols-5 gap-1.5" role="group" aria-label={tx("Where to bet")}>
+              {BET_SPOTS.map((v) => {
+                const st = SEGMENT_STYLE[String(v)];
+                const on = bet?.on === v;
+                return (
+                  <button
+                    key={String(v)}
+                    onClick={() => placeBet(v)}
+                    disabled={busy}
+                    aria-pressed={on}
+                    aria-label={tx("Bet on {v} — pays {p} to 1", { v: spotName(v), p: payout(v) })}
+                    className={`relative h-20 rounded-xl flex flex-col items-center justify-center border-2 transition-transform active:scale-95 disabled:opacity-70 ${
+                      on ? "border-white scale-105" : "border-transparent"
+                    }`}
+                    style={{ background: v === "bonus" ? "linear-gradient(135deg,#fde68a,#d97706)" : st.fill }}
+                  >
+                    <span className="text-2xl font-extrabold" style={{ color: st.text }}>
+                      {st.label}
+                    </span>
+                    <span className="text-[0.7rem] font-semibold" style={{ color: st.text }}>
+                      {payout(v)}:1
+                    </span>
+                    {on && (
+                      <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-amber-300 text-zinc-950 border-2 border-white text-xs font-bold flex items-center justify-center shadow-lg animate-pop-in">
+                        {bet.stake}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative w-64 h-64">
-              <div
-                className="absolute inset-0 rounded-full border-4 border-zinc-700"
-                style={{
-                  background: `conic-gradient(${gradient})`,
-                  transform: `rotate(${rotation}deg)`,
-                  transition: spinning ? `transform ${WHEEL_SPIN_MS}ms cubic-bezier(0.12, 0.72, 0.18, 1)` : "none",
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-12 h-12 rounded-full bg-zinc-950 border-2 border-orange-500 flex items-center justify-center">
-                  <span className="text-lg">🎯</span>
-                </div>
-              </div>
-              <div
-                className="absolute left-1/2 -translate-x-1/2 -top-2 w-0 h-0 pointer-events-none"
-                style={{
-                  borderLeft: "9px solid transparent",
-                  borderRight: "9px solid transparent",
-                  borderTop: "16px solid #f97316",
-                }}
-              />
-            </div>
-
-            {spinPhase === "idle" && (
-              <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2 mt-3" role="group" aria-label={tx("Chip")}>
+              <span className="text-xs text-zinc-400 mr-1">{tx("Chip")}</span>
+              {CHIPS.map((c) => (
                 <button
-                  onClick={spin}
-                  disabled={currentPool.length === 0}
-                  className="px-8 py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-50"
-                >
-                  🎰 Spin
-                </button>
-                <button
-                  onClick={spinRandomSkill}
-                  disabled={availableSkills.length === 0}
-                  className="text-xs px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  <Shuffle size={12} /> Randomize skill too
-                </button>
-              </div>
-            )}
-            {spinPhase === "spinning" && (
-              <div className="text-sm text-zinc-400 animate-pulse">Spinning...</div>
-            )}
-            {landedExercise && spinPhase === "composed" && (
-              <div className="text-center animate-pop-in">
-                <div className="text-xs text-muted uppercase tracking-wide">Landed on</div>
-                <div className="text-lg text-zinc-100 heading">{landedExercise.name}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {composed && spinPhase === "composed" && (
-          <div className="panel p-4 animate-slide-up-in border-orange-500/40">
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="heading text-lg text-zinc-100">{composed.name}</h2>
-              {modifier && modifier.kind !== "none" && (
-                <span
-                  className={`text-xs px-2 py-1 rounded-full border ${
-                    modifier.kind === "golden"
-                      ? "border-yellow-400 text-yellow-300 bg-yellow-400/10"
-                      : "border-orange-500 text-orange-400 bg-orange-500/10"
+                  key={c}
+                  onClick={() => {
+                    setChip(c);
+                    if (bet) setBet({ ...bet, stake: Math.min(c, cap) });
+                  }}
+                  disabled={busy || c > cap}
+                  aria-pressed={chip === c}
+                  className={`w-12 h-12 rounded-full border-4 border-dashed text-sm font-bold disabled:opacity-30 ${
+                    chip === c ? "border-amber-200 bg-amber-400 text-zinc-950" : "border-zinc-600 bg-zinc-800 text-zinc-200"
                   }`}
                 >
-                  {modifier.typeLabel} · {modifier.quantity.label}
+                  {c}
+                </button>
+              ))}
+              <span className="text-xs text-zinc-400 ml-auto text-right">{bet ? tx("Win {n} XP", { n: bet.stake * payout(bet.on) }) : tx("No bet")}</span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-3">
+              {tx("The stake goes when the wheel spins. Winnings come with the exercise: complete it to collect. You can never bet the XP that holds your level.")}
+            </p>
+          </section>
+        )}
+
+        {/* spin */}
+        {(phase === "betting" || phase === "spinning") && (
+          <div className="sticky bottom-[4.75rem] sm:bottom-4 z-10 pt-2 bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent">
+          <button
+            onClick={startSpin}
+            disabled={busy || !available.length}
+            className="w-full h-16 rounded-2xl heading text-xl tracking-wide text-zinc-950 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 shadow-lg shadow-orange-900/40 disabled:opacity-60 active:scale-[0.98] transition-transform"
+          >
+            {busy ? tx("Spinning…") : bet ? tx("Spin — {n} XP on {v}", { n: bet.stake, v: spotName(bet.on) }) : tx("Spin")}
+          </button>
+          </div>
+        )}
+        {!available.length && <p className="text-sm text-zinc-400">{tx("Add some equipment in Me → Settings to unlock more of the wheel.")}</p>}
+
+        <div ref={resultRef} />
+
+        {/* bonus round: three cards */}
+        {phase === "bonus" && (
+          <section className="panel p-4 border-amber-500/50 animate-slide-up-in" aria-labelledby="bonus-title">
+            <h2 id="bonus-title" className="heading text-xl text-amber-300 text-center flex items-center justify-center gap-2">
+              <Sparkles size={18} /> {tx("Bonus round")}
+            </h2>
+            <p className="text-sm text-zinc-300 text-center mb-4">{tx("Pick a card: a harder exercise, worth more XP.")}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {cards.map((c, i) => (
+                <button
+                  key={i}
+                  onClick={() => pickCard(i)}
+                  disabled={picked !== null}
+                  className={`flip-card h-44 ${picked !== null ? "flip-card-flipped" : ""}`}
+                  aria-label={picked === null ? tx("Card {n}", { n: i + 1 }) : `${c.exercise.name} · ${c.xp} XP`}
+                >
+                  <span className="flip-card-inner relative block w-full h-full">
+                    <span className="flip-card-face absolute inset-0 rounded-xl bg-gradient-to-br from-amber-300 to-orange-600 border-2 border-amber-200 flex items-center justify-center text-4xl text-zinc-950 font-black">
+                      ★
+                    </span>
+                    <span
+                      className={`flip-card-face flip-card-back absolute inset-0 rounded-xl p-2 flex flex-col items-center justify-center text-center border-2 ${
+                        picked === i ? "bg-zinc-900 border-amber-300" : "bg-zinc-900 border-zinc-700 opacity-60"
+                      }`}
+                    >
+                      <span className="text-xs text-zinc-100 font-medium leading-tight">{c.exercise.name}</span>
+                      <span className="mt-2 text-lg font-bold text-amber-300">{c.xp} XP</span>
+                      {picked === i && <Check size={16} className="text-emerald-400 mt-1" />}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* the exercise */}
+        {phase === "exercise" && result && (
+          <section className="panel p-4 animate-slide-up-in border-orange-500/40" aria-labelledby="result-title">
+            <div className="flex items-center gap-3 mb-3">
+              <span
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-extrabold shrink-0"
+                style={{ background: result.segment === "bonus" ? "linear-gradient(135deg,#fde68a,#d97706)" : SEGMENT_STYLE[String(result.segment)].fill, color: SEGMENT_STYLE[String(result.segment)].text }}
+                aria-hidden="true"
+              >
+                {SEGMENT_STYLE[String(result.segment)].label}
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs text-zinc-400">{SKILL_FIELD_LABEL[result.skill]}</p>
+                <h2 id="result-title" className="heading text-lg text-zinc-100 leading-tight">
+                  {result.exercise.name}
+                </h2>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {result.modifier.kind !== "none" && (
+                <span className={`text-xs px-2.5 py-1 rounded-full border ${result.modifier.kind === "golden" ? "border-yellow-400 text-yellow-300 bg-yellow-400/10" : "border-orange-500 text-orange-300 bg-orange-500/10"}`}>
+                  {tx(result.modifier.typeLabel)} · {tx(result.modifier.quantity.label)}
                 </span>
               )}
+              <span className="text-xs px-2.5 py-1 rounded-full border border-emerald-500/60 text-emerald-300">+{exerciseXp(result)} XP</span>
+              {result.bet && betReturn(result.bet, result.segment) > 0 && (
+                <span className="text-xs px-2.5 py-1 rounded-full border border-amber-400 text-amber-300 bg-amber-400/10">
+                  {tx("Bet won: +{n} XP", { n: betReturn(result.bet, result.segment) })}
+                </span>
+              )}
+              {result.bet && betReturn(result.bet, result.segment) === 0 && (
+                <span className="text-xs px-2.5 py-1 rounded-full border border-zinc-600 text-zinc-400">{tx("Bet lost: −{n} XP", { n: result.bet.stake })}</span>
+              )}
             </div>
-            <div className="text-sm text-zinc-400 mb-1">{localizeDetail(composed.detail, locale)}</div>
-            {composed.description && <p className="text-sm text-zinc-300 mb-2">{localizedDescription(composed, locale)}</p>}
-            {composed.cue && <div className="text-xs text-orange-400/80 italic mb-2">{composed.cue}</div>}
-            <div className="flex items-center gap-2 mb-2">
-              <ExerciseTipButton exerciseName={composed.name} exerciseDetail={composed.detail} trackLabel={SKILL_FIELD_LABEL[track]} />
-              <span className="text-xs text-muted ml-auto">
-                Worth +
-                {BASE_BONUS_XP * (modifier ? modifierXpMultiplier(modifier) : 1) +
-                  (modifier ? modifierFlatXpBonus(modifier) : 0)}{" "}
-                XP
-              </span>
+            <p className="text-base text-zinc-200 mb-1">{localizeDetail(result.exercise.detail, locale)}</p>
+            {result.exercise.description && <p className="text-sm text-zinc-400 mb-2">{localizedDescription(result.exercise, locale)}</p>}
+            <ExerciseDemo exerciseName={result.exercise.name} width={150} className="my-3" />
+            <div className="mb-2">
+              <ExerciseTipButton exerciseName={result.exercise.name} exerciseDetail={result.exercise.detail} trackLabel={SKILL_FIELD_LABEL[result.skill]} />
             </div>
-            <ExerciseTimer exercise={composed} onComplete={handleExerciseComplete} />
-            {xpAwarded !== null && (
-              <div className="mt-2 text-xs text-emerald-400">+{xpAwarded} XP banked!</div>
+            <ExerciseTimer exercise={result.exercise} onComplete={complete} />
+            {banked !== null ? (
+              <p className="mt-3 text-center text-base text-emerald-300 font-semibold animate-pop-in">{tx("+{n} XP banked!", { n: banked })}</p>
+            ) : (
+              <p className="mt-3 text-center text-xs text-zinc-400">
+                {tx("Complete it to collect {n} XP.", { n: exerciseXp(result) + betReturn(result.bet, result.segment) })}
+              </p>
             )}
-            <button
-              onClick={resetSpin}
-              className="w-full mt-3 py-2 rounded-lg text-sm border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100"
-            >
-              Spin again
+            <button onClick={again} className="w-full mt-3 h-12 rounded-xl border border-zinc-600 text-zinc-100 text-base hover:border-orange-500">
+              {tx("Spin again")}
             </button>
-          </div>
+          </section>
         )}
       </main>
 
-      <SkillInfoModal
-        skill={infoSkill}
-        onClose={() => setInfoSkill(null)}
-        playerLevel={playerLevel}
-        skills={userDoc.skills}
-        skillMastery={userDoc.skillMastery}
-      />
+      {/* skill picker: only what this equipment allows */}
+      <Modal open={skillSheet} onClose={() => setSkillSheet(false)} title={tx("Pick a skill")}>
+        <div className="space-y-1.5">
+          <SkillRow label={tx("Surprise me")} hint={tx("A different skill on every spin")} active={track === "surprise"} onClick={() => { setTrack("surprise"); setSkillSheet(false); }} icon />
+          {available.map((s) => (
+            <SkillRow
+              key={s}
+              label={SKILL_FIELD_LABEL[s]}
+              hint={isSkillAStretch(s, level) ? tx("A stretch at your level") : undefined}
+              active={track === s}
+              onClick={() => {
+                setTrack(s);
+                setSkillSheet(false);
+              }}
+            />
+          ))}
+          <p className="text-xs text-zinc-400 pt-2">{tx("Only skills you can train with your equipment are listed. Change it in Me → Settings.")}</p>
+        </div>
+      </Modal>
     </>
+  );
+}
+
+function SkillRow({ label, hint, active, onClick, icon }: { label: string; hint?: string; active: boolean; onClick: () => void; icon?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`w-full min-h-[3rem] flex items-center gap-3 px-3 py-2 rounded-xl text-left ${active ? "bg-orange-500/15 border border-orange-500" : "bg-zinc-800/60 border border-transparent hover:bg-zinc-800"}`}
+    >
+      {icon && <Shuffle size={18} className="text-orange-400 shrink-0" />}
+      <span className="flex-1">
+        <span className="block text-base text-zinc-100">{label}</span>
+        {hint && <span className="block text-xs text-zinc-400">{hint}</span>}
+      </span>
+      {active && <Check size={18} className="text-orange-400" />}
+    </button>
   );
 }

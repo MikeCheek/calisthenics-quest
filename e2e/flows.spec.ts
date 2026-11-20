@@ -71,3 +71,26 @@ test("number pickers work with the keyboard", async ({ page }) => {
   await page.keyboard.press("ArrowDown");
   await expect.poll(async () => Number(await picker.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
 });
+
+test("bonus wheel: bet, spin, land on an exercise you can do", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/wheel");
+  // only skills this equipment allows are offered
+  await page.getByRole("button", { name: /Skill/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Pick a skill" });
+  await expect(sheet.getByRole("button", { name: /Surprise me/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: /Bet on 2 — pays 2 to 1/ }).click();
+  await expect(page.getByRole("button", { name: /Spin — 5 XP on 2/ })).toBeVisible();
+  await page.getByRole("button", { name: /Spin — 5 XP on 2/ }).click();
+  await expect(page.getByText(/Landed on/).first()).toBeAttached({ timeout: 15_000 });
+
+  // a ★ opens the bonus round first
+  const card = page.getByRole("button", { name: "Card 1" });
+  if (await card.isVisible().catch(() => false)) await card.click();
+  await expect(page.getByRole("heading", { level: 2 }).filter({ hasNot: page.locator("#bet-title") }).last()).toBeVisible();
+  await expect(page.getByText(/Complete it to collect \d+ XP/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/Bet (won|lost)/)).toBeVisible();
+  expect(errors).toEqual([]);
+});

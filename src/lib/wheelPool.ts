@@ -28,7 +28,7 @@ export function wheelTrackAvailable(track: WheelTrack, equipment: TrainingEquipm
 
 export const WHEEL_TRACK_EQUIPMENT = ADVANCED_SKILL_EQUIPMENT;
 
-function stageTableFor(track: WheelTrack, equipment: TrainingEquipment): Record<string, Exercise[]> {
+export function stageTableFor(track: WheelTrack, equipment: TrainingEquipment): Record<string, Exercise[]> {
   switch (track) {
     case "frontLever":
       return FRONT_LEVER_TABLE;

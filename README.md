@@ -78,6 +78,8 @@ you have any health concerns.
   to the session length you chose (15–90 min) and the equipment you have.
 - **Guided mode** — full-screen, hands-free: per-set timer, rest between exercises,
   and optional **voice coaching** (sets, “ten seconds”, “up next”), in English or Italian.
+  Big buttons where your thumb is (Back, Next, More, Pause); skip, too hard, I'm tired,
+  voice and lock-screen controls sit in one options sheet.
 - **Animated demonstrations** — a stick-figure animation for 124 of the 129
   exercises that appear in sessions, plus the common mistakes for each movement.
 - **Per-set logging** — log reps in the timer's rest screen; holds are measured
@@ -134,8 +136,12 @@ you have any health concerns.
 - **Ask your coach** — an AI chat that answers questions about *your* training data.
 - **Coach insights** — what the app has learned from your sessions: what's going well,
   what's being eased off, and your real rest and hold times.
-- **AI review and planning** — check today's session against your level, plan the week,
-  or spin the bonus wheel.
+- **AI review and planning** — check today's session against your level, or plan the week.
+- **Bonus wheel** — a prize wheel of 24 segments: the number you land on (1, 2, 5, 10)
+  sets how hard the bonus exercise is, and ★ opens a pick-a-card bonus round. Two reels
+  add a bonus or malus. Only skills and exercises your equipment allows come up.
+  Optionally **bet XP** on where it lands (up to 5 bets a day, never the XP that holds
+  your level); winnings are paid when you complete the exercise.
 
 ### Me
 - **Activity** — your XP over time, a calendar, month totals, every session with its
