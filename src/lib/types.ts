@@ -493,6 +493,9 @@ export interface Ping {
   createdAtISO: string;
   kind?: "nudge" | "pairing_invite";
   pairingCode?: string;
+  // a ready-made nudge (nudges.ts), shown in the reader's language;
+  // `message` keeps an English copy for older versions of the app
+  nudge?: { id: string; vars: Record<string, string | number> };
 }
 
 export const DEFAULT_SKILLS: SkillProfile = {

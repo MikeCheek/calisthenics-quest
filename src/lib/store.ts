@@ -248,11 +248,18 @@ export function listenFriends(uid: string, cb: (friends: Friend[]) => void): () 
 }
 
 // ---- Pings (lightweight "come train" nudges between friends) ----
-export async function sendPing(toUid: string, fromUid: string, fromName: string, message: string): Promise<void> {
+export async function sendPing(
+  toUid: string,
+  fromUid: string,
+  fromName: string,
+  message: string,
+  nudge?: { id: string; vars: Record<string, string | number> }
+): Promise<void> {
   await addDoc(collection(db, "users", toUid, "pings"), {
     fromUid,
     fromName,
     message,
+    ...(nudge ? { nudge } : {}),
     createdAtISO: new Date().toISOString(),
     kind: "nudge",
   });

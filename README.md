@@ -146,7 +146,7 @@ you have any health concerns.
   only count when logged.
 
 ### Social
-- **Friends** — add by code, nudge each other, and see a **weekly leaderboard** with a
+- **Friends** — add by code, nudge each other (funny, personalised lines by mood, or your own message), and see a **weekly leaderboard** with a
   rotating challenge (sessions, minutes, skills proven, XP).
 - **Global leaderboard** — switch the board to *Everyone* to see the week's top 50
   across the app. It's opt-in: you only appear after joining, as first name and last
@@ -286,6 +286,8 @@ service cloud.firestore {
         // only an established friend can drop a nudge in your inbox
         allow create: if request.auth != null && request.auth.uid != uid &&
           request.resource.data.fromUid == request.auth.uid &&
+          request.resource.data.message is string &&
+          request.resource.data.message.size() <= 200 &&
           exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
       }
     }

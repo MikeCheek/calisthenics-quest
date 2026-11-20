@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { renderNudge, validNudge } from "@/lib/nudges";
 import { useToast } from "@/context/ToastContext";
 import { listenPings, dismissPing, joinPairing } from "@/lib/store";
 import { Ping } from "@/lib/types";
@@ -17,6 +19,7 @@ import { Check, X, Users } from "lucide-react";
 export default function PingsListener() {
   const { user, userDoc } = useAuth();
   const toast = useToast();
+  const { tx, locale } = useLanguage();
   const router = useRouter();
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [invite, setInvite] = useState<Ping | null>(null);
@@ -30,11 +33,15 @@ export default function PingsListener() {
 
       fresh.forEach((p) => {
         if (p.kind === "pairing_invite") {
-          firePing(p.fromName, "wants to train together");
+          firePing(p.fromName, tx("wants to train together"));
           setInvite(p); // shown as a persistent card, not dismissed here
         } else {
-          firePing(p.fromName, p.message);
-          toast.info(`${p.fromName} ${p.message}`);
+          // ready-made nudges are shown in our own language; whatever a
+          // friend wrote is checked first, it came straight from their app
+          const n = validNudge(p.nudge);
+          const text = (n && renderNudge(locale, n)) || String(p.message ?? "").slice(0, 200);
+          firePing(p.fromName, text);
+          toast.info(`${p.fromName}: ${text}`);
           dismissPing(user.uid, p.id);
         }
       });
@@ -79,7 +86,7 @@ export default function PingsListener() {
             <Users size={15} className="text-orange-400" />
           </div>
           <div className="text-sm text-zinc-100">
-            <span className="font-medium">{invite.fromName}</span> wants to train together
+            <span className="font-medium">{invite.fromName}</span> {tx("wants to train together")}
           </div>
         </div>
         <div className="flex gap-2 mt-3">
@@ -88,14 +95,14 @@ export default function PingsListener() {
             disabled={responding}
             className="flex-1 py-2 rounded-lg border border-zinc-700 text-zinc-300 text-sm flex items-center justify-center gap-1.5 disabled:opacity-60"
           >
-            <X size={14} /> Decline
+            <X size={14} /> {tx("Decline")}
           </button>
           <button
             onClick={accept}
             disabled={responding}
             className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60"
           >
-            <Check size={14} /> Accept
+            <Check size={14} /> {tx("Accept")}
           </button>
         </div>
       </div>

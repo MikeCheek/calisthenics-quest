@@ -100,7 +100,7 @@ function PairContent() {
       userDoc.equipment
     );
     await sendPairingInvite(friend.uid, userDoc.uid, userDoc.displayName, newCode);
-    pushToFriend(friend.uid, "pairing_invite", newCode);
+    pushToFriend(friend.uid, "pairing_invite", { pairingCode: newCode });
     setInvitedName(friend.displayName);
     setCode(newCode);
     setMode("create");
