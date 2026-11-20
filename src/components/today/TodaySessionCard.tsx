@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import CancelSessionDialog from "@/components/CancelSessionDialog";
 import Link from "next/link";
 import { TrainingSession } from "@/lib/types";
 import { estimateSessionMinutes } from "@/lib/exerciseTiming";
@@ -28,6 +30,7 @@ export default function TodaySessionCard({
   onStart: () => void;
   onResume: () => void;
 }) {
+  const [cancelOpen, setCancelOpen] = useState(false);
   const { tx, locale } = useLanguage();
   // warm-up and finisher are always there; the preview shows what's specific to today
   const main = session.sets.filter((s) => s.track !== "warmup" && s.track !== "finisher");
@@ -115,6 +118,12 @@ export default function TodaySessionCard({
       >
         <Play size={17} /> {inProgress ? tx("Resume session") : tx("Start session")}
       </button>
+      {inProgress && (
+        <button onClick={() => setCancelOpen(true)} className="w-full mt-2 py-2.5 rounded-xl text-sm text-zinc-400 hover:text-red-300">
+          {tx("Cancel session")}
+        </button>
+      )}
+      <CancelSessionDialog open={cancelOpen} onClose={() => setCancelOpen(false)} />
     </section>
   );
 }

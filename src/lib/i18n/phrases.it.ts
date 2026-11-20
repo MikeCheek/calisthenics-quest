@@ -1171,6 +1171,14 @@ const IT_PHRASES: [string, string][] = [
   ["Your bet hit! Complete the exercise to collect {n} XP.", "Puntata vincente! Completa l'esercizio per incassare {n} XP."],
   ["No luck this time — the exercise still earns its XP.", "Niente fortuna stavolta — l'esercizio vale comunque i suoi XP."],
   ["Bonus", "Bonus"],
+  // ---- cancel a session ----
+  ["Cancel session", "Annulla sessione"],
+  ["Cancel this session?", "Annullare questa sessione?"],
+  ["Can't do it today? Stop without logging anything.", "Oggi non riesci? Interrompi senza registrare nulla."],
+  ["Nothing from it will be logged: no XP, and your streak and training history stay as they are.", "Non verrà registrato nulla: niente XP, e streak e storico degli allenamenti restano come sono."],
+  ["Did some of it? Go back and use Finish here, or finish the session, to log what you did.", "Ne hai fatto una parte? Torna indietro e usa Chiudi qui, o completa la sessione, per registrare ciò che hai fatto."],
+  ["Keep training", "Continua ad allenarti"],
+  ["Session cancelled — nothing was logged.", "Sessione annullata — non è stato registrato nulla."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

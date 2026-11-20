@@ -14,8 +14,9 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle } from "lucide-react";
 import Modal from "@/components/Modal";
+import CancelSessionDialog from "@/components/CancelSessionDialog";
 import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAlive, stopKeepAlive, updateLockScreen } from "@/lib/mediaSession";
 import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
 import type { TimerEvent } from "@/components/ExerciseTimer";
@@ -101,6 +102,7 @@ export default function FocusTrainingMode() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [infoOpen, setInfoOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [allDoneScreen, setAllDoneScreen] = useState(false);
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
@@ -763,8 +765,20 @@ export default function FocusTrainingMode() {
           {canLock && (
             <MenuRow icon={Smartphone} label={tx("Lock-screen controls")} hint={tx("Exercise, rest and next on your lock screen.")} toggle={lockOn} onClick={toggleLock} />
           )}
+          <div className="border-t border-zinc-800 my-2" />
+          <MenuRow
+            icon={XCircle}
+            label={tx("Cancel session")}
+            hint={tx("Can't do it today? Stop without logging anything.")}
+            danger
+            onClick={() => {
+              setMenuOpen(false);
+              setCancelOpen(true);
+            }}
+          />
         </div>
       </Modal>
+      <CancelSessionDialog open={cancelOpen} onClose={() => setCancelOpen(false)} />
 
       <ExerciseDetailModal
         exercise={current.exercise}
@@ -784,12 +798,14 @@ function MenuRow({
   hint,
   onClick,
   toggle,
+  danger,
 }: {
   icon: typeof Info;
   label: string;
   hint: string;
   onClick: () => void;
   toggle?: boolean;
+  danger?: boolean;
 }) {
   return (
     <button
@@ -798,9 +814,9 @@ function MenuRow({
       aria-checked={toggle}
       className="w-full min-h-[3.5rem] flex items-center gap-3 px-3 py-2.5 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-left"
     >
-      <Icon size={22} className="text-orange-400 shrink-0" />
+      <Icon size={22} className={`${danger ? "text-red-400" : "text-orange-400"} shrink-0`} />
       <span className="flex-1 min-w-0">
-        <span className="block text-base text-zinc-100">{label}</span>
+        <span className={`block text-base ${danger ? "text-red-300" : "text-zinc-100"}`}>{label}</span>
         <span className="block text-xs text-zinc-400">{hint}</span>
       </span>
       {toggle !== undefined && (

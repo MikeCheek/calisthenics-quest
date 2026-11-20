@@ -94,3 +94,25 @@ test("bonus wheel: bet, spin, land on an exercise you can do", async ({ page }) 
   await expect(page.getByText(/Bet (won|lost)/)).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("a session that can't be done today can be cancelled without logging", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/dashboard");
+  await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("dialog", { name: "Options" }).getByRole("button", { name: /Cancel session/ }).click();
+  const confirm = page.getByRole("dialog", { name: "Cancel this session?" });
+  // "Keep training" leaves it running
+  await confirm.getByRole("button", { name: "Keep training" }).click();
+  await expect(page.getByRole("button", { name: "More options" })).toBeVisible();
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("dialog", { name: "Options" }).getByRole("button", { name: /Cancel session/ }).click();
+  await page.getByRole("dialog", { name: "Cancel this session?" }).getByRole("button", { name: "Cancel session" }).click();
+  await expect(page.getByText("Session cancelled — nothing was logged.")).toBeVisible();
+  await expect(page.getByRole("main").getByRole("button", { name: /Start session/ })).toBeVisible();
+  // and it stays gone after a reload
+  await page.reload();
+  await expect(page.getByRole("main").getByRole("button", { name: /Start session/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Resume training" })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
