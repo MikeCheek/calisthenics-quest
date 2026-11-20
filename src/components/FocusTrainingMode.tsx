@@ -14,7 +14,8 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal } from "lucide-react";
+import Modal from "@/components/Modal";
 import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAlive, stopKeepAlive, updateLockScreen } from "@/lib/mediaSession";
 import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
 import type { TimerEvent } from "@/components/ExerciseTimer";
@@ -99,6 +100,7 @@ export default function FocusTrainingMode() {
   const [index, setIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [infoOpen, setInfoOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [allDoneScreen, setAllDoneScreen] = useState(false);
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
@@ -535,9 +537,10 @@ export default function FocusTrainingMode() {
     <div
       className={`fixed inset-0 z-50 bg-zinc-950 flex-col safe-top safe-bottom ${expanded ? "flex" : "hidden"}`}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <button onClick={minimize} className="p-1.5 text-muted hover:text-zinc-200" aria-label={tx("Minimize")}>
-          <ChevronDown size={20} />
+      {/* top: minimize, where you are, pause — everything else is in "More" */}
+      <div className="flex items-center justify-between px-2 py-2 border-b border-zinc-800">
+        <button onClick={minimize} className="w-11 h-11 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-100" aria-label={tx("Minimize")}>
+          <ChevronDown size={24} />
         </button>
         <div className="text-xs text-muted stat-mono">
           {Math.min(index + 1, steps.length)} / {steps.length}
@@ -545,36 +548,16 @@ export default function FocusTrainingMode() {
             <span className="text-muted"> · ~{estimateExercisesMinutes(steps.slice(index).map((s, i) => overrides[index + i] ?? s.exercise))} {tx("min left")}</span>
           )}
         </div>
-        <div className="flex items-center gap-1">
-        {canLock && (
-          <button
-            onClick={toggleLock}
-            className={`p-1.5 rounded-lg ${lockOn ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
-            aria-label={lockOn ? tx("Turn lock-screen controls off") : tx("Turn lock-screen controls on")}
-            aria-pressed={lockOn}
-            title={tx("Lock-screen controls")}
-          >
-            <Smartphone size={18} />
-          </button>
-        )}
-        {canSpeak && (
-          <button
-            onClick={toggleVoice}
-            className={`p-1.5 rounded-lg ${voiceOn ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
-            aria-label={voiceOn ? tx("Turn voice coaching off") : tx("Turn voice coaching on")}
-            aria-pressed={voiceOn}
-          >
-            {voiceOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
-          </button>
-        )}
         <button
           onClick={togglePause}
-          className={`p-1.5 rounded-lg ${paused ? "text-orange-400" : "text-muted hover:text-zinc-200"}`}
+          className={`w-11 h-11 flex items-center justify-center rounded-xl border ${
+            paused ? "border-orange-500 bg-orange-500 text-zinc-950" : "border-zinc-700 text-zinc-200 hover:border-zinc-500"
+          }`}
           aria-label={paused ? tx("Resume training") : tx("Pause training")}
+          aria-pressed={paused}
         >
-          {paused ? <Play size={18} /> : <Pause size={18} />}
+          {paused ? <Play size={20} /> : <Pause size={20} />}
         </button>
-        </div>
       </div>
 
       {/* stepper */}
@@ -609,9 +592,16 @@ export default function FocusTrainingMode() {
           )}
           <button
             onClick={skipRest}
-            className="px-5 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-2 text-sm"
+            className="w-full max-w-xs py-4 rounded-xl border border-zinc-600 text-zinc-100 hover:border-orange-500 flex items-center justify-center gap-2 text-base font-medium"
           >
-            <SkipForward size={15} /> {tx("Skip rest")}
+            <SkipForward size={18} /> {tx("Skip rest")}
+          </button>
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="mt-3 w-full max-w-xs py-3 rounded-xl text-zinc-300 hover:text-zinc-100 flex items-center justify-center gap-2 text-sm"
+            aria-haspopup="dialog"
+          >
+            <MoreHorizontal size={18} /> {tx("More options")}
           </button>
         </div>
       ) : allDoneScreen ? (
@@ -649,16 +639,16 @@ export default function FocusTrainingMode() {
                 <div className="heading text-2xl text-zinc-100">{current.exercise.name}</div>
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="p-1 text-muted hover:text-orange-400"
+                  className="w-10 h-10 -my-2 flex items-center justify-center rounded-full text-zinc-400 hover:text-orange-400"
                   aria-label={tx("Details for {ex}", { ex: current.exercise.name })}
                 >
-                  <Info size={18} />
+                  <Info size={20} />
                 </button>
               </div>
               {index in overrides ? (
                 <div className="text-xs text-orange-400 mt-0.5 flex items-center justify-center gap-2">
                   {tx("Swapped in — something gentler")}
-                  <button onClick={undoSwap} className="underline text-zinc-300 hover:text-zinc-100">
+                  <button onClick={undoSwap} className="underline text-zinc-300 hover:text-zinc-100 px-2 py-1.5">
                     {tx("Undo")}
                   </button>
                 </div>
@@ -713,48 +703,68 @@ export default function FocusTrainingMode() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between px-4 py-4 border-t border-zinc-800 gap-3">
+          {/* bottom, under the thumb: three big buttons */}
+          <div className="flex items-stretch gap-2 px-3 py-3 border-t border-zinc-800">
             <button
               onClick={goBack}
               disabled={index === 0}
-              className="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 disabled:opacity-40 flex items-center justify-center gap-1.5 text-sm"
+              className="w-14 h-14 shrink-0 rounded-xl border border-zinc-700 text-zinc-200 disabled:opacity-30 flex items-center justify-center"
+              aria-label={tx("Back")}
             >
-              <ChevronLeft size={16} /> {tx("Back")}
+              <ChevronLeft size={24} />
             </button>
             <button
               onClick={goNext}
               disabled={paused}
-              className="flex-1 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center justify-center gap-1.5 text-sm disabled:opacity-40"
+              className="flex-1 h-14 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 text-base font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40"
             >
-              {tx("Next")} <ChevronRight size={16} />
+              {tx("Next")} <ChevronRight size={20} />
+            </button>
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="w-14 h-14 shrink-0 rounded-xl border border-zinc-700 text-zinc-200 flex flex-col items-center justify-center text-[0.7rem] leading-none gap-0.5"
+              aria-label={tx("More options")}
+              aria-haspopup="dialog"
+            >
+              <MoreHorizontal size={22} />
+              <span aria-hidden="true">{tx("More")}</span>
             </button>
           </div>
-          {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && (
-            <div className="grid grid-cols-2 gap-2 mx-4 mb-2">
-              <button
-                onClick={handleSkip}
-                className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 flex items-center justify-center gap-1.5 text-xs"
-              >
-                <SkipForward size={13} /> {tx("Skip")}
-              </button>
-              {!current.exercise.check && (
-              <button
-                onClick={handleTooHard}
-                className="py-2 rounded-lg border border-zinc-800 text-zinc-400 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
-              >
-                <ArrowDownCircle size={13} /> {tx("Too hard")}
-              </button>
-              )}
-            </div>
-          )}
-          <button
-            onClick={handleTired}
-            className="mx-4 mb-4 py-2 rounded-lg border border-zinc-800 text-muted hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center gap-1.5 text-xs"
-          >
-            <BatteryLow size={13} /> {tx("I'm tired — ease up what's left")}
-          </button>
         </>
       )}
+
+      {/* everything that isn't needed every set */}
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title={tx("Options")}>
+        <div className="space-y-1.5">
+          {!allDoneScreen && restSecondsLeft === null && !HIERARCHY_EXEMPT_SETS.has(current.setTitle) && (
+            <>
+              <MenuRow icon={SkipForward} label={tx("Skip this exercise")} hint={tx("Your next sessions adapt to what you skip.")} onClick={() => { setMenuOpen(false); handleSkip(); }} />
+              {!current.exercise.check && (
+                <MenuRow icon={ArrowDownCircle} label={tx("Too hard — swap for an easier one")} hint={tx("You can undo it right after.")} onClick={() => { setMenuOpen(false); handleTooHard(); }} />
+              )}
+            </>
+          )}
+          {!allDoneScreen && (
+            <MenuRow icon={BatteryLow} label={tx("I'm tired — ease up what's left")} hint={tx("Easier swaps or fewer sets for the rest of the session.")} onClick={() => { setMenuOpen(false); handleTired(); }} />
+          )}
+          {!allDoneScreen && restSecondsLeft === null && (
+            <MenuRow icon={Info} label={tx("Exercise details")} hint={tx("How to do it, and the common mistakes.")} onClick={() => { setMenuOpen(false); setInfoOpen(true); }} />
+          )}
+          {(canSpeak || canLock) && <div className="border-t border-zinc-800 my-2" />}
+          {canSpeak && (
+            <MenuRow
+              icon={voiceOn ? Volume2 : VolumeX}
+              label={tx("Voice coaching")}
+              hint={tx("Sets, countdowns and what's next, read out loud.")}
+              toggle={voiceOn}
+              onClick={toggleVoice}
+            />
+          )}
+          {canLock && (
+            <MenuRow icon={Smartphone} label={tx("Lock-screen controls")} hint={tx("Exercise, rest and next on your lock screen.")} toggle={lockOn} onClick={toggleLock} />
+          )}
+        </div>
+      </Modal>
 
       <ExerciseDetailModal
         exercise={current.exercise}
@@ -763,5 +773,41 @@ export default function FocusTrainingMode() {
         onClose={() => setInfoOpen(false)}
       />
     </div>
+  );
+}
+
+// One row of the options sheet: big enough to hit mid-set, with a line on
+// what it does; settings show their on/off state as a switch.
+function MenuRow({
+  icon: Icon,
+  label,
+  hint,
+  onClick,
+  toggle,
+}: {
+  icon: typeof Info;
+  label: string;
+  hint: string;
+  onClick: () => void;
+  toggle?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      role={toggle === undefined ? undefined : "switch"}
+      aria-checked={toggle}
+      className="w-full min-h-[3.5rem] flex items-center gap-3 px-3 py-2.5 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 text-left"
+    >
+      <Icon size={22} className="text-orange-400 shrink-0" />
+      <span className="flex-1 min-w-0">
+        <span className="block text-base text-zinc-100">{label}</span>
+        <span className="block text-xs text-zinc-400">{hint}</span>
+      </span>
+      {toggle !== undefined && (
+        <span className={`w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors ${toggle ? "bg-orange-500" : "bg-zinc-600"}`} aria-hidden="true">
+          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${toggle ? "translate-x-5" : ""}`} />
+        </span>
+      )}
+    </button>
   );
 }

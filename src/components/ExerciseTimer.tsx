@@ -399,13 +399,13 @@ export default function ExerciseTimer({
   const ss = secondsLeft !== null ? String(secondsLeft % 60).padStart(2, "0") : "--";
 
   return (
-    <div className="mt-2 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700">
+    <div className="mt-2 p-3 rounded-xl bg-zinc-800/60 border border-zinc-700">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-zinc-400">
+        <span className="text-sm text-zinc-300">
           {tx("Set {a} of {b}", { a: Math.min(set, timing.sets), b: timing.sets })}
         </span>
         {phase !== "done" && (
-          <button onClick={reset} className="text-xs text-muted hover:text-zinc-300">
+          <button onClick={reset} className="text-xs text-muted hover:text-zinc-300 px-2 py-1.5 -mr-2">
             {tx("Reset")}
           </button>
         )}
@@ -419,14 +419,14 @@ export default function ExerciseTimer({
         <button
           onClick={start}
           disabled={externallyPaused}
-          className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Play size={16} /> {timing.isTimed ? tx("Start timer") : tx("Start set {n}", { n: set })}
+          <Play size={20} /> {timing.isTimed ? tx("Start timer") : tx("Start set {n}", { n: set })}
         </button>
       ) : phase === "countdown" ? (
         <div className="text-center py-2">
           <div className="text-xs uppercase tracking-wide text-muted mb-1">{tx("Get ready")}</div>
-          <div key={countdownValue} className="stat-mono text-5xl text-orange-400 animate-pop-in">
+          <div key={countdownValue} className="stat-mono text-6xl text-orange-400 animate-pop-in">
             {countdownValue}
           </div>
         </div>
@@ -435,7 +435,7 @@ export default function ExerciseTimer({
           <div className="text-sm text-zinc-300">{tx("Do your reps, then mark the set done.")}</div>
           <button
             onClick={finishRepSet}
-            className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-zinc-950 text-sm font-medium"
+            className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-base font-semibold"
           >
             {tx("Done with set {n}", { n: set })}
           </button>
@@ -445,31 +445,31 @@ export default function ExerciseTimer({
           <div className={`text-xs uppercase tracking-wide mb-1 ${phase === "work" ? "text-orange-400" : "text-emerald-400"}`}>
             {externallyPaused ? tx("Paused") : phase === "work" ? tx("Go") : tx("Rest")}
           </div>
-          <div className="stat-mono text-4xl text-zinc-100 mb-2">
+          <div className="stat-mono text-6xl text-zinc-100 mb-3">
             {mm}:{ss}
           </div>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => !externallyPaused && setRunning((r) => !r)}
               disabled={externallyPaused}
-              className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-400 text-zinc-950 flex items-center justify-center disabled:opacity-50"
+              className="w-16 h-16 rounded-full bg-orange-500 hover:bg-orange-400 text-zinc-950 flex items-center justify-center disabled:opacity-50"
               aria-label={running ? tx("Pause") : tx("Resume")}
             >
-              {running && !externallyPaused ? <Pause size={16} /> : <Play size={16} />}
+              {running && !externallyPaused ? <Pause size={26} /> : <Play size={26} />}
             </button>
             <button
               onClick={skip}
               disabled={externallyPaused}
-              className="w-10 h-10 rounded-full border border-zinc-600 text-zinc-300 flex items-center justify-center disabled:opacity-50"
-              aria-label={tx("Skip")}
+              className="w-16 h-16 rounded-full border border-zinc-600 text-zinc-200 flex items-center justify-center disabled:opacity-50"
+              aria-label={phase === "rest" ? tx("Skip rest") : tx("Skip")}
             >
-              <SkipForward size={16} />
+              <SkipForward size={24} />
             </button>
           </div>
           {phase === "rest" && onStopEarly && (
             <button
               onClick={finishEarly}
-              className="mt-3 text-xs px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-zinc-500"
+              className="mt-4 w-full py-3 rounded-xl border border-zinc-700 text-zinc-200 hover:border-zinc-500 text-sm"
             >
               {tx("Finish here — {a} of {b} sets", { a: set, b: timing.sets })}
             </button>
@@ -479,23 +479,23 @@ export default function ExerciseTimer({
 
       {repSetIdx >= 0 && (phase === "rest" || phase === "done") && (
         <div className="mt-3 pt-3 border-t border-zinc-700 flex items-center gap-2">
-          <span className="text-xs text-zinc-400 flex-1">{tx("Reps in set {n}", { n: repSetIdx + 1 })}</span>
+          <span className="text-sm text-zinc-300 flex-1">{tx("Reps in set {n}", { n: repSetIdx + 1 })}</span>
           <button
             type="button"
             aria-label={tx("Fewer reps")}
             onClick={() => logReps(Math.max(0, (repLog[repSetIdx] ?? repDefault) - 1))}
-            className="w-7 h-7 rounded-lg border border-zinc-600 text-zinc-300"
+            className="w-11 h-11 rounded-xl border border-zinc-600 text-zinc-100 text-xl"
           >
             −
           </button>
-          <span className={`stat-mono w-8 text-center text-sm ${repLog[repSetIdx] === undefined ? "text-muted" : "text-zinc-100"}`}>
+          <span className={`stat-mono w-10 text-center text-xl ${repLog[repSetIdx] === undefined ? "text-muted" : "text-zinc-100"}`}>
             {repLog[repSetIdx] ?? repDefault}
           </span>
           <button
             type="button"
             aria-label={tx("More reps")}
             onClick={() => logReps((repLog[repSetIdx] ?? repDefault) + 1)}
-            className="w-7 h-7 rounded-lg border border-zinc-600 text-zinc-300"
+            className="w-11 h-11 rounded-xl border border-zinc-600 text-zinc-100 text-xl"
           >
             +
           </button>
@@ -503,7 +503,7 @@ export default function ExerciseTimer({
             <button
               type="button"
               onClick={() => logReps(repDefault)}
-              className="text-xs px-2 py-1 rounded-lg bg-emerald-600/20 text-emerald-300"
+              className="h-11 text-sm px-3 rounded-xl bg-emerald-600/20 text-emerald-300"
             >
               {tx("Log")}
             </button>
