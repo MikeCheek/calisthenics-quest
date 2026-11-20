@@ -91,6 +91,20 @@
       "valueType": "NUMBER",
       "description": "Times you ran out of energy recently before sessions are balanced (allowed 1–6, whole numbers)"
     },
+    "xp_nudge_done": {
+      "defaultValue": {
+        "value": "10"
+      },
+      "valueType": "NUMBER",
+      "description": "XP for completing a friend's challenge nudge, up to 3 a day (allowed 0–50, whole numbers)"
+    },
+    "event_goal_scale": {
+      "defaultValue": {
+        "value": "1"
+      },
+      "valueType": "NUMBER",
+      "description": "Multiplies the monthly community goals — raise it as more people play (allowed 0.01–1000)"
+    },
     "feature_global_board": {
       "defaultValue": {
         "value": "true"
@@ -104,6 +118,13 @@
       },
       "valueType": "BOOLEAN",
       "description": "Show the AI coach chat on the Coach tab"
+    },
+    "feature_events": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "Show the monthly community event"
     }
   }
 }

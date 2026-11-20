@@ -30,7 +30,10 @@ export default function WeekStrip({ days, planned }: { days: StripDay[]; planned
           <li key={d.dateISO} className="flex flex-col items-center gap-1">
             <span className={`text-xs ${d.isToday ? "text-orange-400 font-semibold" : "text-muted"}`}>{letters[d.weekday]}</span>
             <span
-              aria-label={`${d.dateISO}: ${d.done ? tx("trained") : d.planned ? tx("planned") : tx("rest")}`}
+              role="img"
+              aria-label={`${new Date(d.dateISO + "T12:00:00").toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long", day: "numeric", month: "long" })}: ${
+                d.done ? tx("trained") : d.planned ? tx("planned") : tx("rest")
+              }${d.isToday ? ` (${tx("today")})` : ""}`}
               className={`w-9 h-9 rounded-full flex items-center justify-center text-xs ${
                 d.done
                   ? "bg-emerald-500 text-zinc-950"

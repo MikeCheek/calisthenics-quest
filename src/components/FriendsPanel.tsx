@@ -91,7 +91,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
     <div className="space-y-4">
       {nudging && <NudgeSheet friend={nudging} onClose={() => setNudging(null)} onSent={() => handleNudged(nudging)} />}
       <div className="panel p-4">
-        <div className="heading text-base text-zinc-100 mb-1">{tx("Your friend code")}</div>
+        <h2 className="heading text-base text-zinc-100 mb-1">{tx("Your friend code")}</h2>
         <p className="text-xs text-muted mb-3">{tx("Share this so friends can add you.")}</p>
         <div className="flex items-center gap-2">
           <div className="stat-mono text-2xl tracking-[0.25em] text-orange-400 flex-1 text-center py-2 border border-zinc-700 rounded-lg">
@@ -113,9 +113,9 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
       </div>
 
       <div className="panel p-4">
-        <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+        <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
           <UserPlus size={16} className="text-orange-400" /> {tx("Add a friend")}
-        </div>
+        </h2>
         <div className="flex gap-2">
           <input
             value={codeInput}
@@ -135,9 +135,9 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
       </div>
 
       <div className="panel p-4">
-        <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+        <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
           <Users2 size={16} className="text-orange-400" /> {tx("Your friends")}
-        </div>
+        </h2>
         {friends.length === 0 ? (
           <p className="text-sm text-muted">
             {tx("No friends added yet — share your code or add one above.")}

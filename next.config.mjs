@@ -9,6 +9,9 @@ const DEMO_STORE = path.resolve("src/lib/demoMode/store.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // the browser tests run a demo and a regular dev server side by side,
+  // each with its own build folder (playwright.config.ts)
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   webpack: (config, { dev, webpack }) => {
     if (DEMO && dev) {
       config.plugins.push(

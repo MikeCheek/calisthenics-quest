@@ -24,12 +24,12 @@ export default function NextMilestones({ playerLevel }: { playerLevel: number })
         <div className="text-xs uppercase tracking-wide text-muted flex items-center gap-1.5">
           <Crown size={12} className="text-amber-400" /> {tx("Your chapter")}
         </div>
-        <div className="heading text-lg text-zinc-100">{tx(chapter)}</div>
+        <h2 className="heading text-lg text-zinc-100">{tx(chapter)}</h2>
         {blurb && <div className="text-xs text-zinc-400">{tx(blurb)}</div>}
       </div>
-      <div className="heading text-base text-zinc-100 mb-3 flex items-center gap-2">
+      <h2 className="heading text-base text-zinc-100 mb-3 flex items-center gap-2">
         <Flag size={16} className="text-orange-400" /> {tx("Next milestones")}
-      </div>
+      </h2>
       <ol className="space-y-2">
         {next.map((n, i) => {
           const away = n.level - playerLevel;

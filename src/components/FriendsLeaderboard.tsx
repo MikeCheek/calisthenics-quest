@@ -127,7 +127,7 @@ export default function FriendsLeaderboard() {
         <div className="text-xs uppercase tracking-wide text-amber-300 flex items-center gap-1.5">
           <Swords size={13} /> {tx("This week's challenge")}
         </div>
-        <div className="heading text-lg text-zinc-100 mt-0.5">{tx(challenge.title)}</div>
+        <h2 className="heading text-lg text-zinc-100 mt-0.5">{tx(challenge.title)}</h2>
         <div className="text-sm text-zinc-400">{tx(challenge.blurb)}</div>
         {entries && entries.length > 1 && leader && (
           <div className="mt-3 text-sm text-zinc-200 flex items-center gap-2">
@@ -147,9 +147,9 @@ export default function FriendsLeaderboard() {
 
       <div className="panel p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="heading text-base text-zinc-100 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
             <Trophy size={16} className="text-amber-400" /> {tx("This week")}
-          </div>
+          </h2>
           {featureGlobalBoard && (
           <div className="flex p-0.5 rounded-lg bg-zinc-800/60 gap-0.5" role="tablist" aria-label={tx("Leaderboard")}>
             {(

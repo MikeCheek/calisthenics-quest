@@ -54,7 +54,7 @@ export default function AdaptationReportModal() {
               <Flame size={22} className={`shrink-0 ${summary!.celebration.streakEvent !== "none" ? "text-orange-400 animate-flame-pulse" : "text-muted"}`} />
             )}
             <div className="min-w-0 flex-1">
-              <div className="heading text-base text-zinc-100">{tx(lines.headline.text, lines.headline.vars)}</div>
+              <h2 className="heading text-base text-zinc-100">{tx(lines.headline.text, lines.headline.vars)}</h2>
               {lines.detail && <div className="text-xs text-zinc-400">{tx(lines.detail.text, lines.detail.vars)}</div>}
             </div>
             <div className="stat-mono text-sm text-orange-400 shrink-0">{tx(lines.xp.text, lines.xp.vars)}</div>

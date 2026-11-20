@@ -55,7 +55,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <main className="min-h-screen px-4 py-6 pb-10 max-w-md mx-auto">
+    <main id="main" tabIndex={-1} className="min-h-screen px-4 py-6 pb-10 max-w-md mx-auto">
       <OnboardingStepper
         initialBody={userDoc.body ?? DEFAULT_BODY}
         initialSkills={userDoc.skills ?? DEFAULT_SKILLS}

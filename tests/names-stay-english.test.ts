@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { translate } from "../src/lib/i18n/tx";
 import { RANK_TITLES } from "../src/lib/xp";
 
-// Product decision: rank titles and exercise names stay in English whatever
-// the language (the calisthenics community uses the English names). This
+// Product decision: rank titles, skill names and exercise names stay in
+// English whatever the language (the calisthenics community uses the English
+// names: "handstand", "tuck", "skill"). This
 // fails if a phrase-table entry ever turns one of them into Italian.
 
 const EXERCISE_FILES = [
@@ -73,6 +74,18 @@ test("exercise names inside generated notes stay English, the rest is translated
   assert.equal(translate("it", "Swapped in {ex}", { ex: "Handstand walk" }), "Sostituito con Handstand walk");
 });
 
-test("skill names in skill contexts are still translated", () => {
-  assert.equal(translate("it", "Handstand walk"), "Camminata in verticale");
+test("skill and stage names stay English in Italian too", () => {
+  for (const name of ["Handstand", "Handstand walk", "Human flag", "Human Flag", "Back flip", "Clap push-up", "Wall walk", "Tuck", "Tuck cross"]) {
+    assert.equal(translate("it", name), name);
+  }
+  assert.equal(translate("it", "Adv. tuck"), "Tuck avanzato");
+});
+
+test("Italian uses the words athletes use: skill, streak, spronata — not abilità, serie di giorni, stimolo", () => {
+  const src = ["i18n/phrases.it.ts", "i18n/it.ts", "landingCopy.ts", "site.ts", "i18n/exerciseDescriptions.it.ts", "skillDescriptions.it.ts"]
+    .map((f) => readFileSync(join(process.cwd(), "src/lib", f), "utf8"))
+    .join("\n");
+  for (const awkward of [/\babilità\b/i, /serie di giorni/i, /\bstimol/i, /\bbandiera\b/i, /lever raccolt/i]) {
+    assert.doesNotMatch(src, awkward);
+  }
 });

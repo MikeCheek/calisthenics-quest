@@ -12,6 +12,9 @@ import TrainingSessionOverlays from "@/components/TrainingSessionOverlays";
 import LocaleSync from "@/components/LocaleSync";
 import DemoBadge from "@/components/DemoBadge";
 import RemoteConfigLoader from "@/components/RemoteConfigLoader";
+import SkipLink from "@/components/SkipLink";
+import TitleSync from "@/components/TitleSync";
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,10 +23,25 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BarQuests — Calisthenics Training, Gamified",
-  description:
-    "Tailored calisthenics training plans, XP, missions and paired workouts — built around the equipment you actually have.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: SITE_KEYWORDS,
+  category: "fitness",
   manifest: "/manifest.json",
+  // the share picture comes from app/opengraph-image.tsx
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "en_US",
+    alternateLocale: ["it_IT"],
+  },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  formatDetection: { telephone: false },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -48,7 +66,7 @@ export const viewport: Viewport = {
   themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // no maximumScale: people must be able to pinch-zoom (WCAG 1.4.4)
   viewportFit: "cover",
 };
 
@@ -62,6 +80,8 @@ export default function RootLayout({
       <body className="font-sans min-h-screen antialiased" suppressHydrationWarning>
         <ToastProvider>
           <LanguageProvider>
+            <SkipLink />
+            <TitleSync />
             <AuthProvider>
               <TrainingSessionProvider>
                 {children}

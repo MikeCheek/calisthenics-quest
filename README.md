@@ -2,7 +2,7 @@
 
 # ▲ BarQuests
 
-**Calisthenics training that places you per skill, adapts to every set, and proves your level.**
+**Your calisthenics journey — training that places you per skill, adapts to every set, and proves your level.**
 
 A mobile-first web app (installable as a PWA) for people who train on outdoor bars —
 front lever, planche, muscle-up, handstand and 46 more skills.
@@ -151,6 +151,11 @@ you have any health concerns.
 - **Global leaderboard** — switch the board to *Everyone* to see the week's top 50
   across the app. It's opt-in: you only appear after joining, as first name and last
   initial, and you can leave any time.
+- **Nudge replies** — answer a friend's nudge in one tap (*On it!*, *Later today*, *Rest day*);
+  *Done!* on a challenge nudge earns a little XP, up to three times a day.
+- **Monthly community event** — one theme a month (*Push-up December*, *Handstand
+  October*…), a goal everyone works toward together and a goal of your own. Your part
+  is counted from your sessions; only the number is shared, never your name.
 - **Train together** — a shared session where each person gets work at their own level;
   with one bar between you, rests double so you take turns.
 - **Share cards** — session, verified-skill and personal-best images in story or square
@@ -162,6 +167,9 @@ you have any health concerns.
   account, each showing exactly what it removes and keeps.
 - `.tcx` export of any session, for platforms that import workout files (e.g. Strava,
   Garmin Connect).
+- **Accessible** — works with a keyboard and screen readers (skip link, real headings,
+  labelled controls, dialogs that keep focus, announced messages), pinch-zoom allowed,
+  WCAG AA contrast; checked with axe on every screen.
 
 <details>
 <summary><b>More screenshots</b></summary>
@@ -206,7 +214,8 @@ see [Project structure](#project-structure).
 - **OpenRouter** for the optional AI features (coach chat, exercise tips, plan review)
 - No chart, animation or i18n libraries — charts, the stick-figure rig and the
   translation layer are small, purpose-built modules
-- Unit tests with Node's built-in test runner (`npm test`) — no extra dependencies
+- Unit tests with Node's built-in test runner (`npm test`), and browser tests with
+  Playwright and axe (`npm run e2e`) on every screen; both run on every pull request
 
 ## Getting started
 
@@ -253,6 +262,10 @@ CRON_SECRET=...                                            # server only, any lo
 # optional — App Check (Fraud Defense key; or NEXT_PUBLIC_RECAPTCHA_SITE_KEY for classic reCAPTCHA v3)
 NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY=...
 APP_CHECK_MODE=monitor          # off | monitor | enforce
+
+# optional — the public address for search engines and link previews; on Vercel
+# the production address is used automatically, set this for a custom domain
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
 ```
 
 5. **Firestore → Rules** — paste the rules below.
@@ -340,6 +353,18 @@ service cloud.firestore {
         && count(request.resource.data.xp, 20000);
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+
+    // monthly community events: one number per player, which the app sums
+    // with an aggregation query (that needs read access to the collection)
+    match /events/{month}/players/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && month.matches('^[0-9]{4}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['value', 'updatedAtISO'])
+        && request.resource.data.value is int
+        && request.resource.data.value >= 0 && request.resource.data.value <= 100000;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }
 ```
@@ -389,6 +414,7 @@ or out of range keeps its default. Set `NEXT_PUBLIC_REMOTE_CONFIG=off` to skip i
 npm run dev        # http://localhost:3000
 npm run demo       # same, signed in as an example athlete — no Firebase needed
 npm test           # unit tests
+npm run e2e        # browser tests: every screen + accessibility scan (Playwright)
 npm run lint
 npm run build && npm start   # production build
 ```
@@ -408,6 +434,12 @@ The app deploys to [Vercel](https://vercel.com) as a standard Next.js project: i
 the repository, add the same environment variables, and add your deployment's domain
 under **Firebase → Authentication → Settings → Authorized domains** so Google sign-in
 works there.
+
+Search engines see the landing page and About only (`/sitemap.xml`, `/robots.txt`); the
+signed-in screens have their own tab titles but are kept out of the index. Link
+previews use the generated picture from `src/app/opengraph-image.tsx`. To get the app
+listed sooner, add the site to [Google Search Console](https://search.google.com/search-console)
+and submit `https://<your-domain>/sitemap.xml`.
 
 ## Project structure
 

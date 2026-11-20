@@ -21,8 +21,11 @@ export interface Tuning {
   fatigueFloor: number; // the minimum weight
   balanceHeadroom: number; // sessions may exceed recent capacity by this factor
   tiredSessionsNeeded: number; // times you ran out before sessions get balanced
+  xpNudgeDone: number; // XP for completing a friend's challenge nudge
+  eventGoalScale: number; // multiplies the monthly community goals (events.ts)
   featureGlobalBoard: boolean;
   featureAiCoach: boolean;
+  featureEvents: boolean;
 }
 
 export const TUNING_DEFAULTS: Tuning = {
@@ -39,8 +42,11 @@ export const TUNING_DEFAULTS: Tuning = {
   fatigueFloor: 0.35,
   balanceHeadroom: 1.1,
   tiredSessionsNeeded: 2,
+  xpNudgeDone: 10,
+  eventGoalScale: 1,
   featureGlobalBoard: true,
   featureAiCoach: true,
+  featureEvents: true,
 };
 
 type NumKey = { [K in keyof Tuning]: Tuning[K] extends number ? K : never }[keyof Tuning];
@@ -60,8 +66,11 @@ export const REMOTE_PARAMS: Record<keyof Tuning, { param: string; range?: [numbe
   fatigueFloor: { param: "fatigue_floor", range: [0, 1] },
   balanceHeadroom: { param: "balance_headroom", range: [1, 2] },
   tiredSessionsNeeded: { param: "tired_sessions_needed", range: [1, 6], integer: true },
+  xpNudgeDone: { param: "xp_nudge_done", range: [0, 50], integer: true },
+  eventGoalScale: { param: "event_goal_scale", range: [0.01, 1000] },
   featureGlobalBoard: { param: "feature_global_board" },
   featureAiCoach: { param: "feature_ai_coach" },
+  featureEvents: { param: "feature_events" },
 };
 
 let current: Tuning = { ...TUNING_DEFAULTS };

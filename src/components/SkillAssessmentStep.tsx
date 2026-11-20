@@ -153,7 +153,7 @@ export default function SkillAssessmentStep({
             ))}
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="heading text-lg text-zinc-100">{tx(area.title)}</div>
+            <h2 className="heading text-lg text-zinc-100">{tx(area.title)}</h2>
             <div className="text-xs text-muted">
               {areaIdx + 1} / {areas.length}
             </div>

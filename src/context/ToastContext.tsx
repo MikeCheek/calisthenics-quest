@@ -85,10 +85,12 @@ const KIND_STYLE: Record<ToastKind, { icon: typeof Info; classes: string; iconCl
 };
 
 function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: string) => void }) {
-  if (toasts.length === 0) return null;
-
+  // the region stays on the page even when empty: screen readers only
+  // announce changes to a live region that was already there
+  const it = typeof document !== "undefined" && document.documentElement.lang === "it";
   return (
     <div
+      aria-live="polite"
       className="fixed left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none"
       style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
     >
@@ -98,14 +100,14 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: 
           <div
             key={t.id}
             className={`pointer-events-auto w-full panel border ${classes} shadow-lg px-3.5 py-3 flex items-start gap-2.5 animate-slide-down-in`}
-            role={t.kind === "error" || t.kind === "warning" ? "alert" : "status"}
+            role={t.kind === "error" || t.kind === "warning" ? "alert" : undefined}
           >
-            <Icon size={17} className={`shrink-0 mt-0.5 ${iconClass}`} />
+            <Icon size={17} className={`shrink-0 mt-0.5 ${iconClass}`} aria-hidden="true" />
             <div className="flex-1 text-sm text-zinc-100 leading-snug">{t.message}</div>
             <button
               onClick={() => onDismiss(t.id)}
-              className="text-muted hover:text-zinc-300 shrink-0 -mt-0.5"
-              aria-label="Dismiss"
+              className="text-muted hover:text-zinc-300 shrink-0 -mt-1.5 -mr-1.5 p-1.5"
+              aria-label={it ? "Chiudi" : "Dismiss"}
             >
               <X size={15} />
             </button>

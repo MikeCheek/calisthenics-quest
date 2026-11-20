@@ -62,7 +62,7 @@ export default function SkillsPage() {
   return (
     <>
       <Nav />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
 
@@ -90,9 +90,9 @@ export default function SkillsPage() {
 
             {userDoc.goalTracks?.length > 0 && (
               <div className="panel p-4">
-                <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+                <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
                   <Target size={16} className="text-orange-400" /> {tx("Your goals")}
-                </div>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {userDoc.goalTracks.map((track) => (
                     <span key={track} className="text-xs px-2.5 py-1 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300">
@@ -104,9 +104,9 @@ export default function SkillsPage() {
             )}
 
             <div className="panel p-4">
-              <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
+              <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
                 <Sparkles size={16} className="text-orange-400" /> {t("profile", "updateSkills")}
-              </div>
+              </h2>
               <p className="text-xs text-zinc-400 mb-3">{t("profile", "updateSkillsHint")}</p>
               <div className="flex gap-2">
                 <button
@@ -131,7 +131,7 @@ export default function SkillsPage() {
             <VerifiedSkillsCard userDoc={userDoc} />
             <SkillWall skills={userDoc.skills} mastery={userDoc.skillMastery} playerLevel={level} />
             <div className="panel p-4">
-              <div className="heading text-base text-zinc-100 mb-2">{t("profile", "skillRadar")}</div>
+              <h2 className="heading text-base text-zinc-100 mb-2">{t("profile", "skillRadar")}</h2>
               <SkillRadarChart skills={userDoc.skills} />
             </div>
           </div>

@@ -50,7 +50,7 @@ export default function SkillWall({
   return (
     <div className="panel p-4">
       <div className="flex items-center justify-between mb-1">
-        <div className="heading text-base text-zinc-100">{tx("Skill wall")}</div>
+        <h2 className="heading text-base text-zinc-100">{tx("Skill wall")}</h2>
         <div className="text-xs text-muted">{tx("{n}/{total} lit", { n: startedCount, total: ALL_SKILLS.length })}</div>
       </div>
       <p className="text-xs text-muted mb-3">

@@ -182,6 +182,18 @@ service cloud.firestore {
         && count(request.resource.data.xp, 20000);
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+
+    // monthly community events: one number per player, which the app sums
+    // with an aggregation query (that needs read access to the collection)
+    match /events/{month}/players/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && month.matches('^[0-9]{4}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['value', 'updatedAtISO'])
+        && request.resource.data.value is int
+        && request.resource.data.value >= 0 && request.resource.data.value <= 100000;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }
 ```

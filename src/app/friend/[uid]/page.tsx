@@ -28,14 +28,14 @@ export default function FriendProfilePage() {
   }, [authLoading, user, params.uid, router]);
 
   if (authLoading || profile === undefined) {
-    return <main className="min-h-screen flex items-center justify-center text-zinc-400">{tx("Loading…")}</main>;
+    return <main id="main" tabIndex={-1} className="min-h-screen flex items-center justify-center text-zinc-400">{tx("Loading…")}</main>;
   }
 
   if (profile === null) {
     return (
       <>
         <Nav />
-        <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6">
+        <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6">
           <button onClick={() => router.back()} className="text-sm text-zinc-400 flex items-center gap-1 mb-4">
             <ChevronLeft size={16} /> Back
           </button>
@@ -50,7 +50,7 @@ export default function FriendProfilePage() {
   return (
     <>
       <Nav />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-5">
         <button onClick={() => router.back()} className="text-sm text-zinc-400 flex items-center gap-1">
           <ChevronLeft size={16} /> Back
         </button>
@@ -92,7 +92,7 @@ export default function FriendProfilePage() {
         </div>
 
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2">{tx("Skill radar")}</div>
+          <h2 className="heading text-base text-zinc-100 mb-2">{tx("Skill radar")}</h2>
           <SkillRadarChart skills={profile.skills ?? DEFAULT_SKILLS} />
         </div>
 

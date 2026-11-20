@@ -121,9 +121,9 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
           >
             <ChevronLeft size={18} />
           </button>
-          <div className="heading text-base text-zinc-100 capitalize">
+          <h2 className="heading text-base text-zinc-100 capitalize">
             {month.toLocaleDateString(fmtLocale, { month: "long", year: "numeric" })}
-          </div>
+          </h2>
           <button
             onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
             disabled={isCurrentMonth}
@@ -205,9 +205,9 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
 
       {bests.length > 0 && (
         <div className="panel p-4">
-          <div className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
             <Trophy size={16} className="text-amber-400" /> {tx("Personal bests")}
-          </div>
+          </h2>
           <ul className="space-y-1.5">
             {bests.map((b) => (
               <li key={b.name} className="flex items-center justify-between gap-2 text-sm">
@@ -266,7 +266,7 @@ function SessionCard({
       <button onClick={onToggle} className="w-full p-3.5 text-left flex items-center gap-3" aria-expanded={open}>
         <div className="w-11 shrink-0 text-center">
           <div className="text-xs uppercase text-muted">{when.toLocaleDateString(fmtLocale, { weekday: "short" })}</div>
-          <div className="heading text-lg text-zinc-100 leading-none">{when.getDate()}</div>
+          <h2 className="heading text-lg text-zinc-100 leading-none">{when.getDate()}</h2>
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm text-zinc-100 truncate flex items-center gap-1.5">

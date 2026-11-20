@@ -47,9 +47,9 @@ export default function SkillTree({
     <div className="space-y-5">
       {next.length > 0 && (
         <section className="panel p-4 border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-transparent">
-          <div className="heading text-base text-zinc-100 mb-3 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 mb-3 flex items-center gap-2">
             <Target size={16} className="text-orange-400" /> {tx("Up next")}
-          </div>
+          </h2>
           <ul className="space-y-2">
             {next.map((u) => (
               <li key={u.skill}>

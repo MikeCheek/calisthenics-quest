@@ -52,7 +52,7 @@ export default function CoachPage() {
   return (
     <>
       <Nav />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div>
           <h1 className="heading text-2xl text-zinc-100">{tx("Coach")}</h1>
           <p className="text-sm text-zinc-400">{tx("Advice built on your own training.")}</p>

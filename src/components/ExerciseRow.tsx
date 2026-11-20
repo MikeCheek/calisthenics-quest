@@ -176,7 +176,7 @@ export default function ExerciseRow({
                 <button
                   onClick={() => setInfoOpen(true)}
                   className="text-muted hover:text-orange-400 p-0.5 -m-0.5"
-                  aria-label={`How to do ${exercise.name}, with an AI tip`}
+                  aria-label={tx("How to do {ex}, with an AI tip", { ex: exercise.name })}
                   title={tx("How to · AI tip")}
                 >
                   <Info size={15} />

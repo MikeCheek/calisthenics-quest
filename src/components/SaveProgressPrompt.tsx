@@ -37,9 +37,9 @@ export default function SaveProgressPrompt({
         }`}
       >
         {!compact && (
-          <div className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
+          <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
             <CloudUpload size={16} className="text-sky-400" /> {tx("You're training as a guest")}
-          </div>
+          </h2>
         )}
         <p className={`text-sm text-zinc-300 ${compact ? "flex-1" : "mb-3"}`}>{tx(reason)}</p>
         <button

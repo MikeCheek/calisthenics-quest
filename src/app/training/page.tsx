@@ -84,7 +84,7 @@ export default function TrainingPage() {
     <>
       <Nav />
       <CelebrationOverlay celebration={celebration} />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <TrainSwitcher active="today" />
         <h1 className="heading text-2xl text-zinc-100">{tx("Today's session")}</h1>
 
@@ -154,7 +154,7 @@ export default function TrainingPage() {
               n: userDoc.body?.sessionLengthMinutes ?? 45,
               m: fitted.minutesBefore,
             })}{" "}
-            <Link href="/profile?tab=settings" className="text-orange-400 hover:underline">
+            <Link href="/profile?tab=settings" className="text-orange-400 underline underline-offset-2">
               {tx("Change")}
             </Link>
           </div>

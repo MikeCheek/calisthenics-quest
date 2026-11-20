@@ -20,7 +20,7 @@ export default function MissionList({ missions }: { missions: Mission[] }) {
 
   return (
     <div className="panel rounded-lg p-4">
-      <div className="heading text-lg text-zinc-100 mb-3">{tx("Missions — This Week")}</div>
+      <h2 className="heading text-lg text-zinc-100 mb-3">{tx("Missions — This Week")}</h2>
       <ul className="space-y-3">
         {active.map((m) => (
           <li key={m.id} className="flex items-start gap-3">

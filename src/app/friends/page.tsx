@@ -9,6 +9,7 @@ import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import FriendsPanel from "@/components/FriendsPanel";
 import FriendsLeaderboard from "@/components/FriendsLeaderboard";
+import CommunityEventCard from "@/components/CommunityEventCard";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { createPairing, joinPairing, sendPairingInvite, setPairingBarCount, PairingDoc } from "@/lib/store";
 import { generatePairedSession, applyAlternatingBarTurns } from "@/lib/trainingGenerator";
@@ -187,7 +188,7 @@ function PairContent() {
     return (
       <>
         <Nav />
-        <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+        <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
           <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
             <Users size={26} className="text-orange-400" /> {t("nav", "friends")}
           </h1>
@@ -201,13 +202,14 @@ function PairContent() {
     <>
       <Nav />
       <CelebrationOverlay celebration={celebration} />
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
           <Users size={26} className="text-orange-400" /> {t("nav", "friends")}
         </h1>
         <p className="text-sm text-zinc-400 -mt-2">{tx("Your training crew — nudge them, or train together with a shared session.")}</p>
 
         {!code && mode === "choose" && <FriendsLeaderboard />}
+        {!code && mode === "choose" && <CommunityEventCard />}
 
         {!code && mode === "choose" && <FriendsPanel onTrainTogether={handleTrainTogether} />}
 
@@ -219,7 +221,7 @@ function PairContent() {
                 onClick={handleCreate}
                 className="panel p-5 text-left hover:border-orange-500 border border-transparent"
               >
-                <div className="heading text-lg text-zinc-100 mb-1">Create a code</div>
+                <h2 className="heading text-lg text-zinc-100 mb-1">Create a code</h2>
                 <div className="text-sm text-zinc-400">
                   Generate a code from your profile and send it to anyone.
                 </div>
@@ -228,7 +230,7 @@ function PairContent() {
                 onClick={() => setMode("join")}
                 className="panel p-5 text-left hover:border-orange-500 border border-transparent"
               >
-                <div className="heading text-lg text-zinc-100 mb-1">Join a code</div>
+                <h2 className="heading text-lg text-zinc-100 mb-1">Join a code</h2>
                 <div className="text-sm text-zinc-400">
                   Enter a code someone shared to link up your session.
                 </div>
@@ -239,7 +241,7 @@ function PairContent() {
 
         {!code && mode === "join" && (
           <div className="panel p-5 space-y-3">
-            <div className="heading text-lg text-zinc-100">Enter code</div>
+            <h2 className="heading text-lg text-zinc-100">Enter code</h2>
             <input
               value={joinInput}
               onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
@@ -273,7 +275,7 @@ function PairContent() {
               <button
                 onClick={() => navigator.clipboard.writeText(code)}
                 className="p-2 border border-zinc-600 rounded-lg text-zinc-300 hover:text-zinc-100"
-                aria-label="Copy code"
+                aria-label={tx("Copy code")}
               >
                 <Copy size={16} />
               </button>
