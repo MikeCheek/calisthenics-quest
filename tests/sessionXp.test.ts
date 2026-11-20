@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { earnedXp, plannedXp, XP_RULES } from "../src/lib/sessionXp";
+import { earnedXp, plannedXp, xpRules } from "../src/lib/sessionXp";
 import { levelFromXp } from "../src/lib/xp";
 import { levelProgress } from "../src/lib/levelPath";
 import { generateSession } from "../src/lib/trainingGenerator";
@@ -28,7 +28,7 @@ test("harder stages earn more for the same session shape", () => {
 
 test("proving skills and records add bonuses", () => {
   const base = earnedXp(session, all, { verified: 0, records: 0 }).total;
-  assert.equal(earnedXp(session, all, { verified: 1, records: 2 }).total, base + XP_RULES.verified + 2 * XP_RULES.record);
+  assert.equal(earnedXp(session, all, { verified: 1, records: 2 }).total, base + xpRules().verified + 2 * xpRules().record);
 });
 
 test("the level is experience only", () => {

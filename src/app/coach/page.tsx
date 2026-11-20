@@ -9,6 +9,7 @@ import Nav from "@/components/Nav";
 import PageLoading from "@/components/PageLoading";
 import CoachInsightsCard from "@/components/CoachInsightsCard";
 import CoachChat from "@/components/CoachChat";
+import { useTuning } from "@/hooks/useTuning";
 import { Bot, CalendarDays, ChevronRight, Dices, Sparkles } from "lucide-react";
 
 // Coach: advice built on the athlete's own training — the AI chat, what the
@@ -17,6 +18,7 @@ export default function CoachPage() {
   const { user, userDoc, loading } = useAuth();
   const { tx } = useLanguage();
   const router = useRouter();
+  const { featureAiCoach } = useTuning(); // AI chat can be switched off from Remote Config
 
   useEffect(() => {
     if (loading) return;
@@ -56,7 +58,7 @@ export default function CoachPage() {
           <p className="text-sm text-zinc-400">{tx("Advice built on your own training.")}</p>
         </div>
 
-        <CoachChat />
+        {featureAiCoach && <CoachChat />}
 
         <CoachInsightsCard userDoc={userDoc} />
 

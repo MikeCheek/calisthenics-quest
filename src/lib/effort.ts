@@ -2,6 +2,7 @@ import type { Exercise, TrainingSession } from "./types";
 import { parseTiming } from "./exerciseTiming";
 import { exerciseRung, exerciseStage, HIERARCHY_EXEMPT_SETS } from "./exerciseHierarchy";
 import { levelForSkillStage } from "./levelPath";
+import { tuning } from "./tuning";
 
 // ---------------------------------------------------------------------------
 // Effort points: how much work an exercise is, so a session knows how far
@@ -75,9 +76,10 @@ export function fatigueOf(done: number, total: number): number {
 // where it's mostly tiredness talking.
 export function feedbackWeight(fatigue: number | undefined): number {
   if (fatigue === undefined) return 1;
-  if (fatigue <= 0.4) return 1;
-  if (fatigue >= 0.85) return 0.35;
-  return +(1 - ((fatigue - 0.4) / 0.45) * 0.65).toFixed(2);
+  const { fatigueFullUntil: from, fatigueFloorFrom: to, fatigueFloor: floor } = tuning();
+  if (fatigue <= from) return 1;
+  if (fatigue >= to) return floor;
+  return +(1 - ((fatigue - from) / (to - from)) * (1 - floor)).toFixed(2);
 }
 
 // ---- "I'm tired": cut what's left, more the earlier you are ----
@@ -88,7 +90,8 @@ export interface EaseUpChange {
 }
 
 export function easeUpTarget(fatigue: number): number {
-  return fatigue < 0.35 ? 0.5 : fatigue < 0.7 ? 0.35 : 0.2;
+  const t = tuning();
+  return fatigue < 0.35 ? t.easeUpEarly : fatigue < 0.7 ? t.easeUpMid : t.easeUpLate;
 }
 
 const dropSet = (ex: Exercise, minSets: number): Exercise | null => {
@@ -170,7 +173,7 @@ export const EFFORT_HISTORY = 8;
 export function effortCapacity(history: EffortSample[] | undefined): number | null {
   const recent = (history ?? []).slice(-6);
   const tired = recent.filter((s) => s.tired && s.done > 0).map((s) => s.done).sort((a, b) => a - b);
-  if (tired.length < 2) return null;
+  if (tired.length < tuning().tiredSessionsNeeded) return null;
   const mid = Math.floor(tired.length / 2);
   const median = tired.length % 2 ? tired[mid] : (tired[mid - 1] + tired[mid]) / 2;
   // full sessions done since then show there's more in the tank
@@ -183,7 +186,7 @@ export function effortCapacity(history: EffortSample[] | undefined): number | nu
 // warm-up, the Skill Check or the skill work's first exercise.
 export function balanceSession(session: TrainingSession, capacity: number | null): { session: TrainingSession; trimmed: number } {
   if (!capacity) return { session, trimmed: 0 };
-  const limit = capacity * 1.1;
+  const limit = capacity * tuning().balanceHeadroom;
   const planned = totalEffort(stepsOf(session));
   if (planned <= limit) return { session, trimmed: 0 };
   const sets = session.sets.map((s) => ({ ...s, exercises: [...s.exercises] }));

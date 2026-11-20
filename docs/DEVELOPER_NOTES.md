@@ -1060,6 +1060,31 @@ progress and isn't reversible) so you never have to reopen the full screen
 just to pause or bail out.
 
 
+**Push, App Check, Remote Config** (all on Firebase's free plan; setup in the
+README).
+- *Push* (`src/lib/pushClient.ts`, `src/lib/server/push.ts`): each device's FCM
+  token is stored in `users/{uid}.pushTokens` with `notifications.tz`. The
+  server sends data-only web pushes through the FCM HTTP v1 API and reads the
+  tokens through the Firestore REST API, both with a service-account access
+  token minted with Node crypto (`googleAuth.ts`, no Admin SDK). `public/sw.js`
+  shows them unless the app is focused. `/api/push/ping` sends nudges and
+  train-together invites (sender must be in the recipient's friends list, text
+  in the recipient's language); `/api/push/reminders` (Bearer `CRON_SECRET`,
+  called hourly by `.github/workflows/reminders.yml`) reminds each athlete at
+  their local reminder hour, once a day, unless they've trained
+  (`reminderSchedule.ts`). Gone tokens are pruned. With push active, the local
+  in-app reminder timer stands down. Signing out removes the device's token.
+- *App Check* (`firebase.ts`, `src/lib/server/appCheck*.ts`): reCAPTCHA v3 on
+  the client when `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` is set; `authedFetch` sends
+  the token, and the AI and push routes verify it against the App Check JWKS
+  (issuer/audience = the project number). `APP_CHECK_MODE`: off / monitor
+  (log only) / enforce.
+- *Remote Config* (`src/lib/tuning.ts`, `RemoteConfigLoader.tsx`): XP values,
+  effort thresholds and two switches (global board, AI coach chat), each
+  with a default and an allowed range; invalid values are ignored.
+  `remoteconfig.template.json` is generated from the defaults (a test keeps
+  them in step).
+
 **Effort points** (`src/lib/effort.ts`). effort = sets × difficulty (1–5)
 × load (1 for a normal set; 1.2–1.4 for 12+ reps or 30+ s; ×1.3 per side).
 Difficulty is a skill exercise's stage level on the trophy road (one scale

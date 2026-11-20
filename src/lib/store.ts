@@ -13,6 +13,8 @@ import {
   limit,
   writeBatch,
   where,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
@@ -364,4 +366,16 @@ export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: n
 // Corrects a logged session (e.g. a "too hard" that was really done).
 export async function updateSessionRecord(uid: string, sessionId: string, fields: Pick<SessionRecord, "exercises" | "xp">): Promise<void> {
   await updateDoc(doc(db, "users", uid, "sessions", sessionId), withoutUndefined(fields));
+}
+
+// ---- push notification tokens (one per device) ----
+// Kept in the user's private document; only the server (with its service
+// account) reads them, to send pushes. The time zone lets reminders arrive
+// at the athlete's own local time.
+export async function addPushToken(uid: string, token: string, tz: string): Promise<void> {
+  await updateDoc(doc(db, "users", uid), { pushTokens: arrayUnion(token), "notifications.tz": tz });
+}
+
+export async function removePushToken(uid: string, token: string): Promise<void> {
+  await updateDoc(doc(db, "users", uid), { pushTokens: arrayRemove(token) });
 }

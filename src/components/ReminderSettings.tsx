@@ -11,6 +11,7 @@ import {
 import { Bell, BellOff } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { disablePush, enablePush } from "@/lib/pushClient";
 
 export default function ReminderSettings() {
   const { userDoc, refreshUserDoc } = useAuth();
@@ -35,6 +36,9 @@ export default function ReminderSettings() {
     setPermissionDenied(false);
     setSaving(true);
     await updateProgress(userDoc.uid, { notifications: { ...prefs, enabled: !prefs.enabled } });
+    // push on this device: reminders and nudges even with the app closed
+    if (!prefs.enabled) await enablePush(userDoc.uid);
+    else await disablePush(userDoc.uid);
     await refreshUserDoc();
     setSaving(false);
   };

@@ -244,6 +244,15 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
 # optional — enables the AI coach chat, tips and plan review
 OPENROUTER_API_KEY=...
 OPENROUTER_MODEL=openrouter/free
+
+# optional — push notifications (see "Optional: push, App Check, Remote Config")
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=...
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}   # server only, keep secret
+CRON_SECRET=...                                            # server only, any long random string
+
+# optional — App Check
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=...
+APP_CHECK_MODE=monitor          # off | monitor | enforce
 ```
 
 5. **Firestore → Rules** — paste the rules below.
@@ -335,6 +344,41 @@ service cloud.firestore {
 
 </details>
 
+### Optional: push, App Check, Remote Config
+
+All three are free on Firebase's no-cost plan, and the app works without them.
+
+**Push notifications** — reminders, friends' nudges and train-together invites reach
+the phone even when the app is closed (on iPhone: the app installed to the home
+screen, iOS 16.4+).
+1. **Project settings → Cloud Messaging → Web Push certificates** — generate a key
+   pair; put the public key in `NEXT_PUBLIC_FIREBASE_VAPID_KEY`.
+2. **Project settings → Service accounts → Generate new private key** — put the whole
+   JSON file's contents in `FIREBASE_SERVICE_ACCOUNT` (a server-only secret: never a
+   `NEXT_PUBLIC_` variable). The server uses it to send pushes and read push tokens.
+3. Pick any long random `CRON_SECRET`. For the hourly reminder run, add two
+   **repository secrets** on GitHub (Settings → Secrets and variables → Actions):
+   `APP_URL` (your deployed URL) and `CRON_SECRET` (the same value) — the workflow in
+   `.github/workflows/reminders.yml` does the rest. Each athlete is reminded at their
+   own local time, once a day, and not if they've trained.
+
+**App Check** — proves requests to the AI and push routes (and, if you enforce it
+there, Firestore) come from your app.
+1. **App Check → Apps → Register** the web app with **reCAPTCHA v3**, using a site
+   key created for your domain(s) in the reCAPTCHA admin console; put the site key in
+   `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`.
+2. Start with `APP_CHECK_MODE=monitor`: requests without a valid token are only logged.
+   Once the logs and the App Check console show your real traffic passing, switch to
+   `enforce` — and, if you like, enforce it for Firestore in the console too.
+3. For local development, register a debug token in the console and put it in
+   `NEXT_PUBLIC_APPCHECK_DEBUG_TOKEN`.
+
+**Remote Config** — tune XP values, effort thresholds and two feature switches
+(global leaderboard, AI coach chat) without a release. Upload
+`remoteconfig.template.json` with the Firebase CLI (`firebase deploy --only
+remoteconfig`) or add the same parameters in the console; anything missing, mistyped
+or out of range keeps its default. Set `NEXT_PUBLIC_REMOTE_CONFIG=off` to skip it.
+
 ### 3. Run
 
 ```bash
@@ -419,6 +463,8 @@ docs/
   moment you're back, and the notification shows an end time instead of a live
   countdown. The notification needs notification permission, and on iPhone the app
   installed to the home screen (iOS 16.4+). A native app could do more.
+- **Push needs the setup above.** Without it, reminders only arrive if you've opened
+  the app recently, and nudges only show up while it's open.
 - **Lock-screen controls** need a silent audio track while active, which can pause other
   apps' music on some phones — hence opt-in.
 - **AI answers** depend on the model configured in `OPENROUTER_MODEL`.

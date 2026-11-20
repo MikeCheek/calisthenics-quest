@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { correctToDone } from "@/lib/adaptation";
 import { exerciseEffort } from "@/lib/effort";
-import { XP_RULES } from "@/lib/sessionXp";
+import { xpRules } from "@/lib/sessionXp";
 import { awardXp } from "@/lib/sessionComplete";
 import { formatSets } from "@/lib/timingLearning";
 import { useLanguage } from "@/context/LanguageContext";
@@ -55,7 +55,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
   const markDone = async (session: SessionRecord, i: number) => {
     if (!session.id) return;
     const ex = session.exercises[i];
-    const xp = Math.round(exerciseEffort({ name: ex.name, detail: ex.detail ?? "" }, ex.setTitle) * XP_RULES.perEffort);
+    const xp = Math.round(exerciseEffort({ name: ex.name, detail: ex.detail ?? "" }, ex.setTitle) * xpRules().perEffort);
     const exercises = session.exercises.map((e, j) => (j === i ? { ...e, outcome: "done" as const, fatigue: undefined } : e));
     try {
       await updateSessionRecord(userDoc.uid, session.id, { exercises, xp: session.xp + xp });

@@ -1,0 +1,109 @@
+{
+  "parameters": {
+    "xp_session": {
+      "defaultValue": {
+        "value": "15"
+      },
+      "valueType": "NUMBER",
+      "description": "XP for logging a session (allowed 0–200, whole numbers)"
+    },
+    "xp_per_effort": {
+      "defaultValue": {
+        "value": "4"
+      },
+      "valueType": "NUMBER",
+      "description": "XP per effort point of work done (allowed 0–50)"
+    },
+    "xp_verified": {
+      "defaultValue": {
+        "value": "40"
+      },
+      "valueType": "NUMBER",
+      "description": "Bonus XP per skill proven in a Skill Check (allowed 0–500, whole numbers)"
+    },
+    "xp_record": {
+      "defaultValue": {
+        "value": "10"
+      },
+      "valueType": "NUMBER",
+      "description": "Bonus XP per personal record (allowed 0–200, whole numbers)"
+    },
+    "xp_stage_up": {
+      "defaultValue": {
+        "value": "75"
+      },
+      "valueType": "NUMBER",
+      "description": "Bonus XP for accepting a step up to a new stage (allowed 0–1000, whole numbers)"
+    },
+    "ease_up_early": {
+      "defaultValue": {
+        "value": "0.5"
+      },
+      "valueType": "NUMBER",
+      "description": "Share of the remaining work \"I am tired\" cuts before 35% through (allowed 0.05–0.8)"
+    },
+    "ease_up_mid": {
+      "defaultValue": {
+        "value": "0.35"
+      },
+      "valueType": "NUMBER",
+      "description": "…before 70% through (allowed 0.05–0.8)"
+    },
+    "ease_up_late": {
+      "defaultValue": {
+        "value": "0.2"
+      },
+      "valueType": "NUMBER",
+      "description": "…after 70% through (allowed 0.05–0.8)"
+    },
+    "fatigue_full_until": {
+      "defaultValue": {
+        "value": "0.4"
+      },
+      "valueType": "NUMBER",
+      "description": "Too hard / skips count fully up to this far through a session (allowed 0–0.95)"
+    },
+    "fatigue_floor_from": {
+      "defaultValue": {
+        "value": "0.85"
+      },
+      "valueType": "NUMBER",
+      "description": "…and count least from this far through (allowed 0.05–1)"
+    },
+    "fatigue_floor": {
+      "defaultValue": {
+        "value": "0.35"
+      },
+      "valueType": "NUMBER",
+      "description": "…the least they count (0–1) (allowed 0–1)"
+    },
+    "balance_headroom": {
+      "defaultValue": {
+        "value": "1.1"
+      },
+      "valueType": "NUMBER",
+      "description": "Sessions may exceed recent capacity by this factor (allowed 1–2)"
+    },
+    "tired_sessions_needed": {
+      "defaultValue": {
+        "value": "2"
+      },
+      "valueType": "NUMBER",
+      "description": "Times you ran out of energy recently before sessions are balanced (allowed 1–6, whole numbers)"
+    },
+    "feature_global_board": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "Show the opt-in global leaderboard"
+    },
+    "feature_ai_coach": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN",
+      "description": "Show the AI coach chat on the Coach tab"
+    }
+  }
+}

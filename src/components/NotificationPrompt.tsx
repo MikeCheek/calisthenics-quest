@@ -7,6 +7,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { updateProgress } from "@/lib/store";
 import { notificationsSupported, requestNotificationPermission } from "@/lib/notifications";
 import { Bell, X } from "lucide-react";
+import { enablePush } from "@/lib/pushClient";
 
 export default function NotificationPrompt() {
   const { userDoc, refreshUserDoc } = useAuth();
@@ -33,6 +34,7 @@ export default function NotificationPrompt() {
     const perm = await requestNotificationPermission();
     if (perm === "granted") {
       await updateProgress(userDoc.uid, { notifications: { enabled: true, time: "18:00" } });
+      await enablePush(userDoc.uid);
       await refreshUserDoc();
       toast.success("Notifications are on — you'll get training reminders and friend nudges.");
     } else {
