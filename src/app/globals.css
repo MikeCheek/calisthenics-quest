@@ -156,3 +156,22 @@ main:focus,
     font-size: max(16px, 1em) !important;
   }
 }
+
+/* prize wheel lights (PrizeWheel.tsx): a soft idle glow, a chase while it
+   spins, a flash on the result */
+.wheel-lights circle { fill: #fde68a; opacity: 0.35; }
+.wheel-lights .wheel-light-a { animation: wheel-glow 2.4s ease-in-out infinite; }
+.wheel-lights .wheel-light-b { animation: wheel-glow 2.4s ease-in-out infinite 1.2s; }
+.wheel-lights-chase .wheel-light-a { animation: wheel-blink 0.18s steps(1) infinite; }
+.wheel-lights-chase .wheel-light-b { animation: wheel-blink 0.18s steps(1) infinite 0.09s; }
+.wheel-lights-win circle { animation: wheel-flash 0.35s steps(1) 6; }
+@keyframes wheel-glow { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.85; } }
+@keyframes wheel-blink { 0% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes wheel-flash { 0% { opacity: 1; fill: #fff; } 50% { opacity: 0.2; } }
+
+/* bonus round cards */
+.flip-card { perspective: 800px; }
+.flip-card-inner { transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; }
+.flip-card-flipped .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-card-back { transform: rotateY(180deg); }

@@ -43,7 +43,7 @@ const FOCUS_LABEL = TRACK_LABEL;
 
 // A track only shows up if the required equipment is present.
 // Everything not listed needs nothing beyond floor/ground space.
-const REQUIRED_EQUIPMENT: Partial<Record<SkillTrack, (keyof TrainingEquipment)[]>> = {
+export const REQUIRED_EQUIPMENT: Partial<Record<SkillTrack, (keyof TrainingEquipment)[]>> = {
   frontLever: ["pullUpBar"],
   backLever: ["pullUpBar"],
   muscleUp: ["pullUpBar"],
