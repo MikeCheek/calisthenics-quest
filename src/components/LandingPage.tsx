@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,14 +40,19 @@ const ICONS: Record<string, LucideIcon> = {
 function Phone({ src, alt, priority = false, className = "" }: { src: string; alt: string; priority?: boolean; className?: string }) {
   return (
     <div className={`mx-auto w-[min(64vw,270px)] rounded-[2.2rem] border border-zinc-700 bg-zinc-900 p-2 shadow-2xl shadow-orange-950/40 ${className}`}>
-      <Image
+      {/* two prepared sizes (480 and 600 px wide): phones take the smaller one.
+          The hero image isn't lazy, so it's preloaded by the server render. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={src}
+        srcSet={`${src.replace(".webp", "-480.webp")} 480w, ${src} 600w`}
+        sizes="(min-width: 768px) 270px, 64vw"
         alt={alt}
         width={600}
         height={1298}
-        sizes="(min-width: 768px) 270px, 64vw"
-        priority={priority}
-        unoptimized
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding="async"
         className="w-full h-auto rounded-[1.7rem]"
       />
     </div>
@@ -134,9 +138,9 @@ export default function LandingPage({ locale }: { locale: Locale }) {
             hrefLang={locale === "it" ? "en" : "it"}
             onClick={switchTo(locale === "it" ? "en" : "it")}
             className="text-zinc-400 hover:text-zinc-100 px-2 py-1"
-            aria-label={locale === "it" ? "English" : "Italiano"}
           >
             {locale === "it" ? "EN" : "IT"}
+            <span className="sr-only">{locale === "it" ? " — English" : " — Italiano"}</span>
           </Link>
           <button onClick={() => signIn()} className="px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-200 hover:border-zinc-500">
             {p(LANDING.nav.signIn)}

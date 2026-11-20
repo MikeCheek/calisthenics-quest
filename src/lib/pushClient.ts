@@ -1,4 +1,6 @@
-import { getMessaging, getToken, deleteToken, isSupported } from "firebase/messaging";
+// firebase/messaging is loaded only when push is switched on or off, so it
+// isn't part of every page
+const messaging = () => import("firebase/messaging");
 import { firebaseApp } from "./firebase";
 import { addPushToken, removePushToken } from "./store";
 import { authedFetch } from "./apiClient";
@@ -33,6 +35,7 @@ const timeZone = () => {
 export async function enablePush(uid: string): Promise<boolean> {
   if (!pushConfigured() || typeof window === "undefined" || Notification.permission !== "granted") return false;
   try {
+    const { getMessaging, getToken, isSupported } = await messaging();
     if (!(await isSupported())) return false;
     const registration = await navigator.serviceWorker.ready;
     const token = await getToken(getMessaging(firebaseApp), { vapidKey: VAPID, serviceWorkerRegistration: registration });
@@ -54,7 +57,10 @@ export async function disablePush(uid: string): Promise<void> {
     if (!token) return;
     localStorage.removeItem(LOCAL_KEY);
     await removePushToken(uid, token).catch(() => {});
-    if (pushConfigured() && (await isSupported())) await deleteToken(getMessaging(firebaseApp)).catch(() => {});
+    if (pushConfigured()) {
+      const { getMessaging, deleteToken, isSupported } = await messaging();
+      if (await isSupported()) await deleteToken(getMessaging(firebaseApp)).catch(() => {});
+    }
   } catch {
     // nothing registered
   }
