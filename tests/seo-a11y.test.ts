@@ -31,7 +31,9 @@ test("every app route has a title of its own", () => {
   const routes = readdirSync(join(ROOT, "src/app")).filter(
     (d) => d !== "api" && statSync(join(ROOT, "src/app", d)).isDirectory() && existsSync(join(ROOT, "src/app", d, "page.tsx"))
   );
-  const missing = routes.filter((r) => !existsSync(join(ROOT, "src/app", r, "layout.tsx")) || !/title:/.test(read(`src/app/${r}/layout.tsx`)));
+  const hasTitle = (r: string) =>
+    ["layout.tsx", "page.tsx"].some((f) => existsSync(join(ROOT, "src/app", r, f)) && /title:/.test(read(`src/app/${r}/${f}`)));
+  const missing = routes.filter((r) => !hasTitle(r));
   assert.deepEqual(missing, []);
 });
 
@@ -47,4 +49,26 @@ test("aria-labels go through translation, not hard-coded English", () => {
     .filter((f) => f.endsWith(".tsx") && !f.endsWith("DemoBadge.tsx"))
     .flatMap((f) => (read(f).match(/aria-label="[A-Za-z][^"]*"/g) ?? []).map((m) => `${f}: ${m}`));
   assert.deepEqual(bad, []);
+});
+
+test("the landing page says everything in both languages", async () => {
+  const { LANDING } = await import("../src/lib/landingCopy");
+  const texts: { en: string; it: string }[] = [];
+  const walkCopy = (v: unknown) => {
+    if (v && typeof v === "object") {
+      if ("en" in v && "it" in v) texts.push(v as { en: string; it: string });
+      else Object.values(v).forEach(walkCopy);
+    }
+  };
+  walkCopy(LANDING);
+  assert.ok(texts.length > 60, String(texts.length));
+  const untranslated = texts.filter((t) => !t.it.trim() || (t.it === t.en && !/^[A-Z][a-z]+$/.test(t.en) && !t.en.includes("English")));
+  assert.deepEqual(untranslated, []);
+});
+
+test("every landing screenshot exists in both languages", async () => {
+  const { LANDING } = await import("../src/lib/landingCopy");
+  const ids = ["today", "skills", "crew", ...LANDING.showcase.map((s) => s.id)];
+  const missing = ids.flatMap((id) => ["en", "it"].map((l) => `public/landing/${l}-${id}.webp`)).filter((f) => !existsSync(join(ROOT, f)));
+  assert.deepEqual(missing, []);
 });

@@ -36,4 +36,11 @@ export const SITE_KEYWORDS = [
 
 // Pages people can find from a search engine; everything else is the
 // signed-in app and is kept out of the index.
-export const PUBLIC_PATHS = ["/", "/about"];
+export const PUBLIC_PATHS = ["/", "/it", "/about"];
+
+// The landing page in each language, for hreflang links
+export const LANDING_LANGUAGES = { en: "/", it: "/it", "x-default": "/" } as const;
+
+export const SITE_TITLE_IT = "BarQuests — Il tuo percorso calisthenics";
+export const SITE_DESCRIPTION_IT =
+  "App gratuita di calisthenics per il parco: allenamenti personalizzati da una breve valutazione, progressioni per front lever, planche, muscle-up e verticale, XP, serie di giorni e sfide con gli amici.";
