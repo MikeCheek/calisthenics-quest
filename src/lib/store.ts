@@ -284,6 +284,18 @@ export async function sendPairingInvite(
   });
 }
 
+// A one-tap answer to a friend's nudge (NUDGE_REPLIES in nudges.ts).
+export async function sendNudgeReply(toUid: string, fromUid: string, fromName: string, reply: string, englishText: string): Promise<void> {
+  await addDoc(collection(db, "users", toUid, "pings"), {
+    fromUid,
+    fromName,
+    message: englishText,
+    reply,
+    createdAtISO: new Date().toISOString(),
+    kind: "nudge_reply",
+  });
+}
+
 export function listenPings(uid: string, cb: (pings: Ping[]) => void): () => void {
   const q = query(collection(db, "users", uid, "pings"), orderBy("createdAtISO", "desc"), limit(10));
   return onSnapshot(q, (snap) => {

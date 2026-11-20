@@ -192,3 +192,34 @@ export function cleanCustomNudge(text: unknown): string | null {
   const t = text.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return t ? t.slice(0, CUSTOM_NUDGE_MAX) : null;
 }
+
+// ---------------------------------------------------------------------------
+// Replies: one tap back to whoever nudged you. "Done!" only answers a
+// challenge, and earns a little XP (tuning.xpNudgeDone), a few times a day.
+// ---------------------------------------------------------------------------
+
+export interface NudgeReply {
+  id: string;
+  text: string; // English; Italian in phrases.it.ts
+  challengeOnly?: boolean;
+}
+
+export const NUDGE_REPLIES: NudgeReply[] = [
+  { id: "done", text: "✅ Done!", challengeOnly: true },
+  { id: "on-it", text: "💪 On it!" },
+  { id: "later", text: "⏰ Later today" },
+  { id: "rest", text: "😴 Rest day" },
+];
+
+export const NUDGE_XP_PER_DAY = 3; // "Done!" bonuses a day, so a friend can't farm XP for you
+
+export const isChallengeNudge = (id: string | undefined) => !!id && BY_ID.get(id)?.mood === "challenge";
+
+export const repliesFor = (nudgeId: string | undefined) => NUDGE_REPLIES.filter((r) => !r.challengeOnly || isChallengeNudge(nudgeId));
+
+export const validReply = (id: unknown): NudgeReply | null => NUDGE_REPLIES.find((r) => r.id === id) ?? null;
+
+// How many "Done!" bonuses are left today, given what's stored on the user.
+export function nudgeXpLeft(stored: { day: string; count: number } | undefined, today: string): number {
+  return Math.max(0, NUDGE_XP_PER_DAY - (stored && stored.day === today ? stored.count : 0));
+}

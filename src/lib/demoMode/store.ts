@@ -11,6 +11,7 @@ import type { GlobalBoardRow, GlobalBoardWrite, PairingDoc } from "../store";
 import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
+import { pickNudge, renderNudge } from "../nudges";
 
 export type { GlobalBoardRow, PairingDoc };
 
@@ -138,13 +139,33 @@ export function listenFriends(_uid: string, cb: (friends: Friend[]) => void): ()
   return () => friendListeners.delete(cb);
 }
 
+// The demo friend answers your nudge, then challenges you back — so replies
+// and the incoming-nudge card can be tried without a second account.
 export async function sendPing(
-  _toUid: string,
+  toUid: string,
   _fromUid: string,
   _fromName: string,
   _message: string,
   _nudge?: { id: string; vars: Record<string, string | number> }
 ): Promise<void> {
+  const friend = state.friends.find((f) => f.uid === toUid);
+  if (!friend) return;
+  const first = friend.displayName.split(" ")[0];
+  const at = () => new Date().toISOString();
+  setTimeout(() => {
+    state.pings = [{ id: `demo-ping-${Date.now()}`, fromUid: toUid, fromName: first, message: "💪 On it!", reply: "on-it", kind: "nudge_reply", createdAtISO: at() }, ...state.pings];
+    emitPings();
+  }, 1500);
+  setTimeout(() => {
+    const me = state.users.get(DEMO_UID);
+    const ctx = { sender: first, name: (me?.displayName ?? "Alex").split(" ")[0], senderWeek: { sessions: 0, xp: 0 }, friendWeek: { sessions: 0, xp: 0 }, senderStreak: 0, friendStreak: 0, friendLevel: 1 };
+    const nudge = pickNudge(ctx, { mood: "challenge" });
+    state.pings = [{ id: `demo-ping-${Date.now()}`, fromUid: toUid, fromName: first, message: renderNudge("en", nudge) ?? "", nudge, kind: "nudge", createdAtISO: at() }, ...state.pings];
+    emitPings();
+  }, 4000);
+}
+
+export async function sendNudgeReply(_toUid: string, _fromUid: string, _fromName: string, _reply: string, _englishText: string): Promise<void> {
   // the friend isn't real; nothing to deliver
 }
 

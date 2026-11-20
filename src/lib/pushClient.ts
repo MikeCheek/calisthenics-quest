@@ -72,8 +72,8 @@ export function pushActiveOnThisDevice(): boolean {
 // friend's phone when their app is closed.
 export function pushToFriend(
   toUid: string,
-  kind: "nudge" | "pairing_invite",
-  extra: { pairingCode?: string; nudge?: { id: string; vars: Record<string, string | number> }; custom?: string } = {}
+  kind: "nudge" | "pairing_invite" | "nudge_reply",
+  extra: { pairingCode?: string; nudge?: { id: string; vars: Record<string, string | number> }; custom?: string; reply?: string } = {}
 ): void {
   if (!pushConfigured()) return;
   authedFetch("/api/push/ping", {

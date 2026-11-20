@@ -91,6 +91,13 @@
       "valueType": "NUMBER",
       "description": "Times you ran out of energy recently before sessions are balanced (allowed 1–6, whole numbers)"
     },
+    "xp_nudge_done": {
+      "defaultValue": {
+        "value": "10"
+      },
+      "valueType": "NUMBER",
+      "description": "XP for completing a friend's challenge nudge, up to 3 a day (allowed 0–50, whole numbers)"
+    },
     "feature_global_board": {
       "defaultValue": {
         "value": "true"

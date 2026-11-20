@@ -1058,6 +1058,17 @@ const IT_PHRASES: [string, string][] = [
   ["Get started", "Inizia"],
   ["Interval timer", "Timer a intervalli"],
   ["About", "Info"],
+  // ---- nudge replies ----
+  ["✅ Done!", "✅ Fatto!"],
+  ["💪 On it!", "💪 Ci sono!"],
+  ["⏰ Later today", "⏰ Più tardi"],
+  ["😴 Rest day", "😴 Giorno di riposo"],
+  ["+{n} XP — challenge done!", "+{n} XP — sfida completata!"],
+  ["Reply sent to {name}.", "Risposta inviata a {name}."],
+  ["Nudge from {name}", "Stimolo da {name}"],
+  ["{n} more", "altri {n}"],
+  ["Reply", "Rispondi"],
+  ["{name} replied to your nudge", "{name} ha risposto al tuo stimolo"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

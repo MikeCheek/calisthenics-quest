@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NUDGES, cleanCustomNudge, nudgeContext, pickNudge, renderNudge, validNudge } from "../src/lib/nudges";
+import { NUDGES, NUDGE_REPLIES, cleanCustomNudge, isChallengeNudge, nudgeContext, nudgeXpLeft, pickNudge, renderNudge, repliesFor, validNudge, validReply } from "../src/lib/nudges";
 import type { NudgeContext } from "../src/lib/nudges";
 import type { PublicProfile, UserDoc } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
@@ -112,4 +112,25 @@ test("own messages are one trimmed line of at most 80 characters", () => {
   assert.equal(cleanCustomNudge("x".repeat(120))!.length, 80);
   assert.equal(cleanCustomNudge("   "), null);
   assert.equal(cleanCustomNudge(42), null);
+});
+
+test("'Done!' only answers a challenge", () => {
+  assert.ok(isChallengeNudge("h-pushups"));
+  assert.ok(!isChallengeNudge("c-gravity"));
+  assert.ok(repliesFor("h-pushups").some((r) => r.id === "done"));
+  assert.ok(!repliesFor("c-gravity").some((r) => r.id === "done"));
+  assert.ok(!repliesFor(undefined).some((r) => r.id === "done")); // a message of their own
+});
+
+test("replies are checked and translated", () => {
+  assert.equal(validReply("on-it")?.id, "on-it");
+  assert.equal(validReply("<script>"), null);
+  for (const r of NUDGE_REPLIES) assert.notEqual(translate("it", r.text), r.text, r.text);
+});
+
+test("the XP for 'Done!' runs out after three a day and comes back the next day", () => {
+  assert.equal(nudgeXpLeft(undefined, "2026-11-20"), 3);
+  assert.equal(nudgeXpLeft({ day: "2026-11-20", count: 2 }, "2026-11-20"), 1);
+  assert.equal(nudgeXpLeft({ day: "2026-11-20", count: 5 }, "2026-11-20"), 0);
+  assert.equal(nudgeXpLeft({ day: "2026-11-19", count: 3 }, "2026-11-20"), 3);
 });

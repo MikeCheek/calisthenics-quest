@@ -5,7 +5,7 @@ import { pushContext, pushToUser } from "@/lib/server/push";
 import { RateLimiter } from "@/lib/server/rateLimit";
 import { translate } from "@/lib/i18n/tx";
 import { pickReminderLine } from "@/lib/reminderMessages";
-import { cleanCustomNudge, renderNudge, validNudge } from "@/lib/nudges";
+import { cleanCustomNudge, renderNudge, validNudge, validReply } from "@/lib/nudges";
 import type { Locale } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -29,16 +29,17 @@ export async function POST(req: NextRequest) {
   if (appCheck) return appCheck;
   if (caller.anonymous) return NextResponse.json({ error: "Sign in to send nudges." }, { status: 403 });
 
-  let body: { toUid?: string; kind?: string; pairingCode?: string; nudge?: unknown; custom?: unknown };
+  let body: { toUid?: string; kind?: string; pairingCode?: string; nudge?: unknown; custom?: unknown; reply?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
   const toUid = typeof body.toUid === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(body.toUid) ? body.toUid : null;
-  const kind = body.kind === "pairing_invite" ? "pairing_invite" : "nudge";
+  const kind = body.kind === "pairing_invite" ? "pairing_invite" : body.kind === "nudge_reply" ? "nudge_reply" : "nudge";
+  const reply = validReply(body.reply);
   const code = typeof body.pairingCode === "string" && /^[A-Z0-9]{6}$/.test(body.pairingCode) ? body.pairingCode : null;
-  if (!toUid || toUid === caller.uid || (kind === "pairing_invite" && !code)) {
+  if (!toUid || toUid === caller.uid || (kind === "pairing_invite" && !code) || (kind === "nudge_reply" && !reply)) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
@@ -69,6 +70,8 @@ export async function POST(req: NextRequest) {
     const data =
       kind === "pairing_invite"
         ? { title: translate(locale, "{name} wants to train together", { name }), body: translate(locale, "Tap to join the session."), url: `/friends?code=${code}`, tag: "pairing-invite" }
+        : kind === "nudge_reply"
+        ? { title: translate(locale, "{name} replied to your nudge", { name }), body: translate(locale, reply!.text), url: "/friends", tag: "nudge-reply" }
         : { title: translate(locale, "{name} is nudging you", { name }), body: nudgeText, url: "/dashboard", tag: "friend-nudge" };
     const sent = await pushToUser(ctx, toUid, data, recipient);
     return NextResponse.json({ sent });

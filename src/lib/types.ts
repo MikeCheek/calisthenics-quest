@@ -442,6 +442,8 @@ export interface UserDoc {
   totalSessionsCompleted: number;
   missions: Mission[];
   xpHistory: XPHistoryPoint[];
+  // "Done!" replies to friends' challenge nudges that earned XP today (nudges.ts)
+  nudgeXp?: { day: string; count: number };
   notifications: NotificationPrefs;
   friendCode: string;
   createdAt: string;
@@ -491,8 +493,10 @@ export interface Ping {
   fromName: string;
   message: string;
   createdAtISO: string;
-  kind?: "nudge" | "pairing_invite";
+  kind?: "nudge" | "pairing_invite" | "nudge_reply";
   pairingCode?: string;
+  // a reply to your nudge (NUDGE_REPLIES id)
+  reply?: string;
   // a ready-made nudge (nudges.ts), shown in the reader's language;
   // `message` keeps an English copy for older versions of the app
   nudge?: { id: string; vars: Record<string, string | number> };
