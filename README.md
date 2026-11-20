@@ -151,6 +151,11 @@ you have any health concerns.
 - **Global leaderboard** — switch the board to *Everyone* to see the week's top 50
   across the app. It's opt-in: you only appear after joining, as first name and last
   initial, and you can leave any time.
+- **Nudge replies** — answer a friend's nudge in one tap (*On it!*, *Later today*, *Rest day*);
+  *Done!* on a challenge nudge earns a little XP, up to three times a day.
+- **Monthly community event** — one theme a month (*Push-up December*, *Handstand
+  October*…), a goal everyone works toward together and a goal of your own. Your part
+  is counted from your sessions; only the number is shared, never your name.
 - **Train together** — a shared session where each person gets work at their own level;
   with one bar between you, rests double so you take turns.
 - **Share cards** — session, verified-skill and personal-best images in story or square
@@ -345,6 +350,18 @@ service cloud.firestore {
         && count(request.resource.data.minutes, 1800)
         && count(request.resource.data.verified, 30)
         && count(request.resource.data.xp, 20000);
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // monthly community events: one number per player, which the app sums
+    // with an aggregation query (that needs read access to the collection)
+    match /events/{month}/players/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && month.matches('^[0-9]{4}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['value', 'updatedAtISO'])
+        && request.resource.data.value is int
+        && request.resource.data.value >= 0 && request.resource.data.value <= 100000;
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }

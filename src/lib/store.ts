@@ -15,6 +15,9 @@ import {
   where,
   arrayUnion,
   arrayRemove,
+  getAggregateFromServer,
+  sum,
+  count,
 } from "firebase/firestore";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
@@ -380,6 +383,21 @@ export async function fetchGlobalBoard(weekKey: string, metric: Metric, count: n
       week: { key: weekKey, sessions: e.sessions, minutes: e.minutes, verified: e.verified, xp: e.xp },
     };
   });
+}
+
+// ---- monthly community events (events.ts) ----
+// One number per player per month; the total is summed by Firestore, so
+// nobody downloads anyone else's entry.
+export async function setEventContribution(eventKey: string, uid: string, value: number): Promise<void> {
+  await setDoc(doc(db, "events", eventKey, "players", uid), { value, updatedAtISO: new Date().toISOString() });
+}
+
+export async function fetchEventTotals(eventKey: string): Promise<{ total: number; players: number }> {
+  const snap = await getAggregateFromServer(query(collection(db, "events", eventKey, "players"), where("value", ">", 0)), {
+    total: sum("value"),
+    players: count(),
+  });
+  return { total: snap.data().total ?? 0, players: snap.data().players ?? 0 };
 }
 
 // Corrects a logged session (e.g. a "too hard" that was really done).

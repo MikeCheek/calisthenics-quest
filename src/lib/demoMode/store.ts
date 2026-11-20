@@ -212,6 +212,17 @@ export async function updateSessionRecord(_uid: string, sessionId: string, field
   state.sessions = state.sessions.map((s) => (s.id === sessionId ? { ...s, ...clone(fields) } : s));
 }
 
+// a lively community for the month's event; your own part is added on top
+const demoEvent = new Map<string, number>();
+export async function setEventContribution(_eventKey: string, uid: string, value: number): Promise<void> {
+  demoEvent.set(uid, value);
+}
+export async function fetchEventTotals(_eventKey: string): Promise<{ total: number; players: number }> {
+  await pause();
+  const mine = [...demoEvent.values()].reduce((a, b) => a + b, 0);
+  return { total: 287 + mine, players: 41 + demoEvent.size };
+}
+
 // demo mode never registers for push (no messaging); kept for the same API
 export async function addPushToken(_uid: string, _token: string, _tz: string): Promise<void> {}
 export async function removePushToken(_uid: string, _token: string): Promise<void> {}

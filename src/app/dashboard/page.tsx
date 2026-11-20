@@ -13,6 +13,7 @@ import PageLoading from "@/components/PageLoading";
 import TodaySessionCard from "@/components/today/TodaySessionCard";
 import WeekStrip from "@/components/today/WeekStrip";
 import NextGoalCard from "@/components/today/NextGoalCard";
+import CommunityEventCard from "@/components/CommunityEventCard";
 import { useTodaysSession } from "@/hooks/useTodaysSession";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
 import { FOCUS_LABEL } from "@/lib/trainingGenerator";
@@ -101,6 +102,8 @@ export default function TodayPage() {
         <NextGoalCard userDoc={userDoc} check={doneToday ? null : check} playerLevel={level} />
 
         <MissionsSummary missions={missions} />
+
+        <CommunityEventCard />
       </main>
     </>
   );

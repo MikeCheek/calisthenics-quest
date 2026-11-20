@@ -12,6 +12,7 @@ import {
 import { deleteUser, reauthenticateWithPopup, signOut, User } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase";
 import { setGlobalBoardEntry, syncPublicProfile } from "./store";
+import { monthKey } from "./events";
 import { currentWeekKey } from "./missions";
 import { clearClips } from "./videoProof";
 import {
@@ -176,6 +177,7 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
   if (userDoc.friendCode) await deleteDoc(doc(db, "usercodes", userDoc.friendCode)).catch(() => {});
   // global board entries for this and the last logged week
   await setGlobalBoardEntry(uid, null, [currentWeekKey(), ...(userDoc.week?.key ? [userDoc.week.key] : [])]).catch(() => {});
+  await deleteDoc(doc(db, "events", monthKey(), "players", uid)).catch(() => {});
   await deleteDoc(doc(db, "profiles", uid));
   await deleteDoc(doc(db, "users", uid));
 

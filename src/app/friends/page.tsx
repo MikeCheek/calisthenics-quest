@@ -9,6 +9,7 @@ import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import FriendsPanel from "@/components/FriendsPanel";
 import FriendsLeaderboard from "@/components/FriendsLeaderboard";
+import CommunityEventCard from "@/components/CommunityEventCard";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
 import { createPairing, joinPairing, sendPairingInvite, setPairingBarCount, PairingDoc } from "@/lib/store";
 import { generatePairedSession, applyAlternatingBarTurns } from "@/lib/trainingGenerator";
@@ -208,6 +209,7 @@ function PairContent() {
         <p className="text-sm text-zinc-400 -mt-2">{tx("Your training crew — nudge them, or train together with a shared session.")}</p>
 
         {!code && mode === "choose" && <FriendsLeaderboard />}
+        {!code && mode === "choose" && <CommunityEventCard />}
 
         {!code && mode === "choose" && <FriendsPanel onTrainTogether={handleTrainTogether} />}
 
