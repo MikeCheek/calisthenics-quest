@@ -9,14 +9,12 @@ import {
   listenFriends,
   lookupUidByFriendCode,
   removeFriend,
-  sendPing,
 } from "@/lib/store";
 import { Friend } from "@/lib/types";
-import { pickReminderLine } from "@/lib/reminderMessages";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { Copy, UserPlus, Zap, Users2, UserMinus } from "lucide-react";
-import { pushToFriend } from "@/lib/pushClient";
+import NudgeSheet from "./NudgeSheet";
 
 export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (friend: Friend) => void }) {
   const { userDoc } = useAuth();
@@ -26,6 +24,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
   const [codeInput, setCodeInput] = useState("");
   const [adding, setAdding] = useState(false);
   const [nudged, setNudged] = useState<string | null>(null);
+  const [nudging, setNudging] = useState<Friend | null>(null);
 
   useEffect(() => {
     if (!userDoc) return;
@@ -73,9 +72,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
     }
   };
 
-  const handleNudge = async (friend: Friend) => {
-    await sendPing(friend.uid, userDoc.uid, userDoc.displayName, pickReminderLine());
-    pushToFriend(friend.uid, "nudge");
+  const handleNudged = (friend: Friend) => {
     setNudged(friend.uid);
     setTimeout(() => setNudged(null), 2500);
   };
@@ -92,6 +89,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
 
   return (
     <div className="space-y-4">
+      {nudging && <NudgeSheet friend={nudging} onClose={() => setNudging(null)} onSent={() => handleNudged(nudging)} />}
       <div className="panel p-4">
         <div className="heading text-base text-zinc-100 mb-1">{tx("Your friend code")}</div>
         <p className="text-xs text-muted mb-3">{tx("Share this so friends can add you.")}</p>
@@ -156,7 +154,7 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
                 </Link>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
-                    onClick={() => handleNudge(f)}
+                    onClick={() => setNudging(f)}
                     className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
                   >
                     <Zap size={12} className={nudged === f.uid ? "text-orange-400" : ""} />

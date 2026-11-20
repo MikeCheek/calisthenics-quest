@@ -138,7 +138,13 @@ export function listenFriends(_uid: string, cb: (friends: Friend[]) => void): ()
   return () => friendListeners.delete(cb);
 }
 
-export async function sendPing(_toUid: string, _fromUid: string, _fromName: string, _message: string): Promise<void> {
+export async function sendPing(
+  _toUid: string,
+  _fromUid: string,
+  _fromName: string,
+  _message: string,
+  _nudge?: { id: string; vars: Record<string, string | number> }
+): Promise<void> {
   // the friend isn't real; nothing to deliver
 }
 

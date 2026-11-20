@@ -5,6 +5,7 @@ import { pushContext, pushToUser } from "@/lib/server/push";
 import { RateLimiter } from "@/lib/server/rateLimit";
 import { translate } from "@/lib/i18n/tx";
 import { pickReminderLine } from "@/lib/reminderMessages";
+import { cleanCustomNudge, renderNudge, validNudge } from "@/lib/nudges";
 import type { Locale } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   if (appCheck) return appCheck;
   if (caller.anonymous) return NextResponse.json({ error: "Sign in to send nudges." }, { status: 403 });
 
-  let body: { toUid?: string; kind?: string; pairingCode?: string };
+  let body: { toUid?: string; kind?: string; pairingCode?: string; nudge?: unknown; custom?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -59,10 +60,16 @@ export async function POST(req: NextRequest) {
     if (!friend || !recipient) return NextResponse.json({ error: "You can only nudge your friends." }, { status: 403 });
     const locale: Locale = recipient.locale === "it" ? "it" : "en";
     const name = String((sender?.displayName as string | undefined) ?? "A friend").split(" ")[0];
+    // the nudge text: a ready-made one (checked, with the real sender's
+    // name), your own short message, or a random reminder line
+    const nudge = validNudge(body.nudge);
+    const custom = cleanCustomNudge(body.custom);
+    const nudgeText =
+      (nudge && renderNudge(locale, { ...nudge, vars: { ...nudge.vars, sender: name } })) || custom || translate(locale, pickReminderLine());
     const data =
       kind === "pairing_invite"
         ? { title: translate(locale, "{name} wants to train together", { name }), body: translate(locale, "Tap to join the session."), url: `/friends?code=${code}`, tag: "pairing-invite" }
-        : { title: translate(locale, "{name} is nudging you", { name }), body: translate(locale, pickReminderLine()), url: "/dashboard", tag: "friend-nudge" };
+        : { title: translate(locale, "{name} is nudging you", { name }), body: nudgeText, url: "/dashboard", tag: "friend-nudge" };
     const sent = await pushToUser(ctx, toUid, data, recipient);
     return NextResponse.json({ sent });
   } catch (e) {

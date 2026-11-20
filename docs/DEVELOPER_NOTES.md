@@ -128,6 +128,8 @@ service cloud.firestore {
         // only an established friend can drop a nudge in your inbox
         allow create: if request.auth != null && request.auth.uid != uid &&
           request.resource.data.fromUid == request.auth.uid &&
+          request.resource.data.message is string &&
+          request.resource.data.message.size() <= 200 &&
           exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
       }
     }
@@ -1475,9 +1477,15 @@ extra setup, it's just not guaranteed-delivery.
 on load if missing). Share it, or enter someone else's, to add each other —
 adding is mutual: it writes to both people's `users/{uid}/friends`
 subcollection in one batch. From your friends list you can:
-- **Nudge** — drops a ping (`users/{uid}/pings`) in their inbox with a random
-  punch-line; if they have the app open, `PingsListener` shows it as a
-  dismissible banner and fires a local notification immediately.
+- **Nudge** — opens `NudgeSheet`: a random line that fits the two of you
+  (`lib/nudges.ts`: their streak, level, a skill they've started, this week's
+  sessions and XP), by mood (friendly / cheeky / challenge) with a reroll, or
+  a message of your own (80 characters). It drops a ping
+  (`users/{uid}/pings`) in their inbox; a ready-made one carries its template
+  id and values (`nudge`), so `PingsListener` and the push route render it in
+  the *recipient's* language (`message` keeps an English copy for older
+  versions). Both sides re-check it with `validNudge`; the push route also
+  puts in the real sender's name.
 - **Train together** — creates a pairing code (same mechanism as the
   standalone "Create a code" flow) and sends a nudge containing that code, so
   your friend gets pinged with an invite instead of you having to message

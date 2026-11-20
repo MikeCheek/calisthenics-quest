@@ -70,11 +70,15 @@ export function pushActiveOnThisDevice(): boolean {
 
 // Best-effort: the in-app ping is already written; this also reaches the
 // friend's phone when their app is closed.
-export function pushToFriend(toUid: string, kind: "nudge" | "pairing_invite", pairingCode?: string): void {
+export function pushToFriend(
+  toUid: string,
+  kind: "nudge" | "pairing_invite",
+  extra: { pairingCode?: string; nudge?: { id: string; vars: Record<string, string | number> }; custom?: string } = {}
+): void {
   if (!pushConfigured()) return;
   authedFetch("/api/push/ping", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ toUid, kind, pairingCode }),
+    body: JSON.stringify({ toUid, kind, ...extra }),
   }).catch(() => {});
 }
