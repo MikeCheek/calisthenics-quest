@@ -116,7 +116,7 @@ export const LANDING = {
       title: T("50 skills, every stage mapped", "50 skill, ogni livello tracciato"),
       body: T(
         "Front lever, planche, muscle-up, handstand and 46 more, each with its chain of progressions. “Up next” shows the stages you're closest to.",
-        "Front lever, planche, muscle-up, verticale e altre 46, ognuna con la sua catena di progressioni. “Prossimi traguardi” mostra i livelli più vicini."
+        "Front lever, planche, muscle-up, handstand e altre 46, ognuna con la sua catena di progressioni. “Prossimi traguardi” mostra i livelli più vicini."
       ),
       points: [
         T("Level from experience only — earned, not declared", "Livello solo dall'esperienza — guadagnato, non dichiarato"),
@@ -146,11 +146,11 @@ export const LANDING = {
       title: T("Better with friends", "Meglio con gli amici"),
       body: T(
         "A weekly challenge and leaderboard with your friends — or everyone. Send a cheeky nudge when they skip, or train together on one bar.",
-        "Una sfida settimanale e una classifica con i tuoi amici — o con tutti. Manda uno stimolo sfacciato a chi salta l'allenamento, o allenatevi insieme su una sbarra."
+        "Una sfida settimanale e una classifica con i tuoi amici — o con tutti. Manda una spronata sfacciata a chi salta l'allenamento, o allenatevi insieme su una sbarra."
       ),
       points: [
         T("Rotating weekly challenge: sessions, minutes, skills, XP", "Sfida settimanale a rotazione: sessioni, minuti, skill, XP"),
-        T("Funny, personalised nudges", "Stimoli divertenti e personalizzati"),
+        T("Funny, personalised nudges", "Spronate divertenti e personalizzate"),
         T("Train together, each at your own level", "Allenatevi insieme, ognuno al proprio livello"),
       ],
       alt: T("Crew screen with the weekly challenge and friends leaderboard", "Schermata Squadra con la sfida settimanale e la classifica degli amici"),
@@ -168,15 +168,15 @@ export const LANDING = {
         T("Share cards for sessions, skills and records", "Card da condividere per sessioni, skill e record"),
         T("Export everything — JSON or .tcx for Strava", "Esporta tutto — JSON o .tcx per Strava"),
       ],
-      alt: T("Profile with streak, sessions, XP and exercise totals", "Profilo con serie di giorni, sessioni, XP e totali per esercizio"),
+      alt: T("Profile with streak, sessions, XP and exercise totals", "Profilo con streak, sessioni, XP e totali per esercizio"),
     },
   ],
   more: {
     title: T("And everything around it", "E tutto il resto"),
     items: [
       { icon: "install", title: T("Installs like an app", "Si installa come un'app"), body: T("Add it to your home screen on Android or iPhone.", "Aggiungila alla schermata Home su Android o iPhone.") },
-      { icon: "bell", title: T("Reminders and nudges", "Promemoria e stimoli"), body: T("Daily reminders, plus your friends' nudges as notifications.", "Promemoria giornalieri e gli stimoli degli amici come notifiche.") },
-      { icon: "flame", title: T("Streaks that respect rest", "Serie che rispettano il riposo"), body: T("Planned rest days don't break your streak.", "I giorni di riposo pianificati non interrompono la serie.") },
+      { icon: "bell", title: T("Reminders and nudges", "Promemoria e spronate"), body: T("Daily reminders, plus your friends' nudges as notifications.", "Promemoria giornalieri e le spronate degli amici come notifiche.") },
+      { icon: "flame", title: T("Streaks that respect rest", "Streak che rispettano il riposo"), body: T("Planned rest days don't break your streak.", "I giorni di riposo pianificati non interrompono la streak.") },
       { icon: "lock", title: T("Lock-screen controls", "Controlli dalla schermata di blocco"), body: T("Current exercise, rest and next, without unlocking.", "Esercizio, recupero e successivo, senza sbloccare.") },
       { icon: "undo", title: T("Take back a mistake", "Correggi un errore"), body: T("Undo a “too hard”, or mark something done afterwards.", "Annulla un “troppo difficile”, o segnalo come fatto dopo.") },
       { icon: "shield", title: T("Your data, your call", "I tuoi dati, decidi tu"), body: T("Export it all, or reset step by step up to deleting the account.", "Esporta tutto, o azzera per gradi fino a eliminare l'account.") },

@@ -43,4 +43,4 @@ export const LANDING_LANGUAGES = { en: "/", it: "/it", "x-default": "/" } as con
 
 export const SITE_TITLE_IT = "BarQuests — Il tuo percorso calisthenics";
 export const SITE_DESCRIPTION_IT =
-  "App gratuita di calisthenics per il parco: allenamenti personalizzati da una breve valutazione, progressioni per front lever, planche, muscle-up e verticale, XP, serie di giorni e sfide con gli amici.";
+  "App gratuita di calisthenics per il parco: allenamenti personalizzati da una breve valutazione, progressioni per front lever, planche, muscle-up e handstand, XP, streak e sfide con gli amici.";
