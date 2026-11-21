@@ -18,7 +18,7 @@ export default function Nav() {
   // Each tab owns a group of routes, so it stays highlighted on its
   // sub-pages (the full session and the week plan belong to Today, etc.).
   const TABS = [
-    { href: "/dashboard", label: t("nav", "home"), icon: CalendarCheck, routes: ["/dashboard", "/training", "/plan"] },
+    { href: "/dashboard", label: t("nav", "home"), icon: CalendarCheck, routes: ["/dashboard", "/training", "/plan", "/library", "/build"] },
     { href: "/skills", label: t("nav", "skills"), icon: Layers, routes: ["/skills", "/progress", "/path", "/compare"] },
     { href: "/coach", label: t("nav", "coach"), icon: Bot, routes: ["/coach", "/wheel"] },
     { href: "/friends", label: t("nav", "friends"), icon: Users, routes: ["/friends", "/friend/", "/pair"] },

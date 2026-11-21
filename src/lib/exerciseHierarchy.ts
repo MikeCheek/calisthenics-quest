@@ -257,3 +257,32 @@ export function exerciseRung(name: string): { index: number; length: number } | 
   }
   return null;
 }
+
+// Every exercise the app can give, once each, with where it comes from: a
+// skill and its stage, or a general strength progression. For the exercise
+// library (exerciseLibrary.ts). Both equipment extremes are walked, so
+// branch-only variants are included.
+export function allExercises(): { exercise: Exercise; group: HierarchyGroup; stage?: string }[] {
+  const seen = new Set<string>();
+  const out: { exercise: Exercise; group: HierarchyGroup; stage?: string }[] = [];
+  for (const eq of [ALL_EQUIPMENT, NO_EQUIPMENT]) {
+    for (const skill of [...CORE_SKILLS, ...ADVANCED_SKILLS] as StagedSkillKey[]) {
+      const table = tableForSkill(skill, eq);
+      for (const stage of STAGE_ORDER[skill] ?? Object.keys(table)) {
+        for (const ex of table[stage] ?? []) {
+          if (seen.has(ex.name)) continue;
+          seen.add(ex.name);
+          out.push({ exercise: ex, group: skill, stage });
+        }
+      }
+    }
+    for (const group of ["pullStrength", "pushStrength"] as const) {
+      for (const ex of hierarchyFor(group, eq)) {
+        if (seen.has(ex.name)) continue;
+        seen.add(ex.name);
+        out.push({ exercise: ex, group });
+      }
+    }
+  }
+  return out;
+}
