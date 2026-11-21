@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, TrendingUp, Layers, CalendarDays, Dumbbell, Sparkles, Share2 } from "lucide-react";
 import ShareSheet from "@/components/ShareSheet";
 import type { ShareCard } from "@/lib/shareCards";
+import { absoluteChange, weightAt } from "@/lib/bodyweight";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -106,6 +107,7 @@ export default function ComparePage() {
       areas,
       overall: withChange.length ? Math.round(withChange.reduce((a, x) => a + (x.change ?? 0), 0) / withChange.length) : null,
       head: headline(userDoc, sessions, periods.then, periods.now),
+      kg: [weightAt(userDoc.weightLog, userDoc.body?.weightKg, periods.then.to), weightAt(userDoc.weightLog, userDoc.body?.weightKg, periods.now.to)] as [number | undefined, number | undefined],
     };
   }, [userDoc, periods, sessions]);
 
@@ -209,6 +211,18 @@ export default function ComparePage() {
               <Stat icon={Sparkles} label={tx("Level")} value={`≈${data.head.levelThen} → ${data.head.levelNow}`} good={data.head.levelNow > data.head.levelThen} />
               <Stat icon={CalendarDays} label={tx("Sessions a week")} value={`${data.head.sessionsPerWeek[0]} → ${data.head.sessionsPerWeek[1]}`} good={data.head.sessionsPerWeek[1] >= data.head.sessionsPerWeek[0]} />
             </section>
+            {/* bodyweight exercises measure strength for your weight: when the
+                weight moved, the absolute change too */}
+            {data.kg[0] && data.kg[1] && Math.abs(data.kg[1] - data.kg[0]) >= 0.5 && (
+              <p className="panel p-3 text-sm text-zinc-300">
+                {tx("Bodyweight {a} → {b} kg.", { a: data.kg[0], b: data.kg[1] })}{" "}
+                {data.overall !== null &&
+                  tx("Strength for your weight {r}%; absolute {x}%.", {
+                    r: sign(data.overall),
+                    x: sign(absoluteChange(data.overall, data.kg[0], data.kg[1])),
+                  })}
+              </p>
+            )}
 
             <button
               onClick={() =>

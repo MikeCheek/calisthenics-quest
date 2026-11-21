@@ -1480,6 +1480,17 @@ const IT_PHRASES: [string, string][] = [
   ["Deload week: lighter on purpose", "Settimana di scarico: più leggera apposta"],
   ["Mission accomplished", "Missione compiuta"],
   ["Reach the goal of a training block.", "Raggiungi l'obiettivo di un blocco di allenamento."],
+  // ---- bodyweight ----
+  ["Bodyweight", "Peso corporeo"],
+  ["Enter your weight in kg, between 30 and 250.", "Inserisci il peso in kg, tra 30 e 250."],
+  ["Logged {kg} kg.", "Registrati {kg} kg."],
+  ["{d} kg in 30 days", "{d} kg in 30 giorni"],
+  ["Bodyweight over the last 90 days: {a} to {b} kg", "Peso negli ultimi 90 giorni: da {a} a {b} kg"],
+  ["Log your weight now and then to see it over time. It helps “Then vs now” show your strength for your bodyweight.", "Registra il peso ogni tanto per vederlo nel tempo. Aiuta “Prima e adesso” a mostrare la forza in rapporto al peso."],
+  ["Today's weight in kg", "Peso di oggi in kg"],
+  ["Today's weight (kg)", "Peso di oggi (kg)"],
+  ["Bodyweight {a} → {b} kg.", "Peso {a} → {b} kg."],
+  ["Strength for your weight {r}%; absolute {x}%.", "Forza in rapporto al peso {r}%; assoluta {x}%."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CompareLink from "@/components/CompareLink";
 import { AchievementsCard } from "@/components/Achievements";
+import BodyweightCard from "@/components/BodyweightCard";
 import PageLoading from "@/components/PageLoading";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -143,6 +144,7 @@ export default function ProfilePage() {
           <div className="space-y-4 animate-overlay-fade-in">
             <CompareLink />
             <AchievementsCard />
+            <BodyweightCard />
             <VolumeTotalsCard userDoc={userDoc} />
             <div className="panel p-4">
               <h2 className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</h2>

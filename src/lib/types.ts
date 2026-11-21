@@ -444,6 +444,8 @@ export interface UserDoc {
   xpHistory: XPHistoryPoint[];
   // "Done!" replies to friends' challenge nudges that earned XP today (nudges.ts)
   nudgeXp?: { day: string; count: number };
+  // bodyweight over time (bodyweight.ts)
+  weightLog?: import("./bodyweight").WeightEntry[];
   // a training block in progress, and the last few finished (trainingBlock.ts)
   trainingBlock?: import("./trainingBlock").TrainingBlock | null;
   pastBlocks?: import("./trainingBlock").FinishedBlock[];
