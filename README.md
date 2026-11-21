@@ -92,6 +92,10 @@ you have any health concerns.
   tiredness), *I'm tired* cuts what's left by more the earlier you are (easier swaps
   early, a set or two near the end — never the Skill Check), and when you keep running
   out of energy at the same point, sessions are trimmed to fit and say so.
+- **Cool-down stretching** — after the last exercise (and on Today once you've trained),
+  4–6 stretches for the muscles the session worked most: each exercise's load on lats,
+  chest, shoulders, arms, wrists, core and legs, weighted by how much work it was. A
+  guided run with a timer per hold; a wrist stretch whenever your hands were on the floor.
 - **Log only the sets you did** — *Finish here* between sets ends the exercise with
   just those sets logged; your totals and the learning count only what you did.
 - **Sessions that survive interruptions** — the session in progress, where you are in it

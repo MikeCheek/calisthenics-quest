@@ -136,3 +136,24 @@ test("then vs now: from Skills, switch ranges, pick custom dates", async ({ page
   await expect(page.getByText("THEN", { exact: false }).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("after the last exercise: cool-down stretches for the muscles worked", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/dashboard");
+  await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
+  for (let k = 0; k < 40; k++) {
+    if (await page.getByText("Session complete!").isVisible()) break;
+    const skip = page.getByRole("button", { name: "Skip rest" }).first();
+    if (await skip.isVisible()) await skip.click();
+    else await page.getByRole("button", { name: /^Next/ }).click();
+  }
+  await page.getByRole("button", { name: /Cool-down stretches · ~\d+ min/ }).click();
+  const flow = page.getByRole("dialog", { name: "Cool-down" });
+  await expect(flow.getByText(/Stretch 1 of \d/)).toBeVisible();
+  for (let k = 0; k < 8; k++) {
+    if (await flow.getByText("Cool-down done").isVisible()) break;
+    await flow.getByRole("button", { name: /Next stretch|Finish/ }).click();
+  }
+  await expect(flow.getByText("Cool-down done")).toBeVisible();
+  expect(errors).toEqual([]);
+});

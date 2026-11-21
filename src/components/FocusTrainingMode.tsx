@@ -17,6 +17,7 @@ import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarc
 import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle } from "lucide-react";
 import Modal from "@/components/Modal";
 import CancelSessionDialog from "@/components/CancelSessionDialog";
+import { CoolDownFlow, useCoolDown } from "@/components/CoolDown";
 import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAlive, stopKeepAlive, updateLockScreen } from "@/lib/mediaSession";
 import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
 import type { TimerEvent } from "@/components/ExerciseTimer";
@@ -103,6 +104,7 @@ export default function FocusTrainingMode() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [coolOpen, setCoolOpen] = useState(false);
   const [allDoneScreen, setAllDoneScreen] = useState(false);
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
@@ -117,6 +119,13 @@ export default function FocusTrainingMode() {
   const [fatigueAt, setFatigueAt] = useState<Record<number, number>>({});
   const [tiredAt, setTiredAt] = useState<number | null>(null);
   const plannedEffort = useMemo(() => totalEffort(steps), [steps]);
+  // the cool-down covers what was actually done (swaps included)
+  const coolDown = useCoolDown(
+    steps
+      .map((st, i) => ({ st, i }))
+      .filter(({ i }) => completedSteps.has(i))
+      .map(({ st, i }) => ({ name: (overrides[i] ?? st.exercise).name, detail: (overrides[i] ?? st.exercise).detail, setTitle: st.setTitle }))
+  );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [restWasLearned, setRestWasLearned] = useState(false);
 
@@ -628,9 +637,18 @@ export default function FocusTrainingMode() {
           >
             {tx("Finish & log session")}
           </button>
-          <button onClick={goBack} className="text-xs text-muted hover:text-zinc-300 mt-3">
+          {coolDown && (
+            <button
+              onClick={() => setCoolOpen(true)}
+              className="w-full max-w-xs mt-2 py-3 rounded-lg border border-sky-500/60 text-sky-200 hover:bg-sky-500/10 text-sm"
+            >
+              {tx("Cool-down stretches · ~{n} min", { n: coolDown.minutes })}
+            </button>
+          )}
+          <button onClick={goBack} className="text-xs text-muted hover:text-zinc-300 mt-3 py-2">
             {tx("Go back and review")}
           </button>
+          {coolDown && <CoolDownFlow plan={coolDown} open={coolOpen} onClose={() => setCoolOpen(false)} />}
         </div>
       ) : (
         <>
