@@ -6,6 +6,7 @@ import Link from "next/link";
 import CompareLink from "@/components/CompareLink";
 import SkillTimelineCard from "@/components/SkillTimelineCard";
 import ExtrasLinks from "@/components/ExtrasLinks";
+import TrainingBlockCard from "@/components/TrainingBlockCard";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -69,6 +70,7 @@ export default function SkillsPage() {
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
         <CompareLink />
+        <TrainingBlockCard invite />
         <SkillTimelineCard />
         <ExtrasLinks />
 

@@ -64,7 +64,7 @@ export default function PlanPage() {
 
   const handleGenerate = async () => {
     if (!userDoc) return;
-    const newPlan = generatePlan(userDoc.skills, userDoc.equipment, userDoc.goalTracks ?? [], userDoc.body, range, new Date(), userDoc.exerciseStats);
+    const newPlan = generatePlan(userDoc.skills, userDoc.equipment, userDoc.goalTracks ?? [], userDoc.body, range, new Date(), userDoc.exerciseStats, userDoc.trainingBlock);
     setPlan(newPlan);
     setExpanded(newPlan.find((d) => !d.isRestDay)?.dateISO ?? null);
     setAiIntro(null);

@@ -7,7 +7,8 @@ import {
   TrainingEquipment,
   TrainingSession,
 } from "./types";
-import { generateSession, pickFocus } from "./trainingGenerator";
+import { generateSession } from "./trainingGenerator";
+import { applyDeload, blockWeek, focusWithBlock, isActive, phaseOf, type TrainingBlock } from "./trainingBlock";
 import { fitSessionToMinutes } from "./sessionFit";
 
 export interface PlanDay {
@@ -49,7 +50,8 @@ export function generatePlan(
   body: BodyProfile,
   range: PlanRange,
   startDate: Date = new Date(),
-  stats?: Record<string, ExerciseStat>
+  stats?: Record<string, ExerciseStat>,
+  block?: TrainingBlock | null
 ): PlanDay[] {
   const totalDays = RANGE_DAYS[range];
 
@@ -69,12 +71,13 @@ export function generatePlan(
       continue;
     }
 
-    const focus = pickFocus(date, equipment, goalTracks, trainingCounter);
+    const focus = focusWithBlock(date, equipment, goalTracks, block ?? undefined, trainingCounter);
     // planned sessions reflect what training has already learned
-    const session = fitSessionToMinutes(
+    const fitted = fitSessionToMinutes(
       adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes), stats, equipment),
       body.sessionLengthMinutes
     ).session;
+    const session = block && isActive(block, date) && phaseOf(block, blockWeek(block, date)) === "deload" ? applyDeload(fitted) : fitted;
     trainingCounter++;
     days.push({ dateISO, weekday, isRestDay: false, session });
   }

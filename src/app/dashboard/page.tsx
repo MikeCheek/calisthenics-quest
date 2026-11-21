@@ -22,6 +22,7 @@ import { fetchSessionsBetween } from "@/lib/store";
 import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
 import CoolDownCard, { RestDayCard } from "@/components/CoolDown";
 import ExtrasLinks from "@/components/ExtrasLinks";
+import TrainingBlockCard from "@/components/TrainingBlockCard";
 import { SessionRecord } from "@/lib/types";
 import { Flame } from "lucide-react";
 
@@ -97,6 +98,8 @@ export default function TodayPage() {
           onStart={() => startSession(fitted.session)}
           onResume={expand}
         />
+
+        <TrainingBlockCard />
 
         {/* stretches for what today's session worked most */}
         {doneToday && !(activeSession && !activeCompleted) && (

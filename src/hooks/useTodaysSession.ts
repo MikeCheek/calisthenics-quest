@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SkillTrack, UserDoc } from "@/lib/types";
-import { availableFocuses, generateSession, pickFocus } from "@/lib/trainingGenerator";
+import { availableFocuses, generateSession } from "@/lib/trainingGenerator";
 import { adaptSession } from "@/lib/adaptation";
 import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { balanceSession, effortCapacity } from "@/lib/effort";
+import { applyDeload, blockWeek, focusWithBlock, isActive, phaseOf } from "@/lib/trainingBlock";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -42,7 +43,10 @@ export function useTodaysSession(userDoc: UserDoc | null) {
 
   const equipment = userDoc?.equipment;
   const options = useMemo(() => (equipment ? availableFocuses(equipment) : []), [equipment]);
-  const picked = equipment ? pickFocus(new Date(), equipment, userDoc?.goalTracks ?? []) : null;
+  // a training block steers the focus (two days in three on its skill)
+  const block = userDoc?.trainingBlock ?? undefined;
+  const picked = equipment ? focusWithBlock(new Date(), equipment, userDoc?.goalTracks ?? [], block) : null;
+  const deload = isActive(block) && phaseOf(block, blockWeek(block)) === "deload";
   const focus = focusOverride && options.includes(focusOverride) ? focusOverride : picked;
 
   const skillsKey = JSON.stringify(userDoc?.skills ?? null);
@@ -62,12 +66,14 @@ export function useTodaysSession(userDoc: UserDoc | null) {
     const fitted = fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes);
     // …and within the effort they've had energy for lately (effort.ts)
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc.effortHistory));
-    return { fitted: { ...fitted, session: balanced.session }, check, lighterBy: balanced.trimmed };
+    // a block's deload week: lighter on purpose
+    const session = deload ? applyDeload(balanced.session) : balanced.session;
+    return { fitted: { ...fitted, session }, check, lighterBy: balanced.trimmed };
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsKey, equipmentKey, focus, !!userDoc]);
+  }, [skillsKey, equipmentKey, focus, !!userDoc, deload]);
 
   return { focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride };
 }

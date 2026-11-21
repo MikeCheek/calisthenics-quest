@@ -444,6 +444,9 @@ export interface UserDoc {
   xpHistory: XPHistoryPoint[];
   // "Done!" replies to friends' challenge nudges that earned XP today (nudges.ts)
   nudgeXp?: { day: string; count: number };
+  // a training block in progress, and the last few finished (trainingBlock.ts)
+  trainingBlock?: import("./trainingBlock").TrainingBlock | null;
+  pastBlocks?: import("./trainingBlock").FinishedBlock[];
   // sessions of your own, saved as favourites (customSession.ts)
   customWorkouts?: import("./customSession").CustomWorkout[];
   // achievements earned: id -> when (achievements.ts)
