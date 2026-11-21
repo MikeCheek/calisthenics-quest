@@ -13,10 +13,12 @@ export default function ExerciseDemo({
   exerciseName,
   width = 200,
   className = "",
+  decorative = false,
 }: {
   exerciseName: string;
   width?: number;
   className?: string;
+  decorative?: boolean; // a figure for looks (e.g. the loading screen): no frame, hidden from screen readers
 }) {
   const { tx } = useLanguage();
   const entry = useMemo(() => demoFor(exerciseName), [exerciseName]);
@@ -59,9 +61,10 @@ export default function ExerciseDemo({
         width={width}
         height={height}
         preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={`${tx("Demonstration")}: ${exerciseName}`}
-        className="rounded-xl bg-zinc-950/60 border border-zinc-800"
+        role={decorative ? undefined : "img"}
+        aria-hidden={decorative || undefined}
+        aria-label={decorative ? undefined : `${tx("Demonstration")}: ${exerciseName}`}
+        className={decorative ? "" : "rounded-xl bg-zinc-950/60 border border-zinc-800"}
       >
         {shapes.map((s, i) =>
           s.t === "line" ? (
@@ -73,7 +76,7 @@ export default function ExerciseDemo({
           )
         )}
       </svg>
-      {reduced && <figcaption className="text-xs text-muted mt-1">{tx("Animation paused (reduced motion)")}</figcaption>}
+      {reduced && !decorative && <figcaption className="text-xs text-muted mt-1">{tx("Animation paused (reduced motion)")}</figcaption>}
     </figure>
   );
 }

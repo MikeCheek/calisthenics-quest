@@ -1,5 +1,6 @@
 "use client";
 
+import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, TrendingUp, Layers, CalendarDays, Dumbbell, Sparkles } from "lucide-react";
@@ -105,7 +106,7 @@ export default function ComparePage() {
     };
   }, [userDoc, periods, sessions]);
 
-  if (loading || !userDoc || !periods) return <PageLoading />;
+  if (loading || !userDoc || !periods) return <PageLoading variant="list" />;
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
   const range = (p: { from: string; to: string }) => `${fmtDate(p.from)} – ${fmtDate(new Date(new Date(p.to).getTime() - 86400000).toISOString())}`;
@@ -183,7 +184,14 @@ export default function ComparePage() {
         </section>
 
         {!data ? (
-          <PageLoadingInline label={tx("Loading…")} />
+          <div className="space-y-3" role="status" aria-label={tx("Loading…")}>
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <Bone key={i} className="h-20 rounded-xl" />
+              ))}
+            </div>
+            <Bone className="h-56 w-full rounded-xl" />
+          </div>
         ) : data.thenCount === 0 || data.nowCount === 0 ? (
           <section className="panel p-5 text-center">
             <p className="text-zinc-200">{data.thenCount === 0 ? tx("No sessions in the “then” period.") : tx("No sessions in the “now” period.")}</p>
@@ -350,8 +358,4 @@ function Stat({ icon: Icon, label, value, good }: { icon: typeof TrendingUp; lab
       <span className={`block stat-mono text-2xl mt-1 ${good ? "text-emerald-300" : "text-zinc-100"}`}>{value}</span>
     </div>
   );
-}
-
-function PageLoadingInline({ label }: { label: string }) {
-  return <p className="text-sm text-zinc-400 text-center py-8">{label}</p>;
 }

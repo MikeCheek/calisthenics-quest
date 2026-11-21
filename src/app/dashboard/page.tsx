@@ -53,7 +53,7 @@ export default function TodayPage() {
   }, [uid, sessionsDone]);
 
   const now = useMemo(() => new Date(), []);
-  if (loading || !userDoc || !fitted || !focus) return <PageLoading />;
+  if (loading || !userDoc || !fitted || !focus) return <PageLoading variant="today" />;
 
   const level = levelProgress(userDoc.xp).level;
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);

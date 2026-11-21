@@ -50,7 +50,7 @@ export default function SkillsPage() {
     else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
   }, [loading, user, userDoc, router]);
 
-  if (loading || !userDoc) return <PageLoading />;
+  if (loading || !userDoc) return <PageLoading variant="list" />;
 
   const level = levelProgress(userDoc.xp).level;
 

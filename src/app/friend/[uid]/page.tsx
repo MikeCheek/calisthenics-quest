@@ -1,5 +1,6 @@
 "use client";
 
+import PageLoading from "@/components/PageLoading";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -28,7 +29,7 @@ export default function FriendProfilePage() {
   }, [authLoading, user, params.uid, router]);
 
   if (authLoading || profile === undefined) {
-    return <main id="main" tabIndex={-1} className="min-h-screen flex items-center justify-center text-zinc-400">{tx("Loading…")}</main>;
+    return <PageLoading variant="profile" />;
   }
 
   if (profile === null) {

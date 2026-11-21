@@ -110,7 +110,7 @@ export default function PlanPage() {
   };
 
   if (loading || !userDoc) {
-    return <PageLoading />;
+    return <PageLoading variant="list" />;
   }
 
   const trainingDays = plan.filter((d) => !d.isRestDay).length;

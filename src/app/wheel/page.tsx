@@ -86,7 +86,7 @@ interface Result {
 
 export default function WheelPage() {
   return (
-    <Suspense fallback={<PageLoading />}>
+    <Suspense fallback={<PageLoading variant="list" />}>
       <WheelContent />
     </Suspense>
   );
@@ -142,7 +142,7 @@ function WheelContent() {
     if (track !== "surprise" && available.length && !available.includes(track)) setTrack("surprise");
   }, [available, track]);
 
-  if (loading || !userDoc) return <PageLoading />;
+  if (loading || !userDoc) return <PageLoading variant="list" />;
 
   const today = localDay();
   const left = betsLeft(userDoc.wheelBets, today);
