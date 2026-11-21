@@ -32,7 +32,7 @@ export default function FriendsPage() {
   return (
     <Suspense
       fallback={
-        <PageLoading />
+        <PageLoading variant="list" />
       }
     >
       <PairContent />
@@ -77,7 +77,7 @@ function PairContent() {
   }, [code]);
 
   if (loading || !userDoc) {
-    return <PageLoading />;
+    return <PageLoading variant="list" />;
   }
 
   const handleCreate = async () => {

@@ -26,7 +26,7 @@ export default function CoachPage() {
     else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
   }, [loading, user, userDoc, router]);
 
-  if (loading || !userDoc) return <PageLoading />;
+  if (loading || !userDoc) return <PageLoading variant="list" />;
 
   const tools: { href: string; icon: typeof Bot; title: string; body: string }[] = [
     {

@@ -1,5 +1,6 @@
 "use client";
 
+import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { UserDoc, SessionRecord } from "@/lib/types";
 import { fetchSessionsBetween } from "@/lib/store";
@@ -84,7 +85,11 @@ export default function VolumeTotalsCard({ userDoc }: { userDoc: UserDoc }) {
       </div>
 
       {totals === null ? (
-        <p className="text-sm text-muted">{tx("Loading…")}</p>
+        <div className="space-y-2 py-1" role="status" aria-label={tx("Loading…")}>
+            {[0, 1, 2, 3].map((i) => (
+              <Bone key={i} className="h-9 w-full" />
+            ))}
+          </div>
       ) : totals.length === 0 ? (
         <p className="text-sm text-zinc-400">{tx("Nothing counted yet — finish a session and it adds up here.")}</p>
       ) : (

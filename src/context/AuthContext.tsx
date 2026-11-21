@@ -24,6 +24,7 @@ import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
 import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
 import { useToast } from "@/context/ToastContext";
 import { disablePush } from "@/lib/pushClient";
+import { clearProfileCache, readProfileCache, writeProfileCache } from "@/lib/profileCache";
 import {
   DEFAULT_BODY,
   DEFAULT_EQUIPMENT,
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // others can find, and guest accounts are often thrown away.
     if (u.isAnonymous) {
       setUserDoc(doc);
+      writeProfileCache(u, doc);
       return;
     }
     try {
@@ -111,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // non-fatal — friends features degrade gracefully without a code yet
     }
     setUserDoc(doc);
+    writeProfileCache(u, doc);
   };
 
   useEffect(() => {
@@ -130,19 +133,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loadUserDoc(demoUser).finally(() => setLoading(false));
       return;
     }
+    // instant start: the profile kept on this device from last time shows
+    // straight away; Firebase confirms the account and the fresh copy
+    // replaces it a moment later (lib/profileCache.ts)
+    const cached = readProfileCache();
+    if (cached) {
+      setUser(cached.user);
+      setUserDoc(cached.doc);
+      setLoading(false);
+    }
     const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        clearProfileCache();
+        setUser(null);
+        setUserDoc(null);
+        setLoading(false);
+        return;
+      }
+      // a different account than the one kept on the device
+      const sameAccount = cached?.user.uid === u.uid;
+      if (!sameAccount && cached) {
+        clearProfileCache();
+        setUserDoc(null);
+        setLoading(true);
+      }
       setUser(u);
-      if (u) {
-        try {
-          await loadUserDoc(u);
-        } catch (err) {
-          console.error("Couldn't load or create the account's data", err);
+      try {
+        await loadUserDoc(u);
+      } catch (err) {
+        console.error("Couldn't load or create the account's data", err);
+        if (sameAccount) {
+          // offline: keep showing what's on the device
+          toastRef.current.info("You're offline — showing your last saved data.");
+        } else {
           setUserDoc(null);
           setSetupFailures((n) => n + 1);
           toastRef.current.error("Couldn't set up your account — check your connection and try again.");
         }
-      } else {
-        setUserDoc(null);
       }
       setLoading(false);
     });
@@ -238,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // this device stops getting this account's pushes
       if (auth.currentUser) await disablePush(auth.currentUser.uid);
+      clearProfileCache();
       await firebaseSignOut(auth);
     } catch {
       toast.error("Couldn't sign out — try again.");

@@ -1,3 +1,4 @@
+import { settleWrite } from "./offlineWrites";
 import { skillHistoryPatch } from "./skillHistory";
 import { earnedXp } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
@@ -23,6 +24,7 @@ export interface CompleteSessionResult {
   patch: Partial<UserDoc>;
   celebration: Celebration;
   report: AdaptationReport;
+  offline: boolean; // saved on the phone, sent when the connection is back
 }
 
 function isToday(dateISO: string): boolean {
@@ -194,7 +196,8 @@ export async function completeSession(
     xpHistory: trimmedHistory,
   };
 
-  await updateProgress(userDoc.uid, patch);
+  // offline, this is saved on the phone and sent later (offlineWrites.ts)
+  const saved = await settleWrite(updateProgress(userDoc.uid, patch));
 
   // Keep the session itself for the history view. Best-effort: progress is
   // already saved, so a failed history write shouldn't fail the whole log.
@@ -204,7 +207,7 @@ export async function completeSession(
     paired: opts.isPaired,
     records: newRecords,
   });
-  await saveSessionRecord(userDoc.uid, sessionRecord).catch(() => {});
+  await settleWrite(saveSessionRecord(userDoc.uid, sessionRecord)).catch(() => {});
   report.sessionRecord = sessionRecord; // for the share card
 
   if (userDoc.friendCode) {
@@ -237,6 +240,7 @@ export async function completeSession(
   return {
     patch,
     report,
+    offline: saved === "queued",
     celebration: {
       leveledUp: newLevel > oldLevel,
       newLevel,

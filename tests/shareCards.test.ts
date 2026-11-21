@@ -22,6 +22,16 @@ const CARDS: ShareCard[] = [
   { kind: "verified", label: "Tuck Front Lever", result: "8s", dateISO: record.finishedAt, skill: "frontLever", stage: "tuck" },
   { kind: "verified", label: "Max push-ups", result: "14 reps", dateISO: record.finishedAt },
   { kind: "record", record: record.records![0], dateISO: record.finishedAt },
+  {
+    kind: "progress",
+    fromISO: "2026-08-01T00:00:00Z",
+    dateISO: record.finishedAt,
+    strength: 38,
+    stages: 3,
+    levels: [8, 14],
+    skills: [{ name: "Front Lever", from: "Tuck", to: "One leg", skill: "frontLever", stage: "oneLeg" }],
+    exercises: [{ name: "Pull-ups", from: "5 reps", to: "12 reps", change: 140 }],
+  },
 ];
 
 const ctx = (format: CardFormat, locale: "en" | "it" = "en", name?: string) => ({
@@ -81,4 +91,19 @@ test("cards are translated", () => {
 
 test("file names are safe", () => {
   assert.equal(cardFileName(CARDS[1]), "barquests-verified-tuck-front-lever.png");
+});
+
+test("the progress card leads with the strength change, then skills and exercises", () => {
+  const svg = buildCardSvg(CARDS[4], ctx("story"));
+  assert.ok(svg.includes("+38% stronger"));
+  assert.ok(svg.includes("Tuck → One leg"));
+  assert.ok(svg.includes("5 reps → 12 reps"));
+  assert.ok(svg.includes("THEN VS NOW"));
+  const it = buildCardSvg(CARDS[4], ctx("story", "it"));
+  assert.ok(it.includes("+38% più forte"));
+  assert.equal(cardFileName(CARDS[4]), "barquests-then-vs-now-2026-11-18.png");
+  // no strength number: stages, then levels
+  const noStrength = { ...(CARDS[4] as Extract<ShareCard, { kind: "progress" }>), strength: null };
+  assert.ok(buildCardSvg(noStrength, ctx("square")).includes("+3 skill stages"));
+  assert.ok(buildCardSvg({ ...noStrength, stages: 0 }, ctx("square")).includes("Level 8 → 14"));
 });

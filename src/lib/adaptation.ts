@@ -59,7 +59,7 @@ const HOLD_MIN_SESSIONS = 2;
 const REST_DEADBAND = 0.15; // ignore rest differences within ±15%
 const HOLD_SHORTEN_BELOW = 0.75; // median held / target under this: shorten the target
 
-const SKILL_SCORE_STEP = 6; // score needed to move mastery one notch (~1–2 full sessions)
+export const SKILL_SCORE_STEP = 6; // score needed to move mastery one notch (~1–2 full sessions)
 const SNOOZE_DAYS = 7;
 
 export function statKey(name: string): string {

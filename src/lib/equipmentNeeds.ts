@@ -19,7 +19,7 @@ export function exerciseNeeds(name: string): Needs {
   const add = (alts: Key[]) => needs.push(alts);
 
   // a band that's optional ("band or stick") isn't a requirement
-  if (/\bband(ed|-assisted)?\b|\(band\)/.test(n) && !/band or /.test(n)) add(["resistanceBands"]);
+  if (/\bband(ed|-assisted)?\b|\(band\)/.test(n) && !/band or |\(or /.test(n)) add(["resistanceBands"]);
   if (/weighted|\bvest\b|dip belt|\bplates?\b/.test(n)) add(["weights"]);
   if (/\bwall\b/.test(n)) add(["wallSpace"]);
   if (/monkey bar/.test(n)) {

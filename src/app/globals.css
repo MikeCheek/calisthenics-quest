@@ -95,9 +95,11 @@ html, body {
   0% { transform: translateY(16px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
+/* every card using this sits inside an already-centred container, so it
+   only slides down — a sideways -50% here pushed them half off-screen */
 @keyframes slide-down-in {
-  0% { transform: translate(-50%, -16px); opacity: 0; }
-  100% { transform: translate(-50%, 0); opacity: 1; }
+  0% { transform: translateY(-16px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 @keyframes slide-up-out {
   0% { transform: translate(-50%, 0); opacity: 1; }
@@ -175,3 +177,16 @@ main:focus,
 .flip-card-flipped .flip-card-inner { transform: rotateY(180deg); }
 .flip-card-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .flip-card-back { transform: rotateY(180deg); }
+
+/* loading screen bar and placeholder shimmer (PageLoading.tsx) */
+.loading-bar { animation: loading-bar 1.4s ease-in-out infinite; }
+@keyframes loading-bar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+.skeleton-shimmer {
+  background-image: linear-gradient(90deg, rgba(39, 39, 42, 0.8) 0%, rgba(63, 63, 70, 0.9) 50%, rgba(39, 39, 42, 0.8) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar, .skeleton-shimmer { animation: none; }
+}

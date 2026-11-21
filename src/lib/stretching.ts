@@ -40,7 +40,7 @@ export const MUSCLE_LABEL: Record<Muscle, string> = {
   calves: "Calves",
 };
 
-type Load = Partial<Record<Muscle, number>>;
+export type Load = Partial<Record<Muscle, number>>;
 
 // first matching rule wins; hands-on-the-floor work adds wrist load after
 const RULES: [RegExp, Load][] = [
@@ -140,8 +140,19 @@ export const STRETCHES: Stretch[] = [
   { id: "calf-wall", name: "Calf stretch", detail: "2 x 30s", perSide: true, targets: ["calves", "hamstrings"], how: "Hands on a wall or pole, one foot back with the heel down and the leg straight. Lean in until the calf stretches." },
 ];
 
+export interface RoutineItem {
+  id: string;
+  name: string;
+  detail: string;
+  perSide: boolean;
+  targets: Muscle[];
+  how?: string; // English text, translated with tx
+  description?: string; // an exercise's own description (translated by name)
+  for: Muscle[];
+}
+
 export interface CoolDown {
-  stretches: (Stretch & { for: Muscle[] })[];
+  stretches: (RoutineItem & Partial<Stretch>)[];
   minutes: number;
   focus: Muscle[]; // the most-worked muscles
 }
@@ -149,12 +160,16 @@ export interface CoolDown {
 // Greedy cover: each pick is the stretch that reaches the most load still
 // uncovered; stop when most of the session is covered (4–6 stretches).
 export function planCoolDown(exercises: DoneExercise[]): CoolDown | null {
-  const load = sessionLoad(exercises);
+  return coverLoad(sessionLoad(exercises));
+}
+
+// The stretches that best cover a load (shares per muscle), 4–max of them.
+export function coverLoad(load: Load, max = 6, minCount = 4): CoolDown | null {
   if (!Object.keys(load).length) return null;
   const left: Load = { ...load };
   const picked: CoolDown["stretches"] = [];
   const covered = () => 1 - Object.values(left).reduce((a, b) => a + (b ?? 0), 0);
-  while (picked.length < 6 && (picked.length < 4 || covered() < 0.85)) {
+  while (picked.length < max && (picked.length < minCount || covered() < 0.85)) {
     let best: Stretch | null = null;
     let bestGain = 0;
     for (const s of STRETCHES) {

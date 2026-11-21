@@ -1,8 +1,11 @@
 "use client";
 
+import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, TrendingUp, Layers, CalendarDays, Dumbbell, Sparkles } from "lucide-react";
+import { ArrowRight, TrendingUp, Layers, CalendarDays, Dumbbell, Sparkles, Share2 } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
+import type { ShareCard } from "@/lib/shareCards";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -50,6 +53,7 @@ export default function ComparePage() {
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   const [area, setArea] = useState<Area | "all">("all");
   const [showAll, setShowAll] = useState(false);
+  const [share, setShare] = useState<ShareCard | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -105,7 +109,7 @@ export default function ComparePage() {
     };
   }, [userDoc, periods, sessions]);
 
-  if (loading || !userDoc || !periods) return <PageLoading />;
+  if (loading || !userDoc || !periods) return <PageLoading variant="list" />;
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
   const range = (p: { from: string; to: string }) => `${fmtDate(p.from)} – ${fmtDate(new Date(new Date(p.to).getTime() - 86400000).toISOString())}`;
@@ -183,7 +187,14 @@ export default function ComparePage() {
         </section>
 
         {!data ? (
-          <PageLoadingInline label={tx("Loading…")} />
+          <div className="space-y-3" role="status" aria-label={tx("Loading…")}>
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <Bone key={i} className="h-20 rounded-xl" />
+              ))}
+            </div>
+            <Bone className="h-56 w-full rounded-xl" />
+          </div>
         ) : data.thenCount === 0 || data.nowCount === 0 ? (
           <section className="panel p-5 text-center">
             <p className="text-zinc-200">{data.thenCount === 0 ? tx("No sessions in the “then” period.") : tx("No sessions in the “now” period.")}</p>
@@ -198,6 +209,31 @@ export default function ComparePage() {
               <Stat icon={Sparkles} label={tx("Level")} value={`≈${data.head.levelThen} → ${data.head.levelNow}`} good={data.head.levelNow > data.head.levelThen} />
               <Stat icon={CalendarDays} label={tx("Sessions a week")} value={`${data.head.sessionsPerWeek[0]} → ${data.head.sessionsPerWeek[1]}`} good={data.head.sessionsPerWeek[1] >= data.head.sessionsPerWeek[0]} />
             </section>
+
+            <button
+              onClick={() =>
+                setShare({
+                  kind: "progress",
+                  fromISO: periods.then.from,
+                  dateISO: new Date(new Date(periods.now.to).getTime() - 86400000).toISOString(),
+                  strength: data.overall,
+                  stages: stagesUp,
+                  levels: [data.head.levelThen, data.head.levelNow],
+                  skills: data.skills
+                    .filter((x) => x.steps > 0)
+                    .map((x) => ({ name: SKILL_FIELD_LABEL[x.skill as StagedSkillKey], from: stage(x.from), to: stage(x.to), skill: x.skill as StagedSkillKey, stage: x.to })),
+                  exercises: data.exercises.both
+                    .filter((r) => r.bestChange > 0)
+                    .map((r) => ({ name: r.now.name, from: val(r.then, r.then.best), to: val(r.now, r.now.best), change: r.bestChange })),
+                  areas: data.areas.filter((a) => a.change !== null).map((a) => ({ name: tx(AREA_LABEL[a.area]), change: a.change ?? 0 })).sort((a, b) => b.change - a.change),
+                  // the hardest thing trained now, to draw
+                  figure: [...data.exercises.both.map((r) => r.now), ...data.exercises.added].sort((a, b) => b.difficulty - a.difficulty)[0]?.name,
+                })
+              }
+              className="w-full h-12 rounded-xl border border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10 text-base flex items-center justify-center gap-2"
+            >
+              <Share2 size={18} /> {tx("Share your progress")}
+            </button>
 
             {/* muscle groups */}
             <section className="panel p-4" aria-labelledby="areas-title">
@@ -337,6 +373,7 @@ export default function ComparePage() {
           </>
         )}
       </main>
+      <ShareSheet card={share} onClose={() => setShare(null)} />
     </>
   );
 }
@@ -350,8 +387,4 @@ function Stat({ icon: Icon, label, value, good }: { icon: typeof TrendingUp; lab
       <span className={`block stat-mono text-2xl mt-1 ${good ? "text-emerald-300" : "text-zinc-100"}`}>{value}</span>
     </div>
   );
-}
-
-function PageLoadingInline({ label }: { label: string }) {
-  return <p className="text-sm text-zinc-400 text-center py-8">{label}</p>;
 }
