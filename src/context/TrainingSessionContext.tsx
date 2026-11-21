@@ -182,7 +182,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
   const finishSession = useCallback(async (feedback?: ExerciseFeedback[], extras?: { transitionRestRatio?: number; effort?: { planned: number; done: number; tired: boolean } }) => {
     if (!session || !userDoc || completed) return;
     try {
-      const { patch, celebration: c, report: r } = await completeSession(userDoc, session, {
+      const { patch, celebration: c, report: r, offline } = await completeSession(userDoc, session, {
         feedback,
         transitionRestRatio: extras?.transitionRestRatio,
         effort: extras?.effort,
@@ -191,7 +191,9 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       const xpGained = (patch.xp ?? userDoc.xp) - userDoc.xp;
       const shown = showReport(r, { celebration: c, xpGained });
       setCompleted(true);
-      await refreshUserDoc();
+      if (offline) toast.info("Saved on this phone — it'll sync when you're back online.");
+      // offline this reads the copy on the device, which already has the session
+      await refreshUserDoc().catch(() => {});
       if (!shown) {
         if (c.leveledUp) setCelebration(c);
         else toast.success(`Session logged — you earned +${xpGained} XP.`);

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CompareLink from "@/components/CompareLink";
+import { AchievementsCard } from "@/components/Achievements";
+import PageLoading from "@/components/PageLoading";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -62,7 +64,7 @@ export default function ProfilePage() {
   }, [loading, user, userDoc, router]);
 
   if (loading || !userDoc) {
-    return <main id="main" tabIndex={-1} className="min-h-screen flex items-center justify-center text-zinc-400">{t("common", "loading")}</main>;
+    return <PageLoading variant="profile" />;
   }
 
   const progress = levelProgress(userDoc.xp);
@@ -140,6 +142,7 @@ export default function ProfilePage() {
         {tab === "activity" && (
           <div className="space-y-4 animate-overlay-fade-in">
             <CompareLink />
+            <AchievementsCard />
             <VolumeTotalsCard userDoc={userDoc} />
             <div className="panel p-4">
               <h2 className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</h2>

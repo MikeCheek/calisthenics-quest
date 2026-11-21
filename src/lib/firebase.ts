@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, initializeFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, Firestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { DEMO_MODE } from "./demoMode/flag";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider, AppCheck } from "firebase/app-check";
 
@@ -44,7 +44,13 @@ export const auth = getAuth(firebaseApp);
 // default, which once silently blocked creating guest accounts.
 function makeDb(): Firestore {
   try {
-    return initializeFirestore(firebaseApp, { ignoreUndefinedProperties: true });
+    return initializeFirestore(firebaseApp, {
+      ignoreUndefinedProperties: true,
+      // a copy of your data on the device: the app works offline, and
+      // writes made without a connection are sent when it's back
+      // (offlineWrites.ts). Browser only; the server keeps the default.
+      ...(typeof window !== "undefined" && !DEMO_MODE ? { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) } : {}),
+    });
   } catch {
     return getFirestore(firebaseApp); // already initialised (hot reload)
   }

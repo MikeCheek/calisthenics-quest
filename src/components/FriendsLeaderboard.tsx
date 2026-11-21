@@ -1,5 +1,6 @@
 "use client";
 
+import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -207,7 +208,11 @@ export default function FriendsLeaderboard() {
         )}
 
         {boardEntries === null ? (
-          <p className="text-sm text-muted py-2">{tx("Loading…")}</p>
+          <div className="space-y-2 py-1" role="status" aria-label={tx("Loading…")}>
+            {[0, 1, 2, 3].map((i) => (
+              <Bone key={i} className="h-9 w-full" />
+            ))}
+          </div>
         ) : scope === "friends" && boardEntries.length <= 1 ? (
           <p className="text-sm text-zinc-400">{tx("Add a friend below to compete — or switch to Everyone.")}</p>
         ) : ranked.length === 0 ? (

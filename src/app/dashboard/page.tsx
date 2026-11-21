@@ -20,7 +20,7 @@ import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { levelProgress } from "@/lib/levelPath";
 import { fetchSessionsBetween } from "@/lib/store";
 import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
-import CoolDownCard from "@/components/CoolDown";
+import CoolDownCard, { RestDayCard } from "@/components/CoolDown";
 import { SessionRecord } from "@/lib/types";
 import { Flame } from "lucide-react";
 
@@ -53,7 +53,7 @@ export default function TodayPage() {
   }, [uid, sessionsDone]);
 
   const now = useMemo(() => new Date(), []);
-  if (loading || !userDoc || !fitted || !focus) return <PageLoading />;
+  if (loading || !userDoc || !fitted || !focus) return <PageLoading variant="today" />;
 
   const level = levelProgress(userDoc.xp).level;
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
@@ -105,6 +105,9 @@ export default function TodayPage() {
               .flatMap((s) => s.exercises.filter((e) => e.outcome === "done"))}
           />
         )}
+
+        {/* a day off in the plan: easy mobility instead */}
+        {!doneToday && !(activeSession && !activeCompleted) && days.some((d) => d.isToday && !d.planned) && <RestDayCard />}
 
         <WeekStrip days={days} planned={plannedCount} />
 

@@ -60,7 +60,7 @@ export default function TrainingPage() {
   const displayedSession = aiAppliedSession ?? fitted?.session ?? null;
 
   if (loading || !userDoc || !displayedSession) {
-    return <PageLoading />;
+    return <PageLoading variant="today" />;
   }
 
   const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number; effort?: { planned: number; done: number; tired: boolean } }) => {

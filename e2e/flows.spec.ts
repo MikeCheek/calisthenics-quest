@@ -152,8 +152,36 @@ test("after the last exercise: cool-down stretches for the muscles worked", asyn
   await expect(flow.getByText(/Stretch 1 of \d/)).toBeVisible();
   for (let k = 0; k < 8; k++) {
     if (await flow.getByText("Cool-down done").isVisible()) break;
-    await flow.getByRole("button", { name: /Next stretch|Finish/ }).click();
+    await flow.getByRole("button", { name: /^(Next stretch|Next|Finish)/ }).click();
   }
   await expect(flow.getByText("Cool-down done")).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("offline: a session can be finished and logged without a connection", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await page.goto("/dashboard");
+  await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
+  await context.setOffline(true);
+  await expect(page.getByText(/Offline — training still works/)).toBeVisible();
+  for (let k = 0; k < 40; k++) {
+    if (await page.getByText("Session complete!").isVisible()) break;
+    const skip = page.getByRole("button", { name: "Skip rest" }).first();
+    if (await skip.isVisible()) await skip.click();
+    else await page.getByRole("button", { name: /^Next/ }).click();
+  }
+  await page.getByRole("button", { name: /Finish & log session/ }).click();
+  await expect(page.getByText(/Saved on this phone/)).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("heading", { name: "Done for today" })).toBeAttached();
+  await context.setOffline(false);
+  await expect(page.getByText(/Offline — training still works/)).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("Me shows the achievements grid", async ({ page }) => {
+  await page.goto("/profile");
+  const grid = page.locator("#achievements");
+  await expect(grid.getByRole("heading", { name: "Achievements" })).toBeVisible();
+  await grid.getByRole("button", { name: /Century/ }).click();
+  await expect(grid.getByText(/of 100 so far/)).toBeVisible();
 });

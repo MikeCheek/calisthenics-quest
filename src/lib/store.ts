@@ -16,11 +16,15 @@ import {
   arrayUnion,
   arrayRemove,
   getAggregateFromServer,
+  getDocFromCache,
+  getDocsFromCache,
+  type DocumentData,
   sum,
   count,
 } from "firebase/firestore";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
+import { isOffline } from "./offlineWrites";
 import {
   BodyProfile,
   Friend,
@@ -37,8 +41,13 @@ import {
   WeekStats,
 } from "./types";
 
+// Offline, read the copy on the device (it includes saves still waiting to
+// be sent); asking the server could hang until the connection is back.
+const readDoc = <T,>(ref: Parameters<typeof getDoc<T, DocumentData>>[0]) => (isOffline() ? getDocFromCache(ref) : getDoc(ref));
+const readDocs = <T,>(q: Parameters<typeof getDocs<T, DocumentData>>[0]) => (isOffline() ? getDocsFromCache(q) : getDocs(q));
+
 export async function fetchUserDoc(uid: string): Promise<UserDoc | null> {
-  const snap = await getDoc(doc(db, "users", uid));
+  const snap = await readDoc(doc(db, "users", uid));
   if (!snap.exists()) return null;
   return snap.data() as UserDoc;
 }
@@ -329,7 +338,7 @@ export async function fetchSessionsBetween(uid: string, fromISO: string, toISO: 
     where("finishedAt", "<", toISO),
     orderBy("finishedAt", "desc")
   );
-  const snap = await getDocs(q);
+  const snap = await readDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as SessionRecord) }));
 }
 

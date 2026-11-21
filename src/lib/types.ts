@@ -444,6 +444,8 @@ export interface UserDoc {
   xpHistory: XPHistoryPoint[];
   // "Done!" replies to friends' challenge nudges that earned XP today (nudges.ts)
   nudgeXp?: { day: string; count: number };
+  // achievements earned: id -> when (achievements.ts)
+  achievements?: Record<string, string>;
   // skill stages over time, one snapshot per change (skillHistory.ts)
   skillHistory?: import("./skillHistory").SkillSnapshot[];
   // XP bets placed on the bonus wheel today (bonusWheel.ts)

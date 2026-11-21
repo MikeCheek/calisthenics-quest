@@ -1,5 +1,8 @@
-const CACHE_NAME = "barquests-v2";
-const APP_SHELL = ["/", "/dashboard", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.json"];
+const CACHE_NAME = "barquests-v3";
+const APP_SHELL = ["/", "/dashboard", "/training", "/skills", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.json"];
+
+// files whose content never changes under the same name: from the cache first
+const IMMUTABLE = /^\/(_next\/static|landing|splash|icons)\//;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -59,12 +62,32 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// Network-first for navigation/data, falling back to cache when offline.
-// Firestore/Firebase auth calls (different origin) are left untouched.
+// Network-first for pages and data, falling back to the cache when offline;
+// cache-first for files that never change (app code, images). The app's
+// own API, and Firestore/Firebase calls (another origin), are left alone:
+// Firestore keeps its own offline copy.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
   if (event.request.method !== "GET") return;
+  if (url.pathname.startsWith("/api/")) return;
+
+  if (IMMUTABLE.test(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then(
+        (cached) =>
+          cached ||
+          fetch(event.request).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+            }
+            return res;
+          })
+      )
+    );
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)
