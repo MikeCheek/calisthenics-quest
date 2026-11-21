@@ -28,8 +28,15 @@ import { clockTime, closeTrainingNotice, keepScreenOn, letScreenSleep, showTrain
 import { parseTiming } from "@/lib/exerciseTiming";
 import { exerciseEffort, fatigueOf, planEaseUp, totalEffort } from "@/lib/effort";
 
-// the cool-down button loads only when the session is complete
-const SessionCoolDown = dynamic(() => import("@/components/SessionCoolDown"), { ssr: false });
+// The cool-down button's code is fetched when a session starts (usually
+// still online) and shown on the "Session complete" screen. If it can't be
+// loaded — offline, never fetched — the button is simply left out: a
+// missing extra mustn't break finishing the session.
+const loadSessionCoolDown = () => import("@/components/SessionCoolDown");
+const SessionCoolDown = dynamic(
+  () => loadSessionCoolDown().catch(() => ({ default: () => null })),
+  { ssr: false }
+);
 
 interface Step {
   key: string;
@@ -121,6 +128,10 @@ export default function FocusTrainingMode() {
   const [fatigueAt, setFatigueAt] = useState<Record<number, number>>({});
   const [tiredAt, setTiredAt] = useState<number | null>(null);
   const plannedEffort = useMemo(() => totalEffort(steps), [steps]);
+  // fetch the cool-down code now, while there's (probably) a connection
+  useEffect(() => {
+    if (session) loadSessionCoolDown().catch(() => {});
+  }, [session?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // the cool-down covers what was actually done (swaps included)
   const doneExercises = steps
     .map((st, i) => ({ st, i }))
