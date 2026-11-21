@@ -1306,6 +1306,18 @@ const IT_PHRASES: [string, string][] = [
   ["Start mobility", "Inizia la mobilità"],
   ["Mobility done", "Mobilità completata"],
   ["Move {a} of {b}", "Esercizio {a} di {b}"],
+  // ---- skill timeline ----
+  ["Your skill timeline", "La tua tabella di marcia"],
+  ["When your next stages should come, at the pace of your last six weeks.", "Quando dovrebbero arrivare i prossimi livelli, al ritmo delle ultime sei settimane."],
+  ["Train a skill for a couple of weeks and its timeline shows up here.", "Allena una skill per un paio di settimane e qui comparirà la sua tabella di marcia."],
+  ["now: {s}", "ora: {s}"],
+  ["An estimate, not a promise: train a skill more often and it comes sooner.", "Una stima, non una promessa: allena una skill più spesso e arriverà prima."],
+  ["over a year", "oltre un anno"],
+  ["this week or next", "questa settimana o la prossima"],
+  ["about {n} weeks", "circa {n} settimane"],
+  ["{a}–{b} weeks", "{a}–{b} settimane"],
+  ["about {n} months", "circa {n} mesi"],
+  ["{a}–{b} months", "{a}–{b} mesi"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
