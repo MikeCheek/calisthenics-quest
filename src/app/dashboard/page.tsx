@@ -20,6 +20,7 @@ import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { levelProgress } from "@/lib/levelPath";
 import { fetchSessionsBetween } from "@/lib/store";
 import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
+import CoolDownCard from "@/components/CoolDown";
 import { SessionRecord } from "@/lib/types";
 import { Flame } from "lucide-react";
 
@@ -95,6 +96,15 @@ export default function TodayPage() {
           onStart={() => startSession(fitted.session)}
           onResume={expand}
         />
+
+        {/* stretches for what today's session worked most */}
+        {doneToday && !(activeSession && !activeCompleted) && (
+          <CoolDownCard
+            exercises={weekSessions
+              .filter((s) => new Date(s.finishedAt).toDateString() === now.toDateString())
+              .flatMap((s) => s.exercises.filter((e) => e.outcome === "done"))}
+          />
+        )}
 
         <WeekStrip days={days} planned={plannedCount} />
 

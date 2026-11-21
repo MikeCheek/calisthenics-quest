@@ -11,6 +11,7 @@ import {
   snoozeStageSuggestion,
 } from "@/lib/adaptation";
 import { updateProgress } from "@/lib/store";
+import { skillHistoryPatch } from "@/lib/skillHistory";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { plausibleDuration } from "@/lib/sessionHistory";
@@ -95,7 +96,7 @@ export function TrainingSessionProvider({ children }: { children: React.ReactNod
       try {
         if (accept) {
           const next = acceptStageSuggestion(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.skillProgress ?? {}, s);
-          await updateProgress(userDoc.uid, { skills: next.skills, skillMastery: next.mastery, skillProgress: next.progress });
+          await updateProgress(userDoc.uid, { skills: next.skills, skillMastery: next.mastery, skillProgress: next.progress, ...skillHistoryPatch(userDoc, next.skills) });
           if (s.direction === "up") {
             // stepping up a stage earned in training is worth a bonus (sessionXp.ts)
             const bonus = xpRules().stageUp;

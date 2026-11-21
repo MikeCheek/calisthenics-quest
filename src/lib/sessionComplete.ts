@@ -1,3 +1,4 @@
+import { skillHistoryPatch } from "./skillHistory";
 import { earnedXp } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
 import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
@@ -171,6 +172,7 @@ export async function completeSession(
     skillProgress: learned.progress,
     skillMastery: newMastery,
     skills: newSkills,
+    ...skillHistoryPatch(userDoc, newSkills),
     claims,
     records,
     ...(opts.transitionRestRatio !== undefined

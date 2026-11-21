@@ -53,9 +53,10 @@ export async function saveProfile(
   skills: SkillProfile,
   equipment: TrainingEquipment,
   goalTracks: SkillTrack[],
-  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>
+  skillMastery: Partial<Record<StagedSkillKey, SkillMastery>>,
+  extra: Partial<UserDoc> = {}
 ): Promise<void> {
-  await updateDoc(doc(db, "users", uid), { body, skills, equipment, goalTracks, skillMastery, onboarded: true });
+  await updateDoc(doc(db, "users", uid), withoutUndefined({ body, skills, equipment, goalTracks, skillMastery, onboarded: true, ...extra }));
 }
 
 export async function updateProgress(
