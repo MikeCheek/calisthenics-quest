@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import CancelSessionDialog from "@/components/CancelSessionDialog";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { Dumbbell, Pause, Play, X } from "lucide-react";
@@ -10,17 +11,18 @@ const BUBBLE_SIZE = 64;
 const MARGIN = 12;
 
 export default function TrainingBubble() {
-  const { session, expanded, paused, currentExerciseName, expand, togglePause, discardSession } =
+  const { session, expanded, paused, currentExerciseName, expand, togglePause } =
     useTrainingSession();
 
   const { tx } = useLanguage();
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number; moved: boolean } | null>(
     null
   );
   const bubbleRef = useRef<HTMLDivElement>(null);
 
-  if (!session || expanded) return null;
+  if (!session || expanded) return <CancelSessionDialog open={cancelOpen} onClose={() => setCancelOpen(false)} />;
 
   const defaultPos = () => {
     const w = typeof window !== "undefined" ? window.innerWidth : 400;
@@ -61,6 +63,7 @@ export default function TrainingBubble() {
   };
 
   return (
+    <>
     <div
       ref={bubbleRef}
       onPointerDown={onPointerDown}
@@ -100,12 +103,13 @@ export default function TrainingBubble() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm(tx("End this training session without logging it?"))) discardSession();
+            setCancelOpen(true);
           }}
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-600 flex items-center justify-center text-muted"
-          aria-label={tx("End session")}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-zinc-800 border border-zinc-500 flex items-center justify-center text-zinc-200"
+          aria-label={tx("Cancel session")}
         >
-          <X size={10} />
+          <X size={14} />
         </button>
       </div>
       {currentExerciseName && (
@@ -114,5 +118,7 @@ export default function TrainingBubble() {
         </div>
       )}
     </div>
+    <CancelSessionDialog open={cancelOpen} onClose={() => setCancelOpen(false)} />
+    </>
   );
 }

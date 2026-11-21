@@ -6,6 +6,16 @@ const AXE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 // WCAG 2.1 A/AA plus best practices; the demo badge is left out (it only
 // exists in demo mode).
 export async function expectNoA11yViolations(page: Page) {
+  // let one-off animations (fade-ins) finish, or contrast is measured
+  // mid-fade; endless ones (pulses, the wheel's lights) are left running
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined))
+    )
+  );
   await page.addScriptTag({ content: AXE });
   const violations = await page.evaluate(async () => {
     const w = window as unknown as { axe: { run: (ctx: unknown, opts: unknown) => Promise<{ violations: { id: string; nodes: { target: string[] }[] }[] }> } };
