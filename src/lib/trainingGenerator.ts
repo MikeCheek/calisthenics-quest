@@ -21,7 +21,7 @@ import {
   pullStrengthTrack,
   pushStrengthTrack,
 } from "./trainingData";
-import { pickWarmup, pickFinisher } from "./warmupFinisher";
+import { pickWarmup, pickWarmupFor, pickFinisher } from "./warmupFinisher";
 import { bandAssistanceBonus } from "./bandBonus";
 import { advancedSkillBonusSet } from "./advancedSkills";
 import { STAGE_ORDER } from "./stageOrder";
@@ -204,6 +204,14 @@ function buildSets(
     title: "Final Hits",
     exercises: [pickFinisher(dateISO, equipment)],
   });
+
+  // now the whole session is known: warm up for what it will actually load
+  const matched = pickWarmupFor(
+    sets.filter((s) => s !== warmup).flatMap((s) => s.exercises.map((e) => ({ name: e.name, detail: e.detail, setTitle: s.title }))),
+    equipment,
+    dateISO
+  );
+  if (matched.length) warmup.exercises = matched;
 
   return sets;
 }

@@ -1,4 +1,6 @@
 import { Exercise, TrainingEquipment, SkillTrack } from "./types";
+import { sessionLoad, type Muscle } from "./stretching";
+import { fitsEquipment } from "./equipmentNeeds";
 
 // Every mobility drill tagged by which area(s) it actually opens up —
 // warm-ups are picked by matching these against the day's focus, not
@@ -125,4 +127,90 @@ export function pickFinisher(dateISO: string, equipment: TrainingEquipment): Exe
   if (equipment.pullUpBar) pool.push(BAR_FINISHER);
   const idx = seededIndex(dateISO + "finisher", pool.length);
   return pool[idx];
+}
+
+// ---------------------------------------------------------------------------
+// The warm-up matched to the whole session, not just its focus: the muscles
+// every exercise in it will load (stretching.ts), turned into the areas to
+// open up, most-loaded first — wrists guaranteed whenever the hands will
+// bear weight — using only drills the equipment allows. Each drill says
+// what it's getting ready.
+// ---------------------------------------------------------------------------
+
+const MUSCLE_AREAS: Record<Muscle, MobilityArea[]> = {
+  lats: ["scapula", "shoulders"],
+  chest: ["chest", "shoulders"],
+  shoulders: ["shoulders", "thoracic"],
+  triceps: ["shoulders"],
+  biceps: ["grip"],
+  wrists: ["wrists"],
+  core: ["core"],
+  lowerBack: ["thoracic", "hips"],
+  hipFlexors: ["hips"],
+  quads: ["hips", "ankles"],
+  hamstrings: ["hamstrings"],
+  glutes: ["hips"],
+  calves: ["ankles"],
+};
+
+export const WARMUP_WHY: Record<MobilityArea, string> = {
+  wrists: "Gets your wrists ready for today's session",
+  shoulders: "Gets your shoulders ready for today's session",
+  scapula: "Wakes up your shoulder blades for today's pulling",
+  thoracic: "Frees up your upper back for today's session",
+  chest: "Opens your chest for today's pushing",
+  hips: "Opens your hips for today's session",
+  hamstrings: "Loosens your hamstrings for today's session",
+  ankles: "Gets your ankles ready for today's leg work",
+  grip: "Gets your grip ready for today's hanging work",
+  core: "Switches on your core for today's session",
+  general: "Raises your temperature before the real work",
+};
+
+export function warmupAreas(exercises: { name: string; detail?: string; setTitle?: string }[]): MobilityArea[] {
+  const load = sessionLoad(exercises);
+  const byArea = new Map<MobilityArea, number>();
+  for (const [m, w] of Object.entries(load) as [Muscle, number][]) {
+    MUSCLE_AREAS[m].forEach((a, i) => byArea.set(a, (byArea.get(a) ?? 0) + w * (i === 0 ? 1 : 0.5)));
+  }
+  const ranked = [...byArea.entries()].sort((a, b) => b[1] - a[1]).map(([a]) => a);
+  // the hands will bear weight: wrist prep makes the cut
+  if ((load.wrists ?? 0) > 0.04 && ranked.indexOf("wrists") > 2) {
+    ranked.splice(ranked.indexOf("wrists"), 1);
+    ranked.splice(1, 0, "wrists");
+  }
+  return ranked;
+}
+
+export function pickWarmupFor(
+  exercises: { name: string; detail?: string; setTitle?: string }[],
+  equipment: TrainingEquipment,
+  dateISO: string,
+  count = 3
+): Exercise[] {
+  const areas = warmupAreas(exercises);
+  if (!areas.length) return [];
+  const seed = seededIndex(dateISO + areas.join() + "warmup", 9973);
+  const pool = MOBILITY_POOL.filter((d) => fitsEquipment(d, equipment));
+  const picked: { drill: MobilityDrill; area: MobilityArea }[] = [];
+  for (const area of areas) {
+    if (picked.length >= count) break;
+    const options = pool.filter((d) => d.areas[0] === area && !picked.some((p) => p.drill.name === d.name));
+    if (options.length) picked.push({ drill: options[seed % options.length], area });
+  }
+  // not enough specific drills: the best overlapping ones, then general
+  for (const d of pool) {
+    if (picked.length >= count) break;
+    if (picked.some((p) => p.drill.name === d.name)) continue;
+    const area = d.areas.find((a) => areas.includes(a));
+    if (area) picked.push({ drill: d, area });
+  }
+  for (const d of pool.filter((x) => x.areas.includes("general"))) {
+    if (picked.length >= count) break;
+    if (!picked.some((p) => p.drill.name === d.name)) picked.push({ drill: d, area: "general" });
+  }
+  return picked.map(({ drill, area }) => {
+    const { areas: _areas, ...exercise } = drill;
+    return { ...exercise, adaptNote: WARMUP_WHY[area] };
+  });
 }

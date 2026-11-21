@@ -1286,6 +1286,18 @@ const IT_PHRASES: [string, string][] = [
   ["Almost there…", "Quasi pronto…"],
   ["Tip", "Consiglio"],
   ["You're offline — showing your last saved data.", "Sei offline — mostro gli ultimi dati salvati."],
+  // ---- matched warm-up ----
+  ["Gets your wrists ready for today's session", "Prepara i polsi alla sessione di oggi"],
+  ["Gets your shoulders ready for today's session", "Prepara le spalle alla sessione di oggi"],
+  ["Wakes up your shoulder blades for today's pulling", "Attiva le scapole per la tirata di oggi"],
+  ["Frees up your upper back for today's session", "Sblocca la parte alta della schiena per la sessione di oggi"],
+  ["Opens your chest for today's pushing", "Apre il petto per la spinta di oggi"],
+  ["Opens your hips for today's session", "Apre le anche per la sessione di oggi"],
+  ["Loosens your hamstrings for today's session", "Scioglie i femorali per la sessione di oggi"],
+  ["Gets your ankles ready for today's leg work", "Prepara le caviglie al lavoro di gambe di oggi"],
+  ["Gets your grip ready for today's hanging work", "Prepara la presa al lavoro alla sbarra di oggi"],
+  ["Switches on your core for today's session", "Attiva il core per la sessione di oggi"],
+  ["Raises your temperature before the real work", "Alza la temperatura prima del lavoro vero"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
