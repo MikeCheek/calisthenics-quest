@@ -9,3 +9,5 @@ next-env.d.ts
 .next-*
 test-results
 playwright-report
+
+.lighthouseci
