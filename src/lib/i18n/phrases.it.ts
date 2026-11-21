@@ -1318,6 +1318,11 @@ const IT_PHRASES: [string, string][] = [
   ["{a}–{b} weeks", "{a}–{b} settimane"],
   ["about {n} months", "circa {n} mesi"],
   ["{a}–{b} months", "{a}–{b} mesi"],
+  // ---- progress share card ----
+  ["Share your progress", "Condividi i tuoi progressi"],
+  ["+{n}% stronger", "+{n}% più forte"],
+  ["+{n} skill stages", "+{n} livelli di skill"],
+  ["Level {a} → {b}", "Livello {a} → {b}"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

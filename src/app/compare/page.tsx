@@ -3,7 +3,9 @@
 import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, TrendingUp, Layers, CalendarDays, Dumbbell, Sparkles } from "lucide-react";
+import { ArrowRight, TrendingUp, Layers, CalendarDays, Dumbbell, Sparkles, Share2 } from "lucide-react";
+import ShareSheet from "@/components/ShareSheet";
+import type { ShareCard } from "@/lib/shareCards";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -51,6 +53,7 @@ export default function ComparePage() {
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   const [area, setArea] = useState<Area | "all">("all");
   const [showAll, setShowAll] = useState(false);
+  const [share, setShare] = useState<ShareCard | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -207,6 +210,31 @@ export default function ComparePage() {
               <Stat icon={CalendarDays} label={tx("Sessions a week")} value={`${data.head.sessionsPerWeek[0]} → ${data.head.sessionsPerWeek[1]}`} good={data.head.sessionsPerWeek[1] >= data.head.sessionsPerWeek[0]} />
             </section>
 
+            <button
+              onClick={() =>
+                setShare({
+                  kind: "progress",
+                  fromISO: periods.then.from,
+                  dateISO: new Date(new Date(periods.now.to).getTime() - 86400000).toISOString(),
+                  strength: data.overall,
+                  stages: stagesUp,
+                  levels: [data.head.levelThen, data.head.levelNow],
+                  skills: data.skills
+                    .filter((x) => x.steps > 0)
+                    .map((x) => ({ name: SKILL_FIELD_LABEL[x.skill as StagedSkillKey], from: stage(x.from), to: stage(x.to), skill: x.skill as StagedSkillKey, stage: x.to })),
+                  exercises: data.exercises.both
+                    .filter((r) => r.bestChange > 0)
+                    .map((r) => ({ name: r.now.name, from: val(r.then, r.then.best), to: val(r.now, r.now.best), change: r.bestChange })),
+                  areas: data.areas.filter((a) => a.change !== null).map((a) => ({ name: tx(AREA_LABEL[a.area]), change: a.change ?? 0 })).sort((a, b) => b.change - a.change),
+                  // the hardest thing trained now, to draw
+                  figure: [...data.exercises.both.map((r) => r.now), ...data.exercises.added].sort((a, b) => b.difficulty - a.difficulty)[0]?.name,
+                })
+              }
+              className="w-full h-12 rounded-xl border border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10 text-base flex items-center justify-center gap-2"
+            >
+              <Share2 size={18} /> {tx("Share your progress")}
+            </button>
+
             {/* muscle groups */}
             <section className="panel p-4" aria-labelledby="areas-title">
               <h2 id="areas-title" className="heading text-base text-zinc-100 mb-1">{tx("Strength by muscle group")}</h2>
@@ -345,6 +373,7 @@ export default function ComparePage() {
           </>
         )}
       </main>
+      <ShareSheet card={share} onClose={() => setShare(null)} />
     </>
   );
 }

@@ -17,7 +17,20 @@ export type CardFormat = "story" | "square";
 export type ShareCard =
   | { kind: "session"; record: SessionRecord }
   | { kind: "verified"; label: string; result?: string; dateISO: string; skill?: StagedSkillKey; stage?: string; videoKey?: string }
-  | { kind: "record"; record: PersonalRecord; dateISO: string };
+  | { kind: "record"; record: PersonalRecord; dateISO: string }
+  // Then vs now (compare.ts): texts arrive already translated
+  | {
+      kind: "progress";
+      fromISO: string; // the start of "then"
+      dateISO: string; // the end of "now"
+      strength: number | null; // %
+      stages: number;
+      levels: [number, number];
+      skills: { name: string; from: string; to: string; skill?: StagedSkillKey; stage?: string }[];
+      exercises: { name: string; from: string; to: string; change: number }[];
+      areas?: { name: string; change: number }[]; // muscle groups, to fill in when there's little else
+      figure?: string; // an exercise to draw when no skill stage-up has one
+    };
 
 export interface CardContext {
   format: CardFormat;
@@ -90,6 +103,11 @@ function figure(exerciseName: string | undefined, x: number, y: number, w: numbe
 
 function illustrationFor(card: ShareCard): string | undefined {
   if (card.kind === "record") return card.record.name;
+  if (card.kind === "progress") {
+    const top = card.skills.find((s) => s.skill && s.stage);
+    const fromSkill = top ? exercisesForSkillStage(top.skill!, top.stage!).find((n) => demoFor(n)) : undefined;
+    return fromSkill ?? (card.figure && demoFor(card.figure) ? card.figure : undefined);
+  }
   if (card.kind === "session") {
     const main = card.record.exercises.find(
       (e) => e.outcome === "done" && e.setTitle !== "Warm-Up" && e.setTitle !== "Final Hits" && demoFor(e.name)
@@ -117,7 +135,7 @@ export function buildCardSvg(card: ShareCard, ctx: CardContext): string {
     `<defs>` +
       `<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#18181b"/><stop offset="1" stop-color="#09090b"/></linearGradient>` +
       `<radialGradient id="glow" cx="0.85" cy="0.1" r="0.7"><stop offset="0" stop-color="${ORANGE}" stop-opacity="0.28"/><stop offset="1" stop-color="${ORANGE}" stop-opacity="0"/></radialGradient>` +
-      `<radialGradient id="glow2" cx="0.1" cy="0.95" r="0.6"><stop offset="0" stop-color="${card.kind === "session" ? ORANGE : card.kind === "verified" ? EMERALD : AMBER}" stop-opacity="0.16"/><stop offset="1" stop-opacity="0"/></radialGradient>` +
+      `<radialGradient id="glow2" cx="0.1" cy="0.95" r="0.6"><stop offset="0" stop-color="${card.kind === "session" ? ORANGE : card.kind === "verified" || card.kind === "progress" ? EMERALD : AMBER}" stop-opacity="0.16"/><stop offset="1" stop-opacity="0"/></radialGradient>` +
       `</defs>` +
       `<rect width="${W}" height="${H}" fill="url(#bg)"/><rect width="${W}" height="${H}" fill="url(#glow)"/><rect width="${W}" height="${H}" fill="url(#glow2)"/>`
   );
@@ -141,7 +159,28 @@ export function buildCardSvg(card: ShareCard, ctx: CardContext): string {
     }
   };
 
-  if (card.kind === "verified") {
+  if (card.kind === "progress") {
+    kicker(tx("Then vs now"), EMERALD);
+    y += 20;
+    const big = card.strength !== null && card.strength > 0 ? tx("+{n}% stronger", { n: card.strength }) : card.stages > 0 ? tx("+{n} skill stages", { n: card.stages }) : tx("Level {a} → {b}", { a: card.levels[0], b: card.levels[1] });
+    headline(big, story ? 120 : 96, story ? 14 : 17, 2);
+    parts.push(text(pad, y + 4, `${dateLabel(card.fromISO, ctx.locale)} → ${dateLabel(card.dateISO, ctx.locale)}`, 34, SUB));
+    y += story ? 90 : 70;
+    const row = (label: string, value: string, color: string) => {
+      parts.push(`<rect x="${pad}" y="${y - 50}" width="${W - pad * 2}" height="76" rx="22" fill="#ffffff" fill-opacity="0.05"/>`);
+      parts.push(text(pad + 28, y, label, 34, TEXT, { weight: 600 }));
+      parts.push(text(W - pad - 28, y, value, 34, color, { weight: 700, anchor: "end" }));
+      y += 92;
+    };
+    for (const sk of card.skills.slice(0, story ? 3 : 2)) row(sk.name, `${sk.from} → ${sk.to}`, EMERALD);
+    const max = story ? 7 : 4;
+    let shown = Math.min(card.skills.length, story ? 3 : 2);
+    for (const ex of card.exercises.slice(0, story ? 4 : 2)) {
+      row(ex.name, `${ex.from} → ${ex.to}`, AMBER);
+      shown++;
+    }
+    for (const a of (card.areas ?? []).filter((x) => x.change > 0).slice(0, Math.max(0, max - shown))) row(a.name, `+${a.change}%`, EMERALD);
+  } else if (card.kind === "verified") {
     kicker(tx("Verified in training"), EMERALD);
     headline(tx(card.label), story ? 108 : 92, story ? 16 : 18, 2);
     if (card.result) {
@@ -231,6 +270,12 @@ export function buildCardSvg(card: ShareCard, ctx: CardContext): string {
 
 export function cardFileName(card: ShareCard): string {
   const base =
-    card.kind === "session" ? `session-${card.record.focusLabel}` : card.kind === "record" ? `record-${card.record.name}` : `verified-${card.label}`;
+    card.kind === "session"
+      ? `session-${card.record.focusLabel}`
+      : card.kind === "record"
+      ? `record-${card.record.name}`
+      : card.kind === "progress"
+      ? `then-vs-now-${card.dateISO.slice(0, 10)}`
+      : `verified-${card.label}`;
   return `barquests-${base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.png`;
 }
