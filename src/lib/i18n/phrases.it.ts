@@ -1385,6 +1385,10 @@ const IT_PHRASES: [string, string][] = [
   ["Earned {d}", "Ottenuto il {d}"],
   ["{a} of {b} so far", "{a} su {b} finora"],
   ["You've already earned {n} achievements — see them in Me.", "Hai già ottenuto {n} traguardi — guardali in Profilo."],
+  // ---- offline ----
+  ["Offline — training still works and saves on this phone.", "Offline — l'allenamento funziona e si salva su questo telefono."],
+  ["Back online — your training is synced.", "Di nuovo online — il tuo allenamento è sincronizzato."],
+  ["Saved on this phone — it'll sync when you're back online.", "Salvato su questo telefono — si sincronizzerà quando tornerai online."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

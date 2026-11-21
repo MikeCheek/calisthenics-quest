@@ -15,7 +15,8 @@ import RemoteConfigLoader from "@/components/RemoteConfigLoader";
 import SkipLink from "@/components/SkipLink";
 import { SPLASH_IMAGES } from "@/lib/splashImages";
 import TitleSync from "@/components/TitleSync";
-import { AchievementWatcher } from "@/components/Achievements";
+import AchievementWatcher from "@/components/AchievementWatcherLazy";
+import OnlineStatus from "@/components/OnlineStatus";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
@@ -91,6 +92,7 @@ export default function RootLayout({
                 <ReminderScheduler />
                 <PingsListener />
                 <AchievementWatcher />
+                <OnlineStatus />
                 <TrainingSessionOverlays />
                 <LocaleSync />
               </TrainingSessionProvider>

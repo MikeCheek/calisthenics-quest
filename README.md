@@ -96,6 +96,13 @@ you have any health concerns.
   4–6 stretches for the muscles the session worked most: each exercise's load on lats,
   chest, shoulders, arms, wrists, core and legs, weighted by how much work it was. A
   guided run with a timer per hold; a wrist stretch whenever your hands were on the floor.
+- **Warm-up for the whole session** — picked after the session is built, for the muscles
+  every exercise in it will load; wrist prep whenever your hands bear weight, and only drills
+  your equipment allows. Each drill says what it's getting ready.
+- **Rest-day mobility** — on days off, about 10 minutes of movement and stretching that eases
+  what the last three days loaded and keeps the whole body moving.
+- **Works offline** — finish and log a session with no signal: it's saved on the phone and
+  synced when you're back online.
 - **Log only the sets you did** — *Finish here* between sets ends the exercise with
   just those sets logged; your totals and the learning count only what you did.
 - **Sessions that survive interruptions** — the session in progress, where you are in it
@@ -136,6 +143,10 @@ you have any health concerns.
   ago, or any dates. Strength per muscle group (harder variations count, not just more
   reps), skill stages then → now, and every exercise you did in both — best set, typical
   set and sets per session, with the % change — plus the harder exercises you've moved on to.
+- **Skill timeline** — when your next stages should come ("Straddle · 2–3 months"), at the pace
+  of your last six weeks.
+- **Achievements** — 26 bronze, silver and gold badges for sessions, streaks, levels, verified
+  skills, records and stage-ups, celebrated the moment you earn them.
 - **Take back a mistake** — *Undo* a "too hard" swap during a session; afterwards mark a
   "too hard" or skipped exercise *Actually done* in your history, or tap *I can do this*
   on anything the coach is easing off.
