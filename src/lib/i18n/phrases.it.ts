@@ -1298,6 +1298,14 @@ const IT_PHRASES: [string, string][] = [
   ["Gets your grip ready for today's hanging work", "Prepara la presa al lavoro alla sbarra di oggi"],
   ["Switches on your core for today's session", "Attiva il core per la sessione di oggi"],
   ["Raises your temperature before the real work", "Alza la temperatura prima del lavoro vero"],
+  // ---- rest-day mobility ----
+  ["Both sides.", "Da entrambi i lati."],
+  ["Rest-day mobility", "Mobilità del giorno di riposo"],
+  ["About {n} min of easy movement and stretching — it helps you recover for the next session.", "Circa {n} min di movimento leggero e stretching — ti aiuta a recuperare per la prossima sessione."],
+  ["moves", "esercizi"],
+  ["Start mobility", "Inizia la mobilità"],
+  ["Mobility done", "Mobilità completata"],
+  ["Move {a} of {b}", "Esercizio {a} di {b}"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

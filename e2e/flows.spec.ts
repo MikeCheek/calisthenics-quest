@@ -152,7 +152,7 @@ test("after the last exercise: cool-down stretches for the muscles worked", asyn
   await expect(flow.getByText(/Stretch 1 of \d/)).toBeVisible();
   for (let k = 0; k < 8; k++) {
     if (await flow.getByText("Cool-down done").isVisible()) break;
-    await flow.getByRole("button", { name: /Next stretch|Finish/ }).click();
+    await flow.getByRole("button", { name: /^(Next stretch|Next|Finish)/ }).click();
   }
   await expect(flow.getByText("Cool-down done")).toBeVisible();
   expect(errors).toEqual([]);
