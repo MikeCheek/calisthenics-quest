@@ -95,9 +95,11 @@ html, body {
   0% { transform: translateY(16px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
+/* every card using this sits inside an already-centred container, so it
+   only slides down — a sideways -50% here pushed them half off-screen */
 @keyframes slide-down-in {
-  0% { transform: translate(-50%, -16px); opacity: 0; }
-  100% { transform: translate(-50%, 0); opacity: 1; }
+  0% { transform: translateY(-16px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 @keyframes slide-up-out {
   0% { transform: translate(-50%, 0); opacity: 1; }
