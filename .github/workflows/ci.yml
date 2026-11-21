@@ -63,3 +63,42 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: placeholder
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: placeholder
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: placeholder
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: placeholder
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: placeholder
+          NEXT_PUBLIC_FIREBASE_APP_ID: placeholder
+      - name: Lighthouse (landing, /it, About)
+        run: npx --yes @lhci/cli@0.15.1 autorun
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: placeholder
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: placeholder
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: placeholder
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: placeholder
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: placeholder
+          NEXT_PUBLIC_FIREBASE_APP_ID: placeholder
+      - name: Scores on the run's summary page
+        if: always()
+        run: node scripts/lighthouse-summary.mjs
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 7

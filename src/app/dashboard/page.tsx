@@ -21,6 +21,8 @@ import { levelProgress } from "@/lib/levelPath";
 import { fetchSessionsBetween } from "@/lib/store";
 import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
 import CoolDownCard, { RestDayCard } from "@/components/CoolDown";
+import ExtrasLinks from "@/components/ExtrasLinks";
+import TrainingBlockCard from "@/components/TrainingBlockCard";
 import { SessionRecord } from "@/lib/types";
 import { Flame } from "lucide-react";
 
@@ -97,6 +99,8 @@ export default function TodayPage() {
           onResume={expand}
         />
 
+        <TrainingBlockCard />
+
         {/* stretches for what today's session worked most */}
         {doneToday && !(activeSession && !activeCompleted) && (
           <CoolDownCard
@@ -113,6 +117,8 @@ export default function TodayPage() {
 
         {/* once today's session is done, its Skill Check is no longer "today" */}
         <NextGoalCard userDoc={userDoc} check={doneToday ? null : check} playerLevel={level} />
+
+        <ExtrasLinks />
 
         <MissionsSummary missions={missions} />
 

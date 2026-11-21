@@ -103,6 +103,15 @@ you have any health concerns.
   what the last three days loaded and keeps the whole body moving.
 - **Works offline** — finish and log a session with no signal: it's saved on the phone and
   synced when you're back online.
+- **Exercise library** — every exercise in the app, searchable and filterable (type, muscle
+  group, your equipment), with its animation, how-to, stage and what it needs. **Do it now**
+  runs any exercise on the spot in guided mode, with your own number of sets.
+- **Sessions of your own** — pick exercises, set the sets, reorder, and run them in guided
+  mode; save up to 20 to start again with one tap.
+- **Training blocks** — aim for a stage in 4–12 weeks: two of every three sessions on that
+  skill, a deload every 4th week, and a test at the end (move up, or two more weeks).
+- **Bodyweight** — log your weight and see the trend; Then vs now shows strength for your
+  weight and in absolute terms when it changed.
 - **Log only the sets you did** — *Finish here* between sets ends the exercise with
   just those sets logged; your totals and the learning count only what you did.
 - **Sessions that survive interruptions** — the session in progress, where you are in it
@@ -241,6 +250,8 @@ see [Project structure](#project-structure).
   translation layer are small, purpose-built modules
 - Unit tests with Node's built-in test runner (`npm test`), and browser tests with
   Playwright and axe (`npm run e2e`) on every screen; both run on every pull request
+- Lighthouse on every pull request (landing, `/it`, About): scores on the run's summary page;
+  accessibility or SEO below 95 fails the check (`lighthouserc.json`)
 
 ## Getting started
 

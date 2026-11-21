@@ -9,6 +9,8 @@ const SCREENS: [path: string, title: RegExp][] = [
   ["/plan", /^Week plan · BarQuests$/],
   ["/skills", /^Skills · BarQuests$/],
   ["/compare", /^Then vs now · BarQuests$/],
+  ["/library", /^Exercise library · BarQuests$/],
+  ["/build", /^Build a session · BarQuests$/],
   ["/coach", /^Coach · BarQuests$/],
   ["/wheel", /^Bonus wheel · BarQuests$/],
   ["/friends", /^Crew · BarQuests$/],

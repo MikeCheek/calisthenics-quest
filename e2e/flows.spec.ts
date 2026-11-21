@@ -185,3 +185,57 @@ test("Me shows the achievements grid", async ({ page }) => {
   await grid.getByRole("button", { name: /Century/ }).click();
   await expect(grid.getByText(/of 100 so far/)).toBeVisible();
 });
+
+test("library: search, open an exercise, do it now", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/library");
+  await page.getByRole("searchbox").fill("front lever");
+  await page.getByRole("button", { name: /Tuck front lever holds/ }).first().click();
+  const sheet = page.getByRole("dialog", { name: "Tuck front lever holds" });
+  await expect(sheet.getByText(/Needs:/)).toBeVisible();
+  await sheet.getByRole("button", { name: "More sets" }).click();
+  await sheet.getByRole("button", { name: "Do it now" }).click();
+  await expect(page.getByText(/^1 \/ 1 ·/)).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("build a session: pick exercises, save it, start it", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/build");
+  await page.getByRole("button", { name: "Add exercises" }).click();
+  const picker = page.getByRole("dialog", { name: "Add exercises" });
+  await picker.getByRole("searchbox").fill("push-ups");
+  await picker.getByRole("button", { name: /^Push-ups/ }).first().click();
+  await picker.getByRole("searchbox").fill("hollow");
+  await picker.getByRole("button", { name: /Hollow/ }).first().click();
+  await picker.getByRole("button", { name: /^Done \(2\)/ }).click();
+  await page.getByLabel("Name").fill("Quick one");
+  await page.getByRole("button", { name: /^Save$/ }).click();
+  await expect(page.getByRole("button", { name: "Start Quick one" })).toBeVisible();
+  await page.getByRole("button", { name: "Start Quick one" }).click();
+  await expect(page.getByText(/^1 \/ \d+ ·/)).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a training block: start it from Skills, Today leans on it", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/skills");
+  await page.getByRole("button", { name: "Start a block" }).click();
+  const setup = page.getByRole("dialog", { name: "Start a training block" });
+  await setup.getByRole("button", { name: "Planche", exact: true }).click();
+  await setup.locator("fieldset").nth(1).getByRole("button").first().click();
+  await expect(setup.getByText(/\d+ weeks/)).toBeVisible();
+  await setup.getByRole("button", { name: "Start the block" }).click();
+  await expect(page.getByRole("heading", { name: /^Planche: .+ → .+/ })).toBeVisible();
+  await page.getByRole("link", { name: "Today" }).first().click();
+  await expect(page.getByText(/Week 1 of \d+/)).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("bodyweight: log today's weight", async ({ page }) => {
+  await page.goto("/profile");
+  const card = page.locator("section[aria-labelledby=bw-title]");
+  await card.getByPlaceholder("Today's weight (kg)").fill("76.5");
+  await card.getByRole("button", { name: "Log" }).click();
+  await expect(card.getByText("76.5 kg")).toBeVisible();
+});

@@ -25,7 +25,7 @@ export interface Achievement {
 
 export type AchievementInput = Pick<
   UserDoc,
-  "totalSessionsCompleted" | "streak" | "xp" | "claims" | "skills" | "records" | "skillHistory" | "lastSessionDateISO" | "missions"
+  "totalSessionsCompleted" | "streak" | "xp" | "claims" | "skills" | "records" | "skillHistory" | "lastSessionDateISO" | "missions" | "pastBlocks"
 >;
 
 const count = (value: (u: AchievementInput) => number, target: number) => (u: AchievementInput): [number, number] => [Math.min(value(u), target), target];
@@ -86,6 +86,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   { id: "stage-up-1", title: "Level up a skill", description: "Move a skill up a stage.", icon: "trending", tier: "bronze", progress: count(stageUps, 1) },
   { id: "stage-up-10", title: "Climber", description: "Move skills up 10 stages in all.", icon: "trending", tier: "silver", progress: count(stageUps, 10) },
+  { id: "block-1", title: "Mission accomplished", description: "Reach the goal of a training block.", icon: "trophy", tier: "silver", progress: count((u) => (u.pastBlocks ?? []).filter((b) => b.outcome === "reached").length, 1) },
   { id: "full-skill", title: "The full thing", description: "Reach the last stage of any skill.", icon: "crown", tier: "gold", progress: count(fullSkills, 1) },
 
   { id: "early-bird", title: "Early bird", description: "Finish a session before 7 in the morning.", icon: "sunrise", tier: "bronze", progress: (u) => [lastHour(u) !== null && lastHour(u)! < 7 ? 1 : 0, 1] },
