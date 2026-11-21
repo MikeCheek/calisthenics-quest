@@ -19,7 +19,7 @@ export default function Nav() {
   // sub-pages (the full session and the week plan belong to Today, etc.).
   const TABS = [
     { href: "/dashboard", label: t("nav", "home"), icon: CalendarCheck, routes: ["/dashboard", "/training", "/plan"] },
-    { href: "/skills", label: t("nav", "skills"), icon: Layers, routes: ["/skills", "/progress", "/path"] },
+    { href: "/skills", label: t("nav", "skills"), icon: Layers, routes: ["/skills", "/progress", "/path", "/compare"] },
     { href: "/coach", label: t("nav", "coach"), icon: Bot, routes: ["/coach", "/wheel"] },
     { href: "/friends", label: t("nav", "friends"), icon: Users, routes: ["/friends", "/friend/", "/pair"] },
     { href: "/profile", label: t("nav", "profile"), icon: User, routes: ["/profile"] },

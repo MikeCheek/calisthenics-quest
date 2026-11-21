@@ -1,5 +1,6 @@
 "use client";
 
+import { skillHistoryPatch } from "@/lib/skillHistory";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -43,7 +44,7 @@ export default function OnboardingPage() {
   ) => {
     setSaving(true);
     try {
-      await saveProfile(userDoc.uid, body, skills, equipment, goals, skillMastery);
+      await saveProfile(userDoc.uid, body, skills, equipment, goals, skillMastery, skillHistoryPatch(userDoc, skills));
     } catch {
       toast.error("Couldn't save your profile — check your connection and try again.");
       setSaving(false);

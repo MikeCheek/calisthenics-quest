@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import CompareLink from "@/components/CompareLink";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -65,6 +66,7 @@ export default function SkillsPage() {
       <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
+        <CompareLink />
 
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">
           <div role="tablist" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">

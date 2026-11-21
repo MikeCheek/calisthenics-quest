@@ -50,6 +50,7 @@ export async function resetSkills(userDoc: UserDoc): Promise<void> {
   await clearClips();
   await updateDoc(doc(db, "users", userDoc.uid), {
     skills: DEFAULT_SKILLS,
+    skillHistory: [],
     skillMastery: {},
     goalTracks: [],
     claims: deleteField(),
@@ -82,6 +83,7 @@ export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
   await updateDoc(doc(db, "users", userDoc.uid), {
     body: DEFAULT_BODY,
     skills: DEFAULT_SKILLS,
+    skillHistory: [],
     skillMastery: {},
     equipment: DEFAULT_EQUIPMENT,
     goalTracks: [],

@@ -128,6 +128,10 @@ you have any health concerns.
   XP comes from the work you do (harder exercises earn more, only the sets you did
   count), with bonuses for proving a skill (+40), new records (+10) and stepping up a
   stage (+75).
+- **Then vs now** — two weeks of training side by side: since you started, 1 or 3 months
+  ago, or any dates. Strength per muscle group (harder variations count, not just more
+  reps), skill stages then → now, and every exercise you did in both — best set, typical
+  set and sets per session, with the % change — plus the harder exercises you've moved on to.
 - **Take back a mistake** — *Undo* a "too hard" swap during a session; afterwards mark a
   "too hard" or skipped exercise *Actually done* in your history, or tap *I can do this*
   on anything the coach is easing off.

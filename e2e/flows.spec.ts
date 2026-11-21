@@ -116,3 +116,23 @@ test("a session that can't be done today can be cancelled without logging", asyn
   await expect(page.getByRole("button", { name: "Resume training" })).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test("then vs now: from Skills, switch ranges, pick custom dates", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/skills");
+  await page.getByRole("link", { name: /Then vs now/ }).click();
+  await expect(page).toHaveURL(/\/compare$/);
+  await expect(page.getByRole("heading", { name: "Strength by muscle group" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Exercises you did in both" })).toBeVisible();
+
+  await page.getByRole("button", { name: "1 month" }).click();
+  await expect(page.getByRole("button", { name: "1 month" })).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", { name: "Custom" }).click();
+  const from = page.getByLabel("Then — from");
+  await expect(from).toBeVisible();
+  const d = new Date(Date.now() - 20 * 86400000).toISOString().slice(0, 10);
+  await from.fill(d);
+  await expect(page.getByText("THEN", { exact: false }).first()).toBeVisible();
+  expect(errors).toEqual([]);
+});

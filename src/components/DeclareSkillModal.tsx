@@ -1,5 +1,6 @@
 "use client";
 
+import { skillHistoryPatch } from "@/lib/skillHistory";
 import { useState } from "react";
 import Modal from "@/components/Modal";
 import SkillTabPicker from "@/components/SkillTabPicker";
@@ -41,7 +42,7 @@ export default function DeclareSkillModal({
   const save = async () => {
     setSaving(true);
     try {
-      await saveProfile(userDoc.uid, userDoc.body, skills, userDoc.equipment, userDoc.goalTracks, mastery);
+      await saveProfile(userDoc.uid, userDoc.body, skills, userDoc.equipment, userDoc.goalTracks, mastery, skillHistoryPatch(userDoc, skills));
     } catch {
       toast.error("Couldn't save — check your connection and try again.");
       setSaving(false);
