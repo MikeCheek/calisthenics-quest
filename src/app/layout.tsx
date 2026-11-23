@@ -17,6 +17,7 @@ import { SPLASH_IMAGES } from "@/lib/splashImages";
 import TitleSync from "@/components/TitleSync";
 import AchievementWatcher from "@/components/AchievementWatcherLazy";
 import OnlineStatus from "@/components/OnlineStatus";
+import StatusIcon from "@/components/StatusIcon";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
@@ -93,6 +94,7 @@ export default function RootLayout({
                 <PingsListener />
                 <AchievementWatcher />
                 <OnlineStatus />
+                <StatusIcon />
                 <TrainingSessionOverlays />
                 <LocaleSync />
               </TrainingSessionProvider>

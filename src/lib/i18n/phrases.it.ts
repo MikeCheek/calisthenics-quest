@@ -1491,6 +1491,10 @@ const IT_PHRASES: [string, string][] = [
   ["Today's weight (kg)", "Peso di oggi (kg)"],
   ["Bodyweight {a} → {b} kg.", "Peso {a} → {b} kg."],
   ["Strength for your weight {r}%; absolute {x}%.", "Forza in rapporto al peso {r}%; assoluta {x}%."],
+  // ---- haptics ----
+  ["Vibration cues", "Vibrazione"],
+  ["The phone vibrates when a set starts, rest starts and an exercise is done — handy with it in your pocket.", "Il telefono vibra quando inizia una serie, inizia il recupero e finisce un esercizio — comodo con il telefono in tasca."],
+  ["Feel when sets and rests start.", "Senti quando iniziano serie e recuperi."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

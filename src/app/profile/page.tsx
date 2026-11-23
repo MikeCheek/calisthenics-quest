@@ -13,6 +13,7 @@ import Nav from "@/components/Nav";
 import { levelProgress } from "@/lib/levelPath";
 import { Locale } from "@/lib/types";
 import ReminderSettings from "@/components/ReminderSettings";
+import HapticsToggle from "@/components/HapticsToggle";
 import { updateProgress } from "@/lib/store";
 import DangerZone from "@/components/DangerZone";
 import { claimCounts, syncClaims } from "@/lib/verification";
@@ -219,6 +220,7 @@ export default function ProfilePage() {
             </div>
 
             <ReminderSettings />
+            <HapticsToggle />
 
             <Link href="/about" className="panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors">
               <span className="text-sm text-zinc-200 flex items-center gap-2">
