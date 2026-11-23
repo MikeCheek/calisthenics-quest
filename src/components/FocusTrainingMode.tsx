@@ -14,9 +14,10 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle, Vibrate } from "lucide-react";
 import Modal from "@/components/Modal";
 import CancelSessionDialog from "@/components/CancelSessionDialog";
+import { useHaptics } from "@/components/HapticsToggle";
 import dynamic from "next/dynamic";
 import { mediaSessionSupported, lockScreenPref, setLockScreenPref, startKeepAlive, stopKeepAlive, updateLockScreen } from "@/lib/mediaSession";
 import { speak, stopSpeaking, speakableDetail, speakableName, voicePref, setVoicePref, voiceSupported } from "@/lib/voice";
@@ -114,6 +115,7 @@ export default function FocusTrainingMode() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [canVibrate, vibrateOn, setVibrate] = useHaptics();
   const [allDoneScreen, setAllDoneScreen] = useState(false);
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
@@ -774,7 +776,7 @@ export default function FocusTrainingMode() {
           {!allDoneScreen && restSecondsLeft === null && (
             <MenuRow icon={Info} label={tx("Exercise details")} hint={tx("How to do it, and the common mistakes.")} onClick={() => { setMenuOpen(false); setInfoOpen(true); }} />
           )}
-          {(canSpeak || canLock) && <div className="border-t border-zinc-800 my-2" />}
+          {(canSpeak || canLock || canVibrate) && <div className="border-t border-zinc-800 my-2" />}
           {canSpeak && (
             <MenuRow
               icon={voiceOn ? Volume2 : VolumeX}
@@ -783,6 +785,9 @@ export default function FocusTrainingMode() {
               toggle={voiceOn}
               onClick={toggleVoice}
             />
+          )}
+          {canVibrate && (
+            <MenuRow icon={Vibrate} label={tx("Vibration cues")} hint={tx("Feel when sets and rests start.")} toggle={vibrateOn} onClick={() => setVibrate(!vibrateOn)} />
           )}
           {canLock && (
             <MenuRow icon={Smartphone} label={tx("Lock-screen controls")} hint={tx("Exercise, rest and next on your lock screen.")} toggle={lockOn} onClick={toggleLock} />

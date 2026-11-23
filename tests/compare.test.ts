@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { areaScore, compareAreas, compareExercises, compareSkills, exerciseArea, exerciseLines, headline, periodsFor, stagesFor, stagesTrained } from "../src/lib/compare";
+import { areaScore, compareAreas, compareExercises, compareSkills, exerciseArea, exerciseDoneDates, exerciseHistory, exerciseLines, headline, periodsFor, stagesFor, stagesTrained } from "../src/lib/compare";
 import { nextSkillHistory, skillsAt, SKILL_HISTORY_MAX } from "../src/lib/skillHistory";
 import { DEFAULT_SKILLS, type ExerciseRecord, type SessionRecord, type SkillProfile } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
@@ -129,4 +129,25 @@ test("strength score: harder variations weigh more than extra reps", async () =>
   // doubling reps on the same exercise is progress, but less than doubling strength
   const g = pct(effortScore({ difficulty: 1.75, kind: "reps", perSet: 5 }), effortScore({ difficulty: 1.75, kind: "reps", perSet: 10 }));
   assert.ok(g > 30 && g < 60, String(g));
+});
+
+test("one exercise over time: a point per session, oldest first", () => {
+  const h = exerciseHistory(
+    [
+      session("2026-10-03T10:00:00Z", [ex("Pull-ups", { sets: [{ reps: 7 }, { reps: 6 }] })]),
+      session("2026-10-01T10:00:00Z", [ex("Pull-ups", { sets: [{ reps: 6 }, { reps: 5 }] })]),
+      session("2026-10-02T10:00:00Z", [ex("Dips")]),
+      session("2026-10-05T10:00:00Z", [ex("pull-ups")]),
+    ],
+    "Pull-ups"
+  );
+  assert.deepEqual(h.map((p) => p.best), [6, 7, 8]);
+  assert.deepEqual(h.map((p) => p.estimated), [false, false, true]);
+  assert.equal(h[0].kind, "reps");
+});
+
+test("max sets without logged reps still count as done", () => {
+  const s = [session("2026-10-01T10:00:00Z", [ex("Pull-ups", { detail: "5 x max reps" })])];
+  assert.equal(exerciseHistory(s, "Pull-ups").length, 0);
+  assert.deepEqual(exerciseDoneDates(s, "Pull-ups"), ["2026-10-01T10:00:00Z"]);
 });

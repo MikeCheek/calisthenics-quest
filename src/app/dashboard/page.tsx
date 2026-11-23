@@ -23,6 +23,8 @@ import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
 import CoolDownCard, { RestDayCard } from "@/components/CoolDown";
 import ExtrasLinks from "@/components/ExtrasLinks";
 import TrainingBlockCard from "@/components/TrainingBlockCard";
+import WeatherCard from "@/components/today/WeatherCard";
+import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
 import { SessionRecord } from "@/lib/types";
 import { Flame } from "lucide-react";
 
@@ -34,7 +36,7 @@ export default function TodayPage() {
   const { tx, locale } = useLanguage();
   const router = useRouter();
   const { session: activeSession, completed: activeCompleted, startSession, expand } = useTrainingSession();
-  const { focus, fitted, check, lighterBy } = useTodaysSession(userDoc);
+  const { focus, fitted, check, lighterBy, todayEquipment } = useTodaysSession(userDoc);
   const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
@@ -88,6 +90,13 @@ export default function TodayPage() {
 
         <SaveProgressPrompt compact />
         <NotificationPrompt />
+
+        {!doneToday && !(activeSession && !activeCompleted) && (
+          <>
+            <TodayEquipmentBanner value={todayEquipment} />
+            <WeatherCard userDoc={userDoc} override={todayEquipment} />
+          </>
+        )}
 
         <TodaySessionCard
           session={fitted.session}

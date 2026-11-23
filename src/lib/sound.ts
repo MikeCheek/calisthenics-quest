@@ -1,3 +1,5 @@
+import { buzz } from "./haptics";
+
 let ctx: AudioContext | null = null;
 
 export function playBeep(frequency = 660, durationMs = 400) {
@@ -30,19 +32,23 @@ export function playBeep(frequency = 660, durationMs = 400) {
 //   complete  — a rising three-note chime: the whole exercise is done
 
 export function playCountdownTick() {
+  buzz("tick");
   playBeep(600, 110);
 }
 
 export function playGoSound() {
+  buzz("go");
   playBeep(880, 130);
   setTimeout(() => playBeep(1175, 220), 140);
 }
 
 export function playRestSound() {
+  buzz("rest");
   playBeep(294, 480);
 }
 
 export function playCompleteSound() {
+  buzz("complete");
   playBeep(523, 130);
   setTimeout(() => playBeep(659, 130), 140);
   setTimeout(() => playBeep(880, 260), 280);

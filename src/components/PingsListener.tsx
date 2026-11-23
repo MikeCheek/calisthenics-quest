@@ -43,6 +43,10 @@ export default function PingsListener() {
         if (p.kind === "pairing_invite") {
           firePing(p.fromName, tx("wants to train together"));
           setInvite(p); // shown as a persistent card, not dismissed here
+        } else if (p.kind === "kudos") {
+          firePing(p.fromName, tx("gave you kudos 👏"));
+          toast.info(tx("{name} gave you kudos 👏", { name: p.fromName }));
+          dismissPing(user.uid, p.id);
         } else if (p.kind === "nudge_reply") {
           const r = validReply(p.reply);
           const text = r ? tx(r.text) : String(p.message ?? "").slice(0, 200);

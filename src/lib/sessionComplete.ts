@@ -8,7 +8,8 @@ import { applyCheckResults, syncClaims } from "./verification";
 import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
 import { addToWeek } from "./leaderboard";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
-import { updateProgress, syncPublicProfile, saveSessionRecord, setGlobalBoardEntry } from "./store";
+import { updateProgress, syncPublicProfile, saveSessionRecord, setGlobalBoardEntry, addFeedItem } from "./store";
+import { feedItemFor, sharesActivity } from "./feed";
 import { levelFromXp } from "./xp";
 
 export type StreakEvent = "none" | "started" | "increased" | "unfrozen" | "restarted";
@@ -209,6 +210,8 @@ export async function completeSession(
   });
   await settleWrite(saveSessionRecord(userDoc.uid, sessionRecord)).catch(() => {});
   report.sessionRecord = sessionRecord; // for the share card
+  // friends see it in their feed, unless sharing is off (feed.ts)
+  if (sharesActivity(userDoc)) settleWrite(addFeedItem(userDoc.uid, feedItemFor(userDoc, sessionRecord, newStreak))).catch(() => {});
 
   if (userDoc.friendCode) {
     syncPublicProfile({

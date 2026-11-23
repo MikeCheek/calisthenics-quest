@@ -12,6 +12,8 @@ import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 import { pickNudge, renderNudge } from "../nudges";
+import type { ParkReport, Reaction, UserParkDoc } from "../parks";
+import type { FeedItem } from "../feed";
 
 export type { GlobalBoardRow, PairingDoc };
 
@@ -227,3 +229,83 @@ export async function fetchEventTotals(_eventKey: string): Promise<{ total: numb
 // demo mode never registers for push (no messaging); kept for the same API
 export async function addPushToken(_uid: string, _token: string, _tz: string): Promise<void> {}
 export async function removePushToken(_uid: string, _token: string): Promise<void> {}
+
+// ---- bar parks: in memory for the visit ----
+const demoParks = new Map<string, UserParkDoc>();
+const demoReports = new Map<string, Map<string, ParkReport>>();
+const reportsOf = (id: string) => demoReports.get(id) ?? demoReports.set(id, new Map()).get(id)!;
+
+export async function fetchUserParks(cells: string[]): Promise<UserParkDoc[]> {
+  await pause();
+  return [...demoParks.values()].filter((p) => cells.includes(p.cell)).map(clone);
+}
+export async function addUserPark(park: Omit<UserParkDoc, "id">): Promise<string> {
+  const id = `u-${code().toLowerCase()}`;
+  demoParks.set(id, { ...clone(park), id });
+  return id;
+}
+export async function fetchParkReports(parkId: string): Promise<ParkReport[]> {
+  await pause();
+  const mine = [...reportsOf(parkId).values()];
+  // a friend has been there before you, so the park isn't empty
+  const seed: ParkReport[] = reportsOf(parkId).has("demo-friend-park")
+    ? []
+    : [{ uid: "demo-friend-park", name: "Giulia", kit: { pullUpBar: true, parallelBars: true }, note: "Bars are solid, a bit busy after 6pm.", atISO: new Date(Date.now() - 4 * 86400000).toISOString() }];
+  return clone([...mine, ...seed].sort((a, b) => b.atISO.localeCompare(a.atISO)));
+}
+export async function saveParkReport(parkId: string, report: Omit<ParkReport, "reactions">): Promise<void> {
+  const prev = reportsOf(parkId).get(report.uid);
+  reportsOf(parkId).set(report.uid, { ...clone(report), reactions: prev?.reactions });
+}
+export async function deleteParkReport(parkId: string, uid: string): Promise<void> {
+  reportsOf(parkId).delete(uid);
+}
+export async function reactToParkReport(parkId: string, authorUid: string, reactorUid: string, reaction: Reaction | null): Promise<void> {
+  const r = reportsOf(parkId).get(authorUid) ?? (authorUid === "demo-friend-park" ? (await fetchParkReports(parkId)).find((x) => x.uid === authorUid) : undefined);
+  if (!r) return;
+  const reactions = { ...(r.reactions ?? {}) };
+  if (reaction) reactions[reactorUid] = reaction;
+  else delete reactions[reactorUid];
+  reportsOf(parkId).set(authorUid, { ...r, reactions });
+}
+
+// ---- the crew's feed: friends' recent sessions, plus yours ----
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3600000).toISOString();
+const demoFeed = new Map<string, FeedItem[]>(
+  DEMO_FRIENDS.map((f, i) => {
+    const name = f.displayName.split(" ")[0];
+    const items: FeedItem[] = [
+      { id: `f${i}a`, uid: f.uid, name, focusLabel: ["Front Lever", "Handstand", "Muscle-up"][i % 3], minutes: 38 + i * 6, xp: 140 + i * 20, exercises: 7, records: i === 0 ? ["Tuck front lever holds"] : [], streak: 4 + i, createdAtISO: hoursAgo(3 + i * 9), kudos: i === 0 ? { "demo-g-lena": "Lena" } : {} },
+      { id: `f${i}b`, uid: f.uid, name, focusLabel: ["Pull", "Legs", "Core"][i % 3], minutes: 30, xp: 110, exercises: 6, records: [], streak: 3 + i, createdAtISO: hoursAgo(30 + i * 14) },
+    ];
+    return [f.uid, items];
+  })
+);
+export async function addFeedItem(uid: string, item: Omit<FeedItem, "id">): Promise<void> {
+  const list = demoFeed.get(uid) ?? [];
+  demoFeed.set(uid, [{ ...clone(item), id: `me-${Date.now()}` }, ...list]);
+}
+export async function fetchFeed(friendUids: string[], sinceISO: string): Promise<FeedItem[]> {
+  await pause();
+  return clone(friendUids.flatMap((u) => (demoFeed.get(u) ?? []).filter((i) => i.createdAtISO >= sinceISO)));
+}
+export async function setKudos(authorUid: string, itemId: string, giverUid: string, giverName: string | null): Promise<void> {
+  const item = demoFeed.get(authorUid)?.find((i) => i.id === itemId);
+  if (!item) return;
+  const kudos = { ...(item.kudos ?? {}) };
+  if (giverName) kudos[giverUid] = giverName;
+  else delete kudos[giverUid];
+  item.kudos = kudos;
+}
+export async function sendKudosPing(toUid: string, _fromUid: string, _fromName: string): Promise<void> {
+  // the friend gives kudos back, so the toast shows in the demo
+  const friend = state.friends.find((f) => f.uid === toUid);
+  if (!friend) return;
+  setTimeout(() => {
+    state.pings = [{ id: `demo-ping-${Date.now()}`, fromUid: toUid, fromName: friend.displayName.split(" ")[0], message: "gave you kudos", kind: "kudos", createdAtISO: new Date().toISOString() }, ...state.pings];
+    emitPings();
+  }, 1500);
+}
+export async function deleteMyFeed(uid: string): Promise<void> {
+  demoFeed.delete(uid);
+}

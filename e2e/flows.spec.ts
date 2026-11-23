@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { collectErrors } from "./helpers";
+import { collectErrors, expectNoA11yViolations } from "./helpers";
 
 test("the skip link jumps to the page content", async ({ page }) => {
   await page.goto("/dashboard");
@@ -238,4 +238,82 @@ test("bodyweight: log today's weight", async ({ page }) => {
   await card.getByPlaceholder("Today's weight (kg)").fill("76.5");
   await card.getByRole("button", { name: "Log" }).click();
   await expect(card.getByText("76.5 kg")).toBeVisible();
+});
+
+// ---- the outside world, mocked: OpenStreetMap, its tiles and Open-Meteo ----
+const HERE = { latitude: 45.4642, longitude: 9.19 };
+
+test("bar parks: find one, confirm its kit, react, train there", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 204 }));
+  await page.route("https://overpass-api.de/**", (r) =>
+    r.fulfill({
+      json: {
+        elements: [
+          { type: "way", id: 7, center: { lat: 45.4652, lon: 9.19 }, tags: { leisure: "fitness_station", sport: "calisthenics", name: "Riverside bars" } },
+          { type: "node", id: 1, lat: 45.4652, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "horizontal_bar" } },
+          { type: "node", id: 2, lat: 45.4653, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "parallel_bars" } },
+        ],
+      },
+    })
+  );
+  await page.goto("/parks");
+  await page.getByRole("button", { name: "Find parks near me" }).click();
+  await page.getByRole("button", { name: /Riverside bars/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Riverside bars" });
+  await expect(sheet.getByText("Pull-up bar: there")).toBeVisible();
+  await sheet.getByRole("button", { name: "Still like this" }).click();
+  await expect(sheet.getByText("Thanks for confirming!")).toBeVisible();
+  await sheet.getByRole("button", { name: "Thanks" }).click();
+  await expect(sheet.getByRole("button", { name: "Thanks" })).toHaveAttribute("aria-pressed", "true");
+  await expectNoA11yViolations(page);
+  await sheet.getByRole("button", { name: "Train here today" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.getByText("Today at Riverside bars")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("weather: a rainy week offers the home plan", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  await page.route("https://api.open-meteo.com/**", async (r) => {
+    // a week of rain, in the browser's own local days
+    const days = await page.evaluate(() =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })
+    );
+    const time = days.flatMap((d) => Array.from({ length: 24 }, (_, h) => `${d}T${String(h).padStart(2, "0")}:00`));
+    const all = (v: number) => time.map(() => v);
+    await r.fulfill({
+      json: { hourly: { time, temperature_2m: all(9), apparent_temperature: all(7), precipitation_probability: all(90), precipitation: all(2), weather_code: all(63) } },
+    });
+  });
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "Use location" }).click();
+  await expect(page.getByText(/Rainy days ahead/)).toBeVisible();
+  await page.getByRole("button", { name: /Use the home plan until/ }).click();
+  await expect(page.getByText(/Home plan until .* \(rainy days\)/)).toBeVisible();
+  await expectNoA11yViolations(page);
+  await page.getByRole("button", { name: "My usual kit" }).click();
+  await expect(page.getByText(/Home plan until/)).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("crew feed: give a friend kudos and get some back", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/friends");
+  const feed = page.getByRole("region", { name: "Crew activity" });
+  const kudos = feed.getByRole("button", { name: /^Give .* kudos$/ }).first();
+  await kudos.click();
+  await expect(feed.getByRole("button", { name: /^Take back kudos for/ }).first()).toHaveAttribute("aria-pressed", "true");
+  await expect(feed.getByText(/You.* gave kudos|Kudos/).first()).toBeVisible();
+  await expect(page.getByText(/gave you kudos/).first()).toBeVisible();
+  await expectNoA11yViolations(page);
+  expect(errors).toEqual([]);
 });

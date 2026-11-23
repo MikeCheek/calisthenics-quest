@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Play, Plus, Check, Minus, ChevronRight } from "lucide-react";
 import Modal from "./Modal";
 import ExerciseDemo from "./ExerciseDemo";
+import ExerciseHistory from "./ExerciseHistory";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useToast } from "@/context/ToastContext";
@@ -231,6 +232,10 @@ export function ExerciseSheet({ entry, onClose }: { entry: LibraryEntry | null; 
           {tx("Needs")}:{" "}
           {entry.needs.length ? entry.needs.map((alts) => alts.map((k) => tx(EQUIPMENT_LABEL[k])).join(tx(" or "))).join(" + ") : tx("nothing but the floor")}
         </p>
+        <section className="rounded-xl bg-zinc-950/50 p-3" aria-label={tx("Your progress")}>
+          <h3 className="text-xs uppercase tracking-wide text-zinc-400 mb-2">{tx("Your progress")}</h3>
+          <ExerciseHistory name={e.name} />
+        </section>
         {missing.length > 0 && <p className="text-sm text-amber-300">{tx("Your equipment doesn't include this — you can still do it if you're somewhere that has it.")}</p>}
 
         <div className="rounded-xl bg-zinc-950/50 p-3 space-y-3">

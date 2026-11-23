@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
   const toUid = typeof body.toUid === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(body.toUid) ? body.toUid : null;
-  const kind = body.kind === "pairing_invite" ? "pairing_invite" : body.kind === "nudge_reply" ? "nudge_reply" : "nudge";
+  const kind = body.kind === "pairing_invite" ? "pairing_invite" : body.kind === "nudge_reply" ? "nudge_reply" : body.kind === "kudos" ? "kudos" : "nudge";
   const reply = validReply(body.reply);
   const code = typeof body.pairingCode === "string" && /^[A-Z0-9]{6}$/.test(body.pairingCode) ? body.pairingCode : null;
   if (!toUid || toUid === caller.uid || (kind === "pairing_invite" && !code) || (kind === "nudge_reply" && !reply)) {
@@ -70,6 +70,8 @@ export async function POST(req: NextRequest) {
     const data =
       kind === "pairing_invite"
         ? { title: translate(locale, "{name} wants to train together", { name }), body: translate(locale, "Tap to join the session."), url: `/friends?code=${code}`, tag: "pairing-invite" }
+        : kind === "kudos"
+        ? { title: translate(locale, "{name} gave you kudos 👏", { name }), body: translate(locale, "For your last session. Keep it going!"), url: "/friends", tag: "kudos" }
         : kind === "nudge_reply"
         ? { title: translate(locale, "{name} replied to your nudge", { name }), body: translate(locale, reply!.text), url: "/friends", tag: "nudge-reply" }
         : { title: translate(locale, "{name} is nudging you", { name }), body: nudgeText, url: "/dashboard", tag: "friend-nudge" };

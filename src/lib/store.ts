@@ -21,7 +21,10 @@ import {
   type DocumentData,
   sum,
   count,
+  deleteField,
 } from "firebase/firestore";
+import type { ParkReport, Reaction, UserParkDoc } from "./parks";
+import { FEED_PER_FRIEND, type FeedItem } from "./feed";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
 import { isOffline } from "./offlineWrites";
@@ -425,4 +428,73 @@ export async function addPushToken(uid: string, token: string, tz: string): Prom
 
 export async function removePushToken(uid: string, token: string): Promise<void> {
   await updateDoc(doc(db, "users", uid), { pushTokens: arrayRemove(token) });
+}
+
+// ---- bar parks (parks.ts) ----
+// parks/{id} holds parks athletes added (OpenStreetMap ones need no doc);
+// parks/{id}/reports/{uid} is each athlete's one report of what's there.
+
+export async function fetchUserParks(cells: string[]): Promise<UserParkDoc[]> {
+  const snap = await getDocs(query(collection(db, "parks"), where("cell", "in", cells.slice(0, 10))));
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<UserParkDoc, "id">), id: d.id }));
+}
+
+export async function addUserPark(park: Omit<UserParkDoc, "id">): Promise<string> {
+  const ref = await addDoc(collection(db, "parks"), park);
+  return ref.id;
+}
+
+export async function fetchParkReports(parkId: string): Promise<ParkReport[]> {
+  const snap = await getDocs(query(collection(db, "parks", parkId, "reports"), orderBy("atISO", "desc"), limit(30)));
+  return snap.docs.map((d) => d.data() as ParkReport);
+}
+
+// your report replaces your last one; reactions others left on it are kept
+export async function saveParkReport(parkId: string, report: Omit<ParkReport, "reactions">): Promise<void> {
+  await setDoc(doc(db, "parks", parkId, "reports", report.uid), withoutUndefined(report), { merge: true });
+}
+
+export async function deleteParkReport(parkId: string, uid: string): Promise<void> {
+  await deleteDoc(doc(db, "parks", parkId, "reports", uid));
+}
+
+export async function reactToParkReport(parkId: string, authorUid: string, reactorUid: string, reaction: Reaction | null): Promise<void> {
+  await updateDoc(doc(db, "parks", parkId, "reports", authorUid), { [`reactions.${reactorUid}`]: reaction ?? deleteField() });
+}
+
+// ---- the crew's activity feed (feed.ts) ----
+// users/{uid}/feed: your finished sessions, readable by your friends.
+
+export async function addFeedItem(uid: string, item: Omit<FeedItem, "id">): Promise<void> {
+  await addDoc(collection(db, "users", uid, "feed"), withoutUndefined(item));
+}
+
+export async function fetchFeed(friendUids: string[], sinceISO: string): Promise<FeedItem[]> {
+  const lists = await Promise.all(
+    friendUids.slice(0, 30).map((f) =>
+      getDocs(query(collection(db, "users", f, "feed"), where("createdAtISO", ">=", sinceISO), orderBy("createdAtISO", "desc"), limit(FEED_PER_FRIEND)))
+        .then((snap) => snap.docs.map((d) => ({ ...(d.data() as Omit<FeedItem, "id">), id: d.id })))
+        .catch(() => [] as FeedItem[]) // a friend who removed you, or who turned sharing off
+    )
+  );
+  return lists.flat();
+}
+
+export async function setKudos(authorUid: string, itemId: string, giverUid: string, giverName: string | null): Promise<void> {
+  await updateDoc(doc(db, "users", authorUid, "feed", itemId), { [`kudos.${giverUid}`]: giverName ?? deleteField() });
+}
+
+export async function sendKudosPing(toUid: string, fromUid: string, fromName: string): Promise<void> {
+  await addDoc(collection(db, "users", toUid, "pings"), {
+    fromUid,
+    fromName,
+    message: "gave you kudos",
+    createdAtISO: new Date().toISOString(),
+    kind: "kudos",
+  });
+}
+
+export async function deleteMyFeed(uid: string): Promise<void> {
+  const snap = await getDocs(collection(db, "users", uid, "feed"));
+  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
 }

@@ -7,6 +7,7 @@ import { adaptSession } from "@/lib/adaptation";
 import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { balanceSession, effortCapacity } from "@/lib/effort";
+import { readTodayEquipment, onTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
 import { applyDeload, blockWeek, focusWithBlock, isActive, phaseOf } from "@/lib/trainingBlock";
 
 // Today's session, built once and shared by the Today screen and the full
@@ -41,7 +42,14 @@ export function useTodaysSession(userDoc: UserDoc | null) {
     }
   }, []);
 
-  const equipment = userDoc?.equipment;
+  // equipment for today only (indoors when it rains, or a bar park)
+  const [today_, setToday] = useState<TodayEquipment | null>(null);
+  useEffect(() => {
+    const read = () => setToday(readTodayEquipment());
+    read();
+    return onTodayEquipment(read);
+  }, []);
+  const equipment = today_?.equipment ?? userDoc?.equipment;
   const options = useMemo(() => (equipment ? availableFocuses(equipment) : []), [equipment]);
   // a training block steers the focus (two days in three on its skill)
   const block = userDoc?.trainingBlock ?? undefined;
@@ -50,18 +58,18 @@ export function useTodaysSession(userDoc: UserDoc | null) {
   const focus = focusOverride && options.includes(focusOverride) ? focusOverride : picked;
 
   const skillsKey = JSON.stringify(userDoc?.skills ?? null);
-  const equipmentKey = JSON.stringify(userDoc?.equipment ?? null);
+  const equipmentKey = JSON.stringify(equipment ?? null);
   const built = useMemo(() => {
     if (!userDoc || !focus) return null;
     // generated from the athlete's stages, then adapted to their own history
     // of completing, skipping and struggling with specific exercises
     const adapted = adaptSession(
-      generateSession(userDoc.skills, userDoc.equipment, focus, new Date(), userDoc.body?.sessionLengthMinutes),
+      generateSession(userDoc.skills, equipment!, focus, new Date(), userDoc.body?.sessionLengthMinutes),
       userDoc.exerciseStats,
-      userDoc.equipment
+      equipment!
     );
     // one Skill Check per session, verifying something the athlete claimed
-    const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), userDoc.equipment, focus);
+    const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), equipment!, focus);
     // fit everything to the athlete's chosen session length…
     const fitted = fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes);
     // …and within the effort they've had energy for lately (effort.ts)
@@ -75,5 +83,5 @@ export function useTodaysSession(userDoc: UserDoc | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillsKey, equipmentKey, focus, !!userDoc, deload]);
 
-  return { focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride };
+  return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride };
 }
