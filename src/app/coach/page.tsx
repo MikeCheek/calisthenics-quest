@@ -58,9 +58,15 @@ export default function CoachPage() {
           <p className="text-sm text-zinc-400">{tx("Advice built on your own training.")}</p>
         </div>
 
-        {featureAiCoach && <CoachChat />}
+        {featureAiCoach && (
+          <div id="chat">
+            <CoachChat />
+          </div>
+        )}
 
-        <CoachInsightsCard userDoc={userDoc} />
+        <div id="insights">
+          <CoachInsightsCard userDoc={userDoc} />
+        </div>
 
         <section className="space-y-2">
           <h2 className="text-xs uppercase tracking-wide text-muted px-1">{tx("Tools")}</h2>

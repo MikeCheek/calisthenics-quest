@@ -190,3 +190,26 @@ main:focus,
 @media (prefers-reduced-motion: reduce) {
   .loading-bar, .skeleton-shimmer { animation: none; }
 }
+
+/* the desktop sidebar (Nav) takes the left edge */
+@media (min-width: 1024px) {
+  body:has(#app-sidebar) {
+    padding-left: 18rem;
+  }
+}
+/* room under the content for the quick-actions button above the tab bar */
+@media (max-width: 639px) {
+  body:has(#quick-actions) main#main {
+    padding-bottom: 10rem;
+  }
+}
+/* a section reached from a menu link lights up for a moment */
+.section-flash {
+  outline: 2px solid rgb(249 115 22 / 0.7);
+  outline-offset: 4px;
+  border-radius: 1rem;
+  transition: outline-color 1.2s ease-out;
+}
+[id] {
+  scroll-margin-top: 1rem;
+}

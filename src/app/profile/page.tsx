@@ -1,5 +1,7 @@
 "use client";
 
+import SectionNav from "@/components/nav/SectionNav";
+import { URL_EVENT } from "@/lib/featureMap";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -48,10 +50,16 @@ export default function ProfilePage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("activity");
 
-  // open the tab named in the URL (e.g. /profile?tab=account)
+  // open the tab named in the URL (e.g. /profile?tab=account), also when a
+  // menu link changes it while we're already here
   useEffect(() => {
-    const urlTab = new URLSearchParams(window.location.search).get("tab");
-    if (urlTab && TABS.some((x) => x.id === urlTab)) setTab(urlTab as Tab);
+    const read = () => {
+      const urlTab = new URLSearchParams(window.location.search).get("tab");
+      if (urlTab && TABS.some((x) => x.id === urlTab)) setTab(urlTab as Tab);
+    };
+    read();
+    window.addEventListener(URL_EVENT, read);
+    return () => window.removeEventListener(URL_EVENT, read);
   }, []);
 
   const selectTab = (next: Tab) => {
@@ -143,22 +151,53 @@ export default function ProfilePage() {
         </div>
 
         {tab === "activity" && (
+          <SectionNav
+            sections={[
+              { id: "achievements", label: "Achievements" },
+              { id: "bodyweight", label: "Bodyweight" },
+              { id: "totals", label: "Your totals" },
+              { id: "xp", label: "XP" },
+              { id: "history", label: "Session history" },
+            ]}
+          />
+        )}
+        {tab === "settings" && (
+          <SectionNav
+            sections={[
+              { id: "body", label: "Body & schedule" },
+              { id: "equipment", label: "Where you train" },
+              { id: "language", label: "Language" },
+              { id: "reminders", label: "Reminders" },
+              { id: "preferences", label: "Vibration and sharing" },
+            ]}
+          />
+        )}
+
+        {tab === "activity" && (
           <div className="space-y-4 animate-overlay-fade-in">
             <CompareLink />
-            <AchievementsCard />
-            <BodyweightCard />
-            <VolumeTotalsCard userDoc={userDoc} />
-            <div className="panel p-4">
+            <div id="achievements">
+              <AchievementsCard />
+            </div>
+            <div id="bodyweight">
+              <BodyweightCard />
+            </div>
+            <div id="totals">
+              <VolumeTotalsCard userDoc={userDoc} />
+            </div>
+            <div className="panel p-4" id="xp">
               <h2 className="heading text-base text-zinc-100 mb-3">{t("profile", "xpOverTime")}</h2>
               <XPHistoryChart history={userDoc.xpHistory ?? []} />
             </div>
-            <SessionHistory userDoc={userDoc} />
+            <div id="history">
+              <SessionHistory userDoc={userDoc} />
+            </div>
           </div>
         )}
 
         {tab === "settings" && (
           <div className="space-y-4 animate-overlay-fade-in">
-            <Link href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
+            <Link id="body" href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
                   <Ruler size={16} className="text-orange-400" /> {tx("Body & schedule")}
@@ -177,7 +216,7 @@ export default function ProfilePage() {
               </div>
             </Link>
 
-            <Link href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
+            <Link id="equipment" href="/onboarding" className="panel p-4 block hover:border-orange-500/60 transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
                   <MapPin size={16} className="text-orange-400" /> {tx("Where you train")}
@@ -200,7 +239,7 @@ export default function ProfilePage() {
               </div>
             </Link>
 
-            <div className="panel p-4">
+            <div className="panel p-4" id="language">
               <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
                 <Globe size={16} className="text-orange-400" /> {t("profile", "language")}
               </h2>
@@ -220,9 +259,13 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <ReminderSettings />
-            <HapticsToggle />
-            <ShareActivityToggle />
+            <div id="reminders">
+              <ReminderSettings />
+            </div>
+            <div id="preferences" className="space-y-4">
+              <HapticsToggle />
+              <ShareActivityToggle />
+            </div>
 
             <Link href="/about" className="panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors">
               <span className="text-sm text-zinc-200 flex items-center gap-2">

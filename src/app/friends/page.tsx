@@ -1,5 +1,6 @@
 "use client";
 
+import SectionNav from "@/components/nav/SectionNav";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -209,11 +210,37 @@ function PairContent() {
         </h1>
         <p className="text-sm text-zinc-400 -mt-2">{tx("Your training crew — nudge them, or train together with a shared session.")}</p>
 
-        {!code && mode === "choose" && <FriendsFeed />}
-        {!code && mode === "choose" && <FriendsLeaderboard />}
-        {!code && mode === "choose" && <CommunityEventCard />}
+        {!code && mode === "choose" && (
+          <SectionNav
+            sections={[
+              { id: "activity", label: "Crew activity" },
+              { id: "leaderboard", label: "Leaderboard" },
+              { id: "event", label: "Community event" },
+              { id: "friends", label: "Friends and nudges" },
+            ]}
+          />
+        )}
+        {!code && mode === "choose" && (
+          <div id="activity">
+            <FriendsFeed />
+          </div>
+        )}
+        {!code && mode === "choose" && (
+          <div id="leaderboard">
+            <FriendsLeaderboard />
+          </div>
+        )}
+        {!code && mode === "choose" && (
+          <div id="event">
+            <CommunityEventCard />
+          </div>
+        )}
 
-        {!code && mode === "choose" && <FriendsPanel onTrainTogether={handleTrainTogether} />}
+        {!code && mode === "choose" && (
+          <div id="friends">
+            <FriendsPanel onTrainTogether={handleTrainTogether} />
+          </div>
+        )}
 
         {!code && mode === "choose" && (
           <div>

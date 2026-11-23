@@ -18,6 +18,8 @@ import TitleSync from "@/components/TitleSync";
 import AchievementWatcher from "@/components/AchievementWatcherLazy";
 import OnlineStatus from "@/components/OnlineStatus";
 import StatusIcon from "@/components/StatusIcon";
+import QuickActions from "@/components/nav/QuickActions";
+import ScrollToHash from "@/components/ScrollToHash";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 const inter = Inter({
@@ -95,6 +97,8 @@ export default function RootLayout({
                 <AchievementWatcher />
                 <OnlineStatus />
                 <StatusIcon />
+                <QuickActions />
+                <ScrollToHash />
                 <TrainingSessionOverlays />
                 <LocaleSync />
               </TrainingSessionProvider>
