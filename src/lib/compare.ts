@@ -323,3 +323,13 @@ export function exerciseHistory(sessions: Pick<SessionRecord, "finishedAt" | "ex
       return l ? [{ date: s.finishedAt, best: l.best, perSet: l.perSet, sets: l.setsPerSession, kind: l.kind, estimated: l.estimated }] : [];
     });
 }
+
+// when the exercise was done at all (max sets without logged reps have no
+// number to chart, but still count as done)
+export function exerciseDoneDates(sessions: Pick<SessionRecord, "finishedAt" | "exercises">[], name: string): string[] {
+  const key = statKey(name);
+  return sessions
+    .filter((s) => s.exercises.some((e) => e.outcome === "done" && statKey(e.name) === key))
+    .map((s) => s.finishedAt)
+    .sort();
+}

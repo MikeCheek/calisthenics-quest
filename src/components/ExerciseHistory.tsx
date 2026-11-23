@@ -5,7 +5,7 @@ import { TrendingUp } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { fetchSessionsBetween } from "@/lib/store";
-import { exerciseHistory, pctChange } from "@/lib/compare";
+import { exerciseDoneDates, exerciseHistory, pctChange } from "@/lib/compare";
 import { statKey } from "@/lib/adaptation";
 import { formatHeld } from "@/lib/volumeTotals";
 import type { SessionRecord } from "@/lib/types";
@@ -39,6 +39,7 @@ export default function ExerciseHistory({ name }: { name: string }) {
   }, [uid]);
 
   const points = useMemo(() => (sessions ? exerciseHistory(sessions, name) : null), [sessions, name]);
+  const done = useMemo(() => (sessions ? exerciseDoneDates(sessions, name) : []), [sessions, name]);
   if (!userDoc) return null;
   const record = userDoc.records?.[statKey(name)];
   const fmt = (v: number, kind: "reps" | "hold") => (kind === "hold" ? formatHeld(Math.round(v)) : tx("{n} reps", { n: v }));
@@ -52,6 +53,13 @@ export default function ExerciseHistory({ name }: { name: string }) {
       </div>
     );
   }
+  if (!points.length && done.length)
+    return (
+      <p className="text-sm text-zinc-300">
+        {tx("Done {n} times · last {d}", { n: done.length, d: day(done[done.length - 1]) })}
+        <span className="block text-xs text-zinc-400 mt-1">{tx("Log your reps in max sets to see your best set here.")}</span>
+      </p>
+    );
   if (!points.length) return <p className="text-sm text-zinc-400">{tx("You haven't done this one in the last year — your progress will show here once you do.")}</p>;
 
   const kind = points[points.length - 1].kind;
@@ -62,7 +70,7 @@ export default function ExerciseHistory({ name }: { name: string }) {
   const max = Math.max(...points.map((p) => p.best)), min = Math.min(...points.map((p) => p.best));
   const t0 = new Date(first.date).getTime(), t1 = new Date(last.date).getTime();
   const x = (iso: string) => (points.length === 1 ? W / 2 : P + ((new Date(iso).getTime() - t0) / Math.max(1, t1 - t0)) * (W - 2 * P));
-  const y = (v: number) => H - P - ((v - min) / Math.max(1, max - min)) * (H - 2 * P);
+  const y = (v: number) => (max === min ? H / 2 : H - P - ((v - min) / (max - min)) * (H - 2 * P));
   const path = points.map((p, i) => `${i ? "L" : "M"}${x(p.date).toFixed(1)} ${y(p.best).toFixed(1)}`).join(" ");
 
   return (

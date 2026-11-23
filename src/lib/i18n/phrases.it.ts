@@ -1501,6 +1501,7 @@ const IT_PHRASES: [string, string][] = [
   ["Done {n} times · last {d}", "Fatto {n} volte · ultima {d}"],
   ["Best set from {a} to {b}", "Serie migliore da {a} a {b}"],
   ["Last best set", "Ultima serie migliore"],
+  ["Log your reps in max sets to see your best set here.", "Registra le ripetizioni nelle serie al massimo per vedere qui la tua serie migliore."],
   ["Typical set", "Serie tipica"],
   ["Record", "Record"],
   ["Hollow dots come from the plan, not a logged set.", "I punti vuoti vengono dal piano, non da una serie registrata."],
