@@ -301,3 +301,25 @@ export function headline(user: Pick<UserDoc, "xp">, all: Pick<SessionRecord, "fi
     levelNow: levelFromXp(user.xp),
   };
 }
+
+// ---- one exercise over time (the library's "Your progress") ----
+
+export interface HistoryPoint {
+  date: string; // ISO of the session
+  best: number;
+  perSet: number;
+  sets: number;
+  kind: "reps" | "hold";
+  estimated: boolean;
+}
+
+// every session that had this exercise, oldest first
+export function exerciseHistory(sessions: Pick<SessionRecord, "finishedAt" | "exercises">[], name: string): HistoryPoint[] {
+  const key = statKey(name);
+  return [...sessions]
+    .sort((a, b) => a.finishedAt.localeCompare(b.finishedAt))
+    .flatMap((s) => {
+      const l = exerciseLines([s]).get(key);
+      return l ? [{ date: s.finishedAt, best: l.best, perSet: l.perSet, sets: l.setsPerSession, kind: l.kind, estimated: l.estimated }] : [];
+    });
+}

@@ -1495,6 +1495,15 @@ const IT_PHRASES: [string, string][] = [
   ["Vibration cues", "Vibrazione"],
   ["The phone vibrates when a set starts, rest starts and an exercise is done — handy with it in your pocket.", "Il telefono vibra quando inizia una serie, inizia il recupero e finisce un esercizio — comodo con il telefono in tasca."],
   ["Feel when sets and rests start.", "Senti quando iniziano serie e recuperi."],
+  // ---- exercise history ----
+  ["Your progress", "I tuoi progressi"],
+  ["You haven't done this one in the last year — your progress will show here once you do.", "Non l'hai fatto nell'ultimo anno: i tuoi progressi appariranno qui quando lo farai."],
+  ["Done {n} times · last {d}", "Fatto {n} volte · ultima {d}"],
+  ["Best set from {a} to {b}", "Serie migliore da {a} a {b}"],
+  ["Last best set", "Ultima serie migliore"],
+  ["Typical set", "Serie tipica"],
+  ["Record", "Record"],
+  ["Hollow dots come from the plan, not a logged set.", "I punti vuoti vengono dal piano, non da una serie registrata."],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
