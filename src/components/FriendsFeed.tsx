@@ -1,5 +1,6 @@
 "use client";
 
+import { nameFor } from "@/lib/anonymize";
 import { useEffect, useState } from "react";
 import { Activity, Flame, Trophy, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -87,6 +88,7 @@ export default function FriendsFeed() {
         <ul className="mt-3 space-y-2">
           {items.map((i) => {
             const k = kudosLine(i, me, tx("You"));
+            k.names = k.names.map((n) => nameFor(n, tx));
             const given = !!i.kudos?.[me];
             const count = Object.keys(i.kudos ?? {}).length;
             return (
@@ -94,7 +96,7 @@ export default function FriendsFeed() {
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-zinc-100">
-                      <span className="font-medium">{i.name}</span> · {tx(i.focusLabel)}
+                      <span className="font-medium">{nameFor(i.name, tx)}</span> · {tx(i.focusLabel)}
                       {i.paired && (
                         <span className="text-zinc-400">
                           {" "}

@@ -362,7 +362,9 @@ service cloud.firestore {
       match /feed/{itemId} {
         allow read: if request.auth != null && (request.auth.uid == uid ||
           exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid)));
-        allow create: if request.auth != null && request.auth.uid == uid
+        // the owner writes it (and rewrites it without their name when the
+        // account is deleted — see anonymize.ts)
+        allow create, update: if request.auth != null && request.auth.uid == uid
           && request.resource.data.uid == uid
           && request.resource.data.keys().hasOnly(['uid', 'name', 'focusLabel', 'minutes', 'xp', 'exercises', 'records', 'streak', 'paired', 'createdAtISO', 'kudos'])
           && request.resource.data.name is string && request.resource.data.name.size() <= 40
@@ -465,7 +467,7 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
     }
-    // account deletion finds your reports on every park (collection group);
+    // account deletion (which anonymises your reports) finds them on every park (collection group);
     // it needs a single-field index exemption on reports.uid (collection group)
     match /{path=**}/reports/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
@@ -595,6 +597,28 @@ docs/
   your friends.
 - **Your controls:** export everything, reset progress in steps, or delete the account
   (which also removes you from friends' lists).
+- **Deleting an account anonymises it** (GDPR art. 17 and recital 26; `src/lib/anonymize.ts`).
+  Documents aren't removed, so links between them and the app's overall numbers keep
+  working, but everything that identifies the person is erased:
+  - each document is **rebuilt from a whitelist** of training fields, so a personal field
+    added in future is dropped by default;
+  - names become "Former athlete"; email, photo, body stats, weight log, notes, saved
+    session names, push addresses, time zone and the friend code go;
+  - exact times become days (sessions, records, feed, park reports) or months
+    (sign-up, achievements);
+  - relationships with other people (both sides of each friendship, the inbox) are
+    deleted, as is the friend-code lookup;
+  - kept, anonymously: sessions and exercises, XP, skill stages, the week's board numbers,
+    the month's event contribution, park equipment votes, kudos counts;
+  - finally the Firebase sign-in is deleted, so the uid on those documents points to no
+    one; signing in again creates a new uid. An account whose data is anonymised but
+    whose sign-in removal didn't finish is signed out on its next load.
+
+  Anonymised accounts carry `anonymized: { month, reason: "account-deletion" }`, so
+  counts can tell them apart (`where("anonymized.reason", "==", "account-deletion")`).
+  Not covered: a nudge you sent that's still unread in a friend's inbox (it carries your
+  first name until they open it), invites where you were the guest, and Firestore's own
+  backups, which expire on their schedule.
 
 ## Limitations
 

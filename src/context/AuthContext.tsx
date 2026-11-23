@@ -24,6 +24,7 @@ import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
 import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
 import { useToast } from "@/context/ToastContext";
 import { disablePush } from "@/lib/pushClient";
+import { isAnonymized } from "@/lib/anonymize";
 import { clearProfileCache, readProfileCache, writeProfileCache } from "@/lib/profileCache";
 import {
   DEFAULT_BODY,
@@ -70,6 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUserDoc = async (u: User) => {
     let doc = await fetchUserDoc(u.uid);
+    // this account was deleted (its data anonymised) but removing the sign-in
+    // didn't finish: never bring it back to life, just sign out
+    if (isAnonymized(doc)) {
+      clearProfileCache();
+      await firebaseSignOut(auth).catch(() => {});
+      setUserDoc(null);
+      return;
+    }
     if (doc && !doc.skillMastery) {
       doc = { ...doc, skillMastery: {} };
     }

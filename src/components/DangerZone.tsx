@@ -78,16 +78,16 @@ const ACTIONS: Action[] = [
   {
     id: "delete",
     title: "Delete account",
-    summary: "Permanently delete your account and all your data.",
+    summary: "Delete your account: everything that identifies you is erased for good.",
     icon: Trash2,
     severity: "fatal",
     removes: [
-      "Your profile, progress and history",
-      "Your public profile and friend code",
-      "You from your friends’ lists",
+      "Your name, email, photo and body stats",
+      "Your weight log, notes, saved session names and push addresses",
+      "Your friend code, and you from your friends’ lists",
       "Your Google sign-in link to BarQuests",
     ],
-    keeps: [],
+    keeps: ["Anonymous training numbers (sessions, exercises, XP) that can't be traced back to you"],
     confirmWord: "DELETE",
     cta: "Delete forever",
   },
@@ -101,7 +101,7 @@ const SEVERITY_STYLE = {
 
 const DELETE_STEP_LABEL: Record<DeleteStep, string> = {
   reauth: "Confirm with Google…",
-  data: "Deleting your data…",
+  data: "Anonymising your data…",
   account: "Removing your account…",
 };
 
@@ -157,7 +157,7 @@ export default function DangerZone() {
         case "delete":
           await deleteAccount(user, userDoc, setStep);
           router.replace("/");
-          toast.success("Your account and data have been deleted.");
+          toast.success("Your account is deleted and your data anonymised.");
           break;
       }
       setActive(null);
