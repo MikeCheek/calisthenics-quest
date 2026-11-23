@@ -13,6 +13,7 @@ import type { Metric } from "../leaderboard";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 import { pickNudge, renderNudge } from "../nudges";
 import type { ParkReport, Reaction, UserParkDoc } from "../parks";
+import type { FeedItem } from "../feed";
 
 export type { GlobalBoardRow, PairingDoc };
 
@@ -266,4 +267,45 @@ export async function reactToParkReport(parkId: string, authorUid: string, react
   if (reaction) reactions[reactorUid] = reaction;
   else delete reactions[reactorUid];
   reportsOf(parkId).set(authorUid, { ...r, reactions });
+}
+
+// ---- the crew's feed: friends' recent sessions, plus yours ----
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3600000).toISOString();
+const demoFeed = new Map<string, FeedItem[]>(
+  DEMO_FRIENDS.map((f, i) => {
+    const name = f.displayName.split(" ")[0];
+    const items: FeedItem[] = [
+      { id: `f${i}a`, uid: f.uid, name, focusLabel: ["Front Lever", "Handstand", "Muscle-up"][i % 3], minutes: 38 + i * 6, xp: 140 + i * 20, exercises: 7, records: i === 0 ? ["Tuck front lever holds"] : [], streak: 4 + i, createdAtISO: hoursAgo(3 + i * 9), kudos: i === 0 ? { "demo-g-lena": "Lena" } : {} },
+      { id: `f${i}b`, uid: f.uid, name, focusLabel: ["Pull", "Legs", "Core"][i % 3], minutes: 30, xp: 110, exercises: 6, records: [], streak: 3 + i, createdAtISO: hoursAgo(30 + i * 14) },
+    ];
+    return [f.uid, items];
+  })
+);
+export async function addFeedItem(uid: string, item: Omit<FeedItem, "id">): Promise<void> {
+  const list = demoFeed.get(uid) ?? [];
+  demoFeed.set(uid, [{ ...clone(item), id: `me-${Date.now()}` }, ...list]);
+}
+export async function fetchFeed(friendUids: string[], sinceISO: string): Promise<FeedItem[]> {
+  await pause();
+  return clone(friendUids.flatMap((u) => (demoFeed.get(u) ?? []).filter((i) => i.createdAtISO >= sinceISO)));
+}
+export async function setKudos(authorUid: string, itemId: string, giverUid: string, giverName: string | null): Promise<void> {
+  const item = demoFeed.get(authorUid)?.find((i) => i.id === itemId);
+  if (!item) return;
+  const kudos = { ...(item.kudos ?? {}) };
+  if (giverName) kudos[giverUid] = giverName;
+  else delete kudos[giverUid];
+  item.kudos = kudos;
+}
+export async function sendKudosPing(toUid: string, _fromUid: string, _fromName: string): Promise<void> {
+  // the friend gives kudos back, so the toast shows in the demo
+  const friend = state.friends.find((f) => f.uid === toUid);
+  if (!friend) return;
+  setTimeout(() => {
+    state.pings = [{ id: `demo-ping-${Date.now()}`, fromUid: toUid, fromName: friend.displayName.split(" ")[0], message: "gave you kudos", kind: "kudos", createdAtISO: new Date().toISOString() }, ...state.pings];
+    emitPings();
+  }, 1500);
+}
+export async function deleteMyFeed(uid: string): Promise<void> {
+  demoFeed.delete(uid);
 }

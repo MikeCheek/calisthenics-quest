@@ -339,6 +339,23 @@ service cloud.firestore {
           request.resource.data.message.size() <= 200 &&
           exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
       }
+
+      // the crew feed: your finished sessions, for your friends to see;
+      // a friend may only add or take back their own kudos
+      match /feed/{itemId} {
+        allow read: if request.auth != null && (request.auth.uid == uid ||
+          exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid)));
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'focusLabel', 'minutes', 'xp', 'exercises', 'records', 'streak', 'paired', 'createdAtISO', 'kudos'])
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40
+          && request.resource.data.records is list && request.resource.data.records.size() <= 3;
+        allow update: if request.auth != null && request.auth.uid != uid
+          && exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kudos'])
+          && request.resource.data.get('kudos', {}).diff(resource.data.get('kudos', {})).affectedKeys().hasOnly([request.auth.uid]);
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
     }
 
     // minimal public info so friends can be found by code — see PublicProfile.

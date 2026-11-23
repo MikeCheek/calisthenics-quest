@@ -304,3 +304,16 @@ test("weather: a rainy week offers the home plan", async ({ page, context }) => 
   await expect(page.getByText(/Home plan until/)).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test("crew feed: give a friend kudos and get some back", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/friends");
+  const feed = page.getByRole("region", { name: "Crew activity" });
+  const kudos = feed.getByRole("button", { name: /^Give .* kudos$/ }).first();
+  await kudos.click();
+  await expect(feed.getByRole("button", { name: /^Take back kudos for/ }).first()).toHaveAttribute("aria-pressed", "true");
+  await expect(feed.getByText(/You.* gave kudos|Kudos/).first()).toBeVisible();
+  await expect(page.getByText(/gave you kudos/).first()).toBeVisible();
+  await expectNoA11yViolations(page);
+  expect(errors).toEqual([]);
+});

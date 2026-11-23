@@ -471,6 +471,8 @@ export interface UserDoc {
   week?: WeekStats;
   // opted in to the global weekly leaderboard (everyone, not just friends)
   globalBoard?: boolean;
+  // friends see your finished sessions in their feed (feed.ts); on unless turned off
+  shareActivity?: boolean;
   // effort planned vs done in recent sessions, and whether "I'm tired" was
   // pressed — sessions are balanced against it (effort.ts)
   effortHistory?: EffortSample[];
@@ -506,7 +508,7 @@ export interface Ping {
   fromName: string;
   message: string;
   createdAtISO: string;
-  kind?: "nudge" | "pairing_invite" | "nudge_reply";
+  kind?: "nudge" | "pairing_invite" | "nudge_reply" | "kudos";
   pairingCode?: string;
   // a reply to your nudge (NUDGE_REPLIES id)
   reply?: string;
