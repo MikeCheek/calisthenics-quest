@@ -112,6 +112,12 @@ you have any health concerns.
   skill, a deload every 4th week, and a test at the end (move up, or two more weeks).
 - **Bodyweight** — log your weight and see the trend; Then vs now shows strength for your
   weight and in absolute terms when it changed.
+- **Vibration cues** — the phone buzzes when a set starts, rest starts and an exercise is
+  done; switch it in Settings or from the session menu.
+- **Bar parks near you** — outdoor bars from OpenStreetMap on a map and a list. Athletes
+  say what each park really has (pull-up bar, dip bars, rings…), confirm it's still there
+  or update it, and react to each other's updates; missing parks can be added. *Train
+  here today* builds the session for that park's kit plus what you carry.
 - **Log only the sets you did** — *Finish here* between sets ends the exercise with
   just those sets logged; your totals and the learning count only what you did.
 - **Sessions that survive interruptions** — the session in progress, where you are in it
@@ -137,6 +143,12 @@ you have any health concerns.
 - **Today's session first** — the exercises, time and XP on the first screen, started
   in one tap; the week's done and planned days beside it, plus one goal to aim at
   (today's Skill Check, or the next skill to unlock).
+- **Weather at your training time** — with your OK, the forecast (Open-Meteo) for the
+  hour you usually train: rain suggests the closest dry hour, or a floor-only session
+  indoors; very hot or cold hours get a tip. When rain sets in for several days, a home
+  plan (floor, wall and your own kit) runs until it clears.
+- **Status at a glance** — an app badge and a coloured dot on the tab icon: green when
+  today's done, amber when your streak is at risk, blue mid-session.
 
 ### Skills
 - **Headline** — your level and how many skills you've proven, front and centre.
@@ -174,6 +186,8 @@ you have any health concerns.
 ### Me
 - **Activity** — your XP over time, a calendar, month totals, every session with its
   sets, and personal bests.
+- **Your progress per exercise** — in the library, each exercise shows every time you did
+  it in the last year: the best set over time, the typical set and your record.
 - **Your totals** — reps and time per exercise this month, this year or all time
   ("128 toes-to-bar in November"), added up from your sessions: what you logged, or the
   prescription for sets you marked done (marked ≈). Warm-ups don't count, and max sets
@@ -185,6 +199,9 @@ you have any health concerns.
 - **Global leaderboard** — switch the board to *Everyone* to see the week's top 50
   across the app. It's opt-in: you only appear after joining, as first name and last
   initial, and you can leave any time.
+- **Crew activity** — your friends' finished sessions from the last two weeks (focus,
+  time, XP, new records), with kudos in one tap. Only friends see yours, and sharing can
+  be turned off in Settings.
 - **Nudge replies** — answer a friend's nudge in one tap (*On it!*, *Later today*, *Rest day*);
   *Done!* on a challenge nudge earns a little XP, up to three times a day.
 - **Monthly community event** — one theme a month (*Push-up December*, *Handstand
@@ -572,6 +589,10 @@ docs/
   the server checks against Google's public keys, and every account has a request budget
   (smaller for guests) so the OpenRouter key can't be drained by strangers.
 - **Skill Check videos** never leave your device.
+- **Location** (weather and parks) is rounded to about 1 km and kept on the device; only
+  that point goes to Open-Meteo and OpenStreetMap's Overpass API. Park reports (first
+  name, equipment, optional note) are visible to signed-in users; the crew feed only to
+  your friends.
 - **Your controls:** export everything, reset progress in steps, or delete the account
   (which also removes you from friends' lists).
 
