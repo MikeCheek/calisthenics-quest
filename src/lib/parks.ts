@@ -97,7 +97,7 @@ export function kitFromTags(tags: Record<string, string> = {}): ParkKit[] {
 
 export function overpassQuery(lat: number, lon: number, radiusM: number): string {
   const a = `(around:${Math.round(radiusM)},${lat.toFixed(4)},${lon.toFixed(4)})`;
-  return `[out:json][timeout:25];(nwr["leisure"="fitness_station"]${a};nwr["sport"="calisthenics"]${a};);out center tags 400;`;
+  return `[out:json][timeout:20];(nwr["leisure"="fitness_station"]${a};nwr["sport"="calisthenics"]${a};);out tags center 400;`;
 }
 
 export interface OsmElement {
@@ -157,27 +157,76 @@ export function groupParks(elements: OsmElement[], from?: { lat: number; lon: nu
 }
 
 const CACHE_KEY = "barquests:parks";
-export async function fetchOsmParks(lat: number, lon: number, radiusM: number): Promise<Park[]> {
+
+// public Overpass servers, tried in turn: the main one is often busy (429,
+// 504) and some networks or blockers stop one but not another
+export const OVERPASS_SERVERS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
+async function askOverpass(query: string, fetcher: typeof fetch = fetch): Promise<OsmElement[]> {
+  const errors: string[] = [];
+  for (const url of OVERPASS_SERVERS) {
+    const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 20000) : null;
+    try {
+      const res = await fetcher(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "data=" + encodeURIComponent(query),
+        signal: ctl?.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as { elements?: OsmElement[]; remark?: string };
+      // a server that ran out of time answers 200 with a remark and no data
+      if (!json.elements || (json.remark && /runtime error|timeout/i.test(json.remark) && !json.elements.length)) throw new Error(json.remark ?? "no elements");
+      return json.elements;
+    } catch (e) {
+      errors.push(`${new URL(url).host}: ${(e as Error).message}`);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+  throw new Error(`Overpass unreachable — ${errors.join("; ")}`);
+}
+
+interface ParkCache {
+  key: string;
+  at: number;
+  lat: number;
+  lon: number;
+  radiusM: number;
+  elements: OsmElement[];
+}
+
+export async function fetchOsmParks(lat: number, lon: number, radiusM: number, fetcher: typeof fetch = fetch): Promise<{ parks: Park[]; stale: boolean }> {
   const key = `${lat.toFixed(2)},${lon.toFixed(2)},${radiusM}`;
+  let cached: ParkCache | null = null;
   try {
-    const c = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");
-    if (c && c.key === key && Date.now() - c.at < 24 * 3600000) return groupParks(c.elements, { lat, lon });
+    cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");
   } catch {
     // no cache
   }
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: "data=" + encodeURIComponent(overpassQuery(lat, lon, radiusM)),
-  });
-  if (!res.ok) throw new Error(`overpass ${res.status}`);
-  const elements = ((await res.json()) as { elements: OsmElement[] }).elements ?? [];
+  if (cached && cached.key === key && Date.now() - cached.at < 24 * 3600000) return { parks: groupParks(cached.elements, { lat, lon }), stale: false };
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ key, at: Date.now(), elements }));
-  } catch {
-    // too big or blocked
+    const elements = await askOverpass(overpassQuery(lat, lon, radiusM), fetcher);
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ key, at: Date.now(), lat, lon, radiusM, elements }));
+    } catch {
+      // too big or blocked
+    }
+    return { parks: groupParks(elements, { lat, lon }), stale: false };
+  } catch (e) {
+    console.warn("[parks]", (e as Error).message);
+    // an older search around here is better than nothing
+    if (cached?.elements && typeof cached.lat === "number" && distanceM(cached, { lat, lon }) < 3000) {
+      return { parks: groupParks(cached.elements, { lat, lon }).filter((p) => (p.distanceM ?? 0) <= radiusM), stale: true };
+    }
+    throw e;
   }
-  return groupParks(elements, { lat, lon });
 }
 
 // ---- parks added by athletes: found by a 0.1° grid cell ----

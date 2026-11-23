@@ -138,7 +138,9 @@ service cloud.firestore {
       match /feed/{itemId} {
         allow read: if request.auth != null && (request.auth.uid == uid ||
           exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid)));
-        allow create: if request.auth != null && request.auth.uid == uid
+        // the owner writes it (and rewrites it without their name when the
+        // account is deleted — see anonymize.ts)
+        allow create, update: if request.auth != null && request.auth.uid == uid
           && request.resource.data.uid == uid
           && request.resource.data.keys().hasOnly(['uid', 'name', 'focusLabel', 'minutes', 'xp', 'exercises', 'records', 'streak', 'paired', 'createdAtISO', 'kudos'])
           && request.resource.data.name is string && request.resource.data.name.size() <= 40
@@ -241,7 +243,7 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
     }
-    // account deletion finds your reports on every park (collection group);
+    // account deletion (which anonymises your reports) finds them on every park (collection group);
     // it needs a single-field index exemption on reports.uid (collection group)
     match /{path=**}/reports/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;

@@ -4,7 +4,10 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  getDoc,
   getDocs,
+  setDoc,
+  type DocumentReference,
   query,
   updateDoc,
   where,
@@ -12,7 +15,10 @@ import {
 } from "firebase/firestore";
 import { deleteUser, reauthenticateWithPopup, signOut, User } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase";
-import { deleteMyFeed, setGlobalBoardEntry, syncPublicProfile } from "./store";
+import { setGlobalBoardEntry, syncPublicProfile } from "./store";
+import { ANON_NAME, anonymizeFeedItem, anonymizeParkReport, anonymizePublicProfile, anonymizeSession, anonymizeUserDoc } from "./anonymize";
+import type { FeedItem } from "./feed";
+import type { ParkReport } from "./parks";
 import { monthKey } from "./events";
 import { currentWeekKey } from "./missions";
 import { clearClips } from "./videoProof";
@@ -22,6 +28,8 @@ import {
   DEFAULT_SKILLS,
   Friend,
   UserDoc,
+  type PublicProfile,
+  type SessionRecord,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -152,45 +160,65 @@ async function deleteInChunks(paths: { col: string[]; id: string }[]): Promise<v
 
 export type DeleteStep = "reauth" | "data" | "account";
 
-// Permanently deletes the account. Google re-authentication comes FIRST
-// (Firebase refuses to delete a user who signed in long ago), so a refused
-// or cancelled sign-in leaves everything untouched instead of half-deleted.
+// Deletes the account by ANONYMISING its data (anonymize.ts): what
+// identifies the person is erased, training numbers stay so links between
+// documents and the app's overall counts keep working. Then the Google
+// sign-in is deleted, so the remaining uid points to no one.
+//
+// Re-authentication comes FIRST (Firebase refuses to delete a user who
+// signed in long ago), so a refused or cancelled sign-in leaves everything
+// untouched instead of half-done.
 export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: DeleteStep) => void): Promise<void> {
   onStep?.("reauth");
   if (!user.isAnonymous) await reauthenticateWithPopup(user, googleProvider);
 
   onStep?.("data");
   const uid = userDoc.uid;
-  const [friends, pings, sessions, pairings] = await Promise.all([
+  const [friends, pings, sessions, pairings, feed, reports, profile] = await Promise.all([
     getDocs(collection(db, "users", uid, "friends")),
     getDocs(collection(db, "users", uid, "pings")),
     getDocs(collection(db, "users", uid, "sessions")),
     getDocs(query(collection(db, "pairings"), where("hostUid", "==", uid))),
+    getDocs(collection(db, "users", uid, "feed")).catch(() => null),
+    getDocs(query(collectionGroup(db, "reports"), where("uid", "==", uid))).catch(() => null),
+    getDoc(doc(db, "profiles", uid)).catch(() => null),
   ]);
 
-  // remove me from my friends' lists too (the rules allow the mirrored entry)
+  // 1. kudos I gave on friends' sessions: the count stays, my name goes.
+  //    Done first — the rules allow it only while we're still friends.
+  for (const f of friends.docs) {
+    const given = await getDocs(query(collection(db, "users", f.id, "feed"), where(`kudos.${uid}`, ">=", ""))).catch(() => null);
+    await Promise.all((given?.docs ?? []).map((d) => updateDoc(d.ref, { [`kudos.${uid}`]: ANON_NAME }).catch(() => {})));
+  }
+
+  // 2. what I wrote, rewritten in place without anything that identifies me
+  await writeInChunks([
+    ...sessions.docs.map((d) => ({ ref: d.ref, data: anonymizeSession(d.data() as SessionRecord) })),
+    ...(feed?.docs ?? []).map((d) => ({ ref: d.ref, data: anonymizeFeedItem(d.data() as Omit<FeedItem, "id">) })),
+  ]);
+  // park reports keep their vote on the kit; parks I added stay (they're places)
+  await Promise.all((reports?.docs ?? []).map((d) => setDoc(d.ref, anonymizeParkReport(d.data() as ParkReport)).catch(() => {})));
+  // train-together invites I hosted: my name and body stats go
+  await Promise.all(pairings.docs.map((d) => updateDoc(d.ref, { hostName: ANON_NAME, hostBody: deleteField() }).catch(() => {})));
+  // the global board: the week's numbers stay, the name goes
+  for (const week of new Set([currentWeekKey(), ...(userDoc.week?.key ? [userDoc.week.key] : [])])) {
+    await updateDoc(doc(db, "leaderboard", week, "entries", uid), { name: ANON_NAME }).catch(() => {});
+  }
+  // the monthly community event holds only a number: it's left as it is
+  const pub = (profile?.exists() ? profile.data() : null) as PublicProfile | null;
+  await setDoc(doc(db, "profiles", uid), anonymizePublicProfile(pub ?? { ...userDoc, skillMastery: userDoc.skillMastery ?? {} })).catch(() => {});
+  // the private profile is rebuilt from a whitelist (push addresses, email,
+  // photo, body stats and the rest are simply not carried over)
+  await setDoc(doc(db, "users", uid), anonymizeUserDoc(userDoc));
+
+  // 3. relationships with other people go: friends (both sides), my inbox,
+  //    and the friend code that pointed to me
   await deleteInChunks([
     ...friends.docs.map((d) => ({ col: ["users", d.id, "friends"], id: uid })),
     ...friends.docs.map((d) => ({ col: ["users", uid, "friends"], id: d.id })),
     ...pings.docs.map((d) => ({ col: ["users", uid, "pings"], id: d.id })),
-    ...sessions.docs.map((d) => ({ col: ["users", uid, "sessions"], id: d.id })),
   ]);
-  // pairings hold body stats + skills; best-effort, needs the host delete rule
-  await Promise.all(pairings.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
   if (userDoc.friendCode) await deleteDoc(doc(db, "usercodes", userDoc.friendCode)).catch(() => {});
-  // global board entries for this and the last logged week
-  await setGlobalBoardEntry(uid, null, [currentWeekKey(), ...(userDoc.week?.key ? [userDoc.week.key] : [])]).catch(() => {});
-  await deleteDoc(doc(db, "events", monthKey(), "players", uid)).catch(() => {});
-  // my sessions in friends' feeds
-  await deleteMyFeed(uid).catch(() => {});
-  // bar parks: my reports on any park, and parks I added
-  const [reports, parks] = await Promise.all([
-    getDocs(query(collectionGroup(db, "reports"), where("uid", "==", uid))).catch(() => null),
-    getDocs(query(collection(db, "parks"), where("createdBy", "==", uid))).catch(() => null),
-  ]);
-  await Promise.all([...(reports?.docs ?? []), ...(parks?.docs ?? [])].map((d) => deleteDoc(d.ref).catch(() => {})));
-  await deleteDoc(doc(db, "profiles", uid));
-  await deleteDoc(doc(db, "users", uid));
 
   try {
     for (const k of Object.keys(localStorage)) {
@@ -205,10 +233,18 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
   try {
     await deleteUser(user);
   } catch (err) {
-    // an old guest session can't re-confirm its identity; the data is gone
-    // already, so just end the session
+    // an old guest session can't re-confirm its identity; the data is
+    // anonymised already, so just end the session
     if (user.isAnonymous) await signOut(auth);
     else throw err;
+  }
+}
+
+async function writeInChunks(writes: { ref: DocumentReference; data: object }[]): Promise<void> {
+  for (let i = 0; i < writes.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const w of writes.slice(i, i + 400)) batch.set(w.ref, w.data);
+    await batch.commit();
   }
 }
 

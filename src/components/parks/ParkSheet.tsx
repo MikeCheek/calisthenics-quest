@@ -1,5 +1,6 @@
 "use client";
 
+import { nameFor } from "@/lib/anonymize";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, CircleHelp, MapPin, Navigation, Pencil, ThumbsUp, Trash2, X } from "lucide-react";
 import Modal from "@/components/Modal";
@@ -251,7 +252,7 @@ export default function ParkSheet({ park, onClose, onTrainHere }: { park: Park |
                 return (
                   <li key={r.uid} className="rounded-xl bg-zinc-950/60 p-2.5">
                     <p className="text-xs text-zinc-400">
-                      <span className="text-zinc-200">{own ? tx("You") : r.name}</span> · {ago(r.atISO, locale)}
+                      <span className="text-zinc-200">{own ? tx("You") : nameFor(r.name, tx)}</span> · {ago(r.atISO, locale)}
                     </p>
                     {there.length > 0 && <p className="text-sm text-zinc-200">{there.join(", ")}</p>}
                     {gone.length > 0 && <p className="text-xs text-red-300">{tx("Not there: {list}", { list: gone.join(", ") })}</p>}

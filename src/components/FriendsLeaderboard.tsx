@@ -1,5 +1,6 @@
 "use client";
 
+import { nameFor } from "@/lib/anonymize";
 import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -231,7 +232,7 @@ export default function FriendsLeaderboard() {
                 >
                   {e.rank}
                 </span>
-                <span className={`flex-1 truncate text-sm ${e.isMe ? "text-zinc-100 font-medium" : "text-zinc-200"}`}>{e.name}</span>
+                <span className={`flex-1 truncate text-sm ${e.isMe ? "text-zinc-100 font-medium" : "text-zinc-200"}`}>{nameFor(e.name, tx)}</span>
                 <span className="stat-mono text-sm text-zinc-100">
                   {e.value}
                   {metric === "minutes" ? "′" : ""}
