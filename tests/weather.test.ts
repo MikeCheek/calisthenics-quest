@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { advise, hoursOf, isWet, roundCoord, tipFor, trainingHour, type Forecast } from "../src/lib/weather";
+import { advise, hoursOf, isWet, rainyStretch, roundCoord, tipFor, trainingHour, type Forecast } from "../src/lib/weather";
 import { floorOnly } from "../src/lib/todayEquipment";
 import { DEFAULT_EQUIPMENT } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
@@ -84,4 +84,28 @@ test("only rounded coordinates leave the device; floor-only keeps bands and weig
 test("weather copy is in Italian", () => {
   for (const p of ["Train indoors today", "Today: indoors, floor only", "Use location", "Hide the weather"]) assert.notEqual(translate("it", p), p);
   assert.equal(translate("it", "Rain likely at {t} ({p}%)", { t: "18:00", p: 70 }), "Pioggia probabile alle 18:00 (70%)");
+});
+
+// several days; `wetDays` are rainy all day
+function week(wetDays: number[]): Forecast {
+  const f: Forecast = { hourly: { time: [], temperature_2m: [], apparent_temperature: [], precipitation_probability: [], precipitation: [], weather_code: [] } };
+  for (let d = 0; d < 7; d++) {
+    const one = day({ wet: wetDays.includes(d) ? Array.from({ length: 24 }, (_, h) => h) : [] });
+    const date = `2026-11-${23 + d}`;
+    f.hourly.time.push(...one.hourly.time.map((t) => date + t.slice(10)));
+    for (const k of ["temperature_2m", "apparent_temperature", "precipitation_probability", "precipitation", "weather_code"] as const) (f.hourly[k] as unknown[]).push(...one.hourly[k]);
+  }
+  return f;
+}
+const morning = new Date(2026, 10, 23, 9, 0);
+
+test("a rainy stretch offers the home plan until its last wet day", () => {
+  assert.deepEqual(rainyStretch(week([0, 1, 2, 4]), { now: morning, hour: 18 }), { until: "2026-11-27", days: 4 });
+  assert.deepEqual(rainyStretch(week([1, 2, 3]), { now: morning, hour: 18 }), { until: "2026-11-26", days: 3 });
+});
+
+test("one or two wet days don't", () => {
+  assert.equal(rainyStretch(week([0]), { now: morning, hour: 18 }), null);
+  assert.equal(rainyStretch(week([0, 3, 5]), { now: morning, hour: 18 }), null);
+  assert.equal(rainyStretch(week([]), { now: morning, hour: 18 }), null);
 });

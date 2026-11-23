@@ -1522,6 +1522,10 @@ const IT_PHRASES: [string, string][] = [
   ["Today: indoors, floor only", "Oggi: al chiuso, a corpo libero"],
   ["Today at {place}", "Oggi a {place}"],
   ["My usual kit", "La mia attrezzatura"],
+  ["Rainy days ahead: {n} look wet at your training time.", "Giorni di pioggia in arrivo: {n} sembrano bagnati all'ora in cui ti alleni."],
+  ["Switch to the home plan — floor, wall and your own kit — until {d}. Your skills keep moving; outdoor work comes back after.", "Passa al piano casa (pavimento, muro e la tua attrezzatura) fino a {d}. Le skill continuano a progredire; il lavoro all'aperto torna dopo."],
+  ["Use the home plan until {d}", "Usa il piano casa fino a {d}"],
+  ["Home plan until {d} (rainy days)", "Piano casa fino a {d} (giorni di pioggia)"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],

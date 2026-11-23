@@ -94,16 +94,32 @@ export function advise(f: Forecast, opts: { day: string; hour: number; from: num
   return { kind: "indoors", at };
 }
 
+// A rainy stretch: when at least 3 of the next 4 days (today included)
+// have no dry window, offer the indoor plan until the last of them.
+export function rainyStretch(f: Forecast, opts: { now: Date; hour: number; minutes?: number }): { until: string; days: number } | null {
+  const bad: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(opts.now.getFullYear(), opts.now.getMonth(), opts.now.getDate() + i);
+    const day = localDay(d);
+    const from = i === 0 ? opts.now.getHours() + (opts.now.getMinutes() > 30 ? 1 : 0) : 7;
+    const a = advise(f, { day, hour: opts.hour, from, minutes: opts.minutes });
+    // today already past the window: judge it on the evening ahead (null = no hours left)
+    if (a?.kind === "indoors") bad.push(day);
+  }
+  const first4 = bad.filter((d) => d <= localDay(new Date(opts.now.getFullYear(), opts.now.getMonth(), opts.now.getDate() + 3)));
+  return first4.length >= 3 ? { until: bad[bad.length - 1], days: bad.length } : null;
+}
+
 export const roundCoord = (n: number) => Math.round(n * 100) / 100; // ~1 km
 
 export const forecastUrl = (lat: number, lon: number) =>
   `https://api.open-meteo.com/v1/forecast?latitude=${roundCoord(lat)}&longitude=${roundCoord(lon)}` +
-  "&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code&forecast_days=1&timezone=auto";
+  "&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code&forecast_days=7&timezone=auto";
 
 // ---- where (saved on this device only) ----
 
 const PLACE_KEY = "barquests:place";
-const CACHE_KEY = "barquests:forecast";
+const CACHE_KEY = "barquests:forecast7";
 
 export interface Place {
   lat: number;
