@@ -11,6 +11,7 @@ const SCREENS: [path: string, title: RegExp][] = [
   ["/compare", /^Then vs now · BarQuests$/],
   ["/library", /^Exercise library · BarQuests$/],
   ["/build", /^Build a session · BarQuests$/],
+  ["/parks", /^Bar parks near you · BarQuests$/],
   ["/coach", /^Coach · BarQuests$/],
   ["/wheel", /^Bonus wheel · BarQuests$/],
   ["/friends", /^Crew · BarQuests$/],

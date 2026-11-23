@@ -12,6 +12,7 @@ import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 import { pickNudge, renderNudge } from "../nudges";
+import type { ParkReport, Reaction, UserParkDoc } from "../parks";
 
 export type { GlobalBoardRow, PairingDoc };
 
@@ -227,3 +228,42 @@ export async function fetchEventTotals(_eventKey: string): Promise<{ total: numb
 // demo mode never registers for push (no messaging); kept for the same API
 export async function addPushToken(_uid: string, _token: string, _tz: string): Promise<void> {}
 export async function removePushToken(_uid: string, _token: string): Promise<void> {}
+
+// ---- bar parks: in memory for the visit ----
+const demoParks = new Map<string, UserParkDoc>();
+const demoReports = new Map<string, Map<string, ParkReport>>();
+const reportsOf = (id: string) => demoReports.get(id) ?? demoReports.set(id, new Map()).get(id)!;
+
+export async function fetchUserParks(cells: string[]): Promise<UserParkDoc[]> {
+  await pause();
+  return [...demoParks.values()].filter((p) => cells.includes(p.cell)).map(clone);
+}
+export async function addUserPark(park: Omit<UserParkDoc, "id">): Promise<string> {
+  const id = `u-${code().toLowerCase()}`;
+  demoParks.set(id, { ...clone(park), id });
+  return id;
+}
+export async function fetchParkReports(parkId: string): Promise<ParkReport[]> {
+  await pause();
+  const mine = [...reportsOf(parkId).values()];
+  // a friend has been there before you, so the park isn't empty
+  const seed: ParkReport[] = reportsOf(parkId).has("demo-friend-park")
+    ? []
+    : [{ uid: "demo-friend-park", name: "Giulia", kit: { pullUpBar: true, parallelBars: true }, note: "Bars are solid, a bit busy after 6pm.", atISO: new Date(Date.now() - 4 * 86400000).toISOString() }];
+  return clone([...mine, ...seed].sort((a, b) => b.atISO.localeCompare(a.atISO)));
+}
+export async function saveParkReport(parkId: string, report: Omit<ParkReport, "reactions">): Promise<void> {
+  const prev = reportsOf(parkId).get(report.uid);
+  reportsOf(parkId).set(report.uid, { ...clone(report), reactions: prev?.reactions });
+}
+export async function deleteParkReport(parkId: string, uid: string): Promise<void> {
+  reportsOf(parkId).delete(uid);
+}
+export async function reactToParkReport(parkId: string, authorUid: string, reactorUid: string, reaction: Reaction | null): Promise<void> {
+  const r = reportsOf(parkId).get(authorUid) ?? (authorUid === "demo-friend-park" ? (await fetchParkReports(parkId)).find((x) => x.uid === authorUid) : undefined);
+  if (!r) return;
+  const reactions = { ...(r.reactions ?? {}) };
+  if (reaction) reactions[reactorUid] = reaction;
+  else delete reactions[reactorUid];
+  reportsOf(parkId).set(authorUid, { ...r, reactions });
+}

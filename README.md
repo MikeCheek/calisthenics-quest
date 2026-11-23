@@ -401,6 +401,41 @@ service cloud.firestore {
         && request.resource.data.value >= 0 && request.resource.data.value <= 100000;
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+
+    // bar parks: parks athletes added (OpenStreetMap ones have no doc) and
+    // each athlete's one report per park. Others may only change their own
+    // reaction on a report.
+    match /parks/{parkId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['name', 'lat', 'lon', 'cell', 'source', 'createdBy', 'createdAtISO'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.source == 'user'
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+        && request.resource.data.lat is number && request.resource.data.lon is number
+        && request.resource.data.cell is string && request.resource.data.cell.size() <= 16;
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+
+      match /reports/{uid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'kit', 'note', 'atISO', 'reactions'])
+          && request.resource.data.kit is map && request.resource.data.kit.size() <= 6
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40
+          && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 140));
+        allow update: if request.auth != null && request.auth.uid != uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          && request.resource.data.get('reactions', {}).diff(resource.data.get('reactions', {})).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.get('reactions', {}).get(request.auth.uid, 'thanks') in ['thanks', 'strong', 'fire'];
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+    // account deletion finds your reports on every park (collection group);
+    // it needs a single-field index exemption on reports.uid (collection group)
+    match /{path=**}/reports/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }
 ```

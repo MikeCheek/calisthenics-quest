@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   deleteField,
   doc,
@@ -180,6 +181,12 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
   // global board entries for this and the last logged week
   await setGlobalBoardEntry(uid, null, [currentWeekKey(), ...(userDoc.week?.key ? [userDoc.week.key] : [])]).catch(() => {});
   await deleteDoc(doc(db, "events", monthKey(), "players", uid)).catch(() => {});
+  // bar parks: my reports on any park, and parks I added
+  const [reports, parks] = await Promise.all([
+    getDocs(query(collectionGroup(db, "reports"), where("uid", "==", uid))).catch(() => null),
+    getDocs(query(collection(db, "parks"), where("createdBy", "==", uid))).catch(() => null),
+  ]);
+  await Promise.all([...(reports?.docs ?? []), ...(parks?.docs ?? [])].map((d) => deleteDoc(d.ref).catch(() => {})));
   await deleteDoc(doc(db, "profiles", uid));
   await deleteDoc(doc(db, "users", uid));
 

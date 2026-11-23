@@ -21,7 +21,9 @@ import {
   type DocumentData,
   sum,
   count,
+  deleteField,
 } from "firebase/firestore";
+import type { ParkReport, Reaction, UserParkDoc } from "./parks";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
 import { isOffline } from "./offlineWrites";
@@ -425,4 +427,36 @@ export async function addPushToken(uid: string, token: string, tz: string): Prom
 
 export async function removePushToken(uid: string, token: string): Promise<void> {
   await updateDoc(doc(db, "users", uid), { pushTokens: arrayRemove(token) });
+}
+
+// ---- bar parks (parks.ts) ----
+// parks/{id} holds parks athletes added (OpenStreetMap ones need no doc);
+// parks/{id}/reports/{uid} is each athlete's one report of what's there.
+
+export async function fetchUserParks(cells: string[]): Promise<UserParkDoc[]> {
+  const snap = await getDocs(query(collection(db, "parks"), where("cell", "in", cells.slice(0, 10))));
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<UserParkDoc, "id">), id: d.id }));
+}
+
+export async function addUserPark(park: Omit<UserParkDoc, "id">): Promise<string> {
+  const ref = await addDoc(collection(db, "parks"), park);
+  return ref.id;
+}
+
+export async function fetchParkReports(parkId: string): Promise<ParkReport[]> {
+  const snap = await getDocs(query(collection(db, "parks", parkId, "reports"), orderBy("atISO", "desc"), limit(30)));
+  return snap.docs.map((d) => d.data() as ParkReport);
+}
+
+// your report replaces your last one; reactions others left on it are kept
+export async function saveParkReport(parkId: string, report: Omit<ParkReport, "reactions">): Promise<void> {
+  await setDoc(doc(db, "parks", parkId, "reports", report.uid), withoutUndefined(report), { merge: true });
+}
+
+export async function deleteParkReport(parkId: string, uid: string): Promise<void> {
+  await deleteDoc(doc(db, "parks", parkId, "reports", uid));
+}
+
+export async function reactToParkReport(parkId: string, authorUid: string, reactorUid: string, reaction: Reaction | null): Promise<void> {
+  await updateDoc(doc(db, "parks", parkId, "reports", authorUid), { [`reactions.${reactorUid}`]: reaction ?? deleteField() });
 }
