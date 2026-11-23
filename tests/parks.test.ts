@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cellOf, cellsAround, cleanNote, confirmation, distanceM, equipmentAt, groupParks, kitFromTags, overpassQuery, parkKit, reactionCounts, type OsmElement, type ParkReport } from "../src/lib/parks";
+import { OVERPASS_SERVERS, fetchOsmParks, cellOf, cellsAround, cleanNote, confirmation, distanceM, equipmentAt, groupParks, kitFromTags, overpassQuery, parkKit, reactionCounts, type OsmElement, type ParkReport } from "../src/lib/parks";
 import { DEFAULT_EQUIPMENT } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
 
@@ -39,7 +39,7 @@ test("the Overpass query asks for stations and calisthenics areas around you", (
   const q = overpassQuery(45.4642, 9.19, 5000);
   assert.match(q, /leisure"="fitness_station"\]\(around:5000,45\.4642,9\.1900\)/);
   assert.match(q, /sport"="calisthenics"/);
-  assert.match(q, /out center tags/);
+  assert.match(q, /out tags center/);
 });
 
 const now = new Date("2026-11-23T12:00:00Z");
@@ -87,4 +87,24 @@ test("athlete-added parks are found by grid cell", () => {
 test("parks copy is in Italian", () => {
   for (const p of ["Bar parks near you", "Train here today", "Still like this", "Update equipment", "Pull-up bar", "Latest updates"]) assert.notEqual(translate("it", p), p);
   assert.equal(translate("it", "{n} confirmed · {d}", { n: 3, d: "ieri" }), "3 conferme · ieri");
+});
+
+test("a busy Overpass server falls through to the next one", async () => {
+  const hits: string[] = [];
+  const fetcher = (async (url: string) => {
+    hits.push(new URL(url).host);
+    if (hits.length === 1) return new Response("busy", { status: 504 });
+    if (hits.length === 2) return new Response(JSON.stringify({ elements: [], remark: "runtime error: Query timed out" }), { status: 200 });
+    return new Response(JSON.stringify({ elements: [station(9, 0, "rings")] }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const r = await fetchOsmParks(at.lat, at.lon, 2000, fetcher);
+  assert.equal(hits.length, 3);
+  assert.equal(r.parks.length, 1);
+  assert.deepEqual(r.parks[0].mapKit, ["rings"]);
+});
+
+test("every server down: the error names each one", async () => {
+  const fetcher = (async () => new Response("no", { status: 429 })) as unknown as typeof fetch;
+  await assert.rejects(fetchOsmParks(at.lat, at.lon, 2000, fetcher), /overpass-api\.de: HTTP 429/);
+  assert.ok(OVERPASS_SERVERS.length >= 3);
 });

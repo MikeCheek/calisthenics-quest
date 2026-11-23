@@ -26,7 +26,7 @@ export default function ParksPage() {
   const [place, setPlace] = useState<Place | null | undefined>(undefined);
   const [radius, setRadius] = useState(RADII[1]);
   const [parks, setParks] = useState<Park[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<false | "down" | "stale">(false);
   const [locating, setLocating] = useState(false);
   const [denied, setDenied] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -48,9 +48,9 @@ export default function ParksPage() {
       fetchOsmParks(p.lat, p.lon, r).catch(() => null),
       fetchUserParks(cellsAround(p.lat, p.lon)).catch(() => []),
     ]);
-    if (!osm) setFailed(true);
+    setFailed(!osm ? "down" : osm.stale ? "stale" : false);
     const added = mine.map((u) => userParkToPark(u, p)).filter((x) => (x.distanceM ?? 0) <= r);
-    setParks([...(osm ?? []), ...added].sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0)));
+    setParks([...(osm?.parks ?? []), ...added].sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0)));
   }, []);
 
   useEffect(() => {
@@ -132,7 +132,16 @@ export default function ParksPage() {
               </button>
             </div>
 
-            {failed && <p className="text-sm text-amber-300">{tx("Couldn't reach OpenStreetMap right now — showing only parks athletes added.")}</p>}
+            {failed && (
+              <div className="panel p-3 flex items-center gap-3" role="status">
+                <p className="flex-1 text-sm text-amber-300">
+                  {failed === "stale" ? tx("OpenStreetMap is busy — showing your last search around here.") : tx("Couldn't reach OpenStreetMap right now — showing only parks athletes added.")}
+                </p>
+                <button onClick={() => place && load(place, radius)} className="shrink-0 px-3 py-2 rounded-lg text-sm border border-zinc-700 text-zinc-100 hover:border-orange-500">
+                  {tx("Try again")}
+                </button>
+              </div>
+            )}
 
             {parks === null ? (
               <p className="text-sm text-zinc-400" role="status">

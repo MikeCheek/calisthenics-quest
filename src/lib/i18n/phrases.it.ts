@@ -1536,6 +1536,8 @@ const IT_PHRASES: [string, string][] = [
   ["Bar parks near you", "Parchi calisthenics vicino a te"],
   ["Couldn't reach OpenStreetMap right now — showing only parks athletes added.", "Impossibile raggiungere OpenStreetMap ora: mostriamo solo i parchi aggiunti dagli atleti."],
   ["Distance", "Distanza"],
+  ["Try again", "Riprova"],
+  ["OpenStreetMap is busy — showing your last search around here.", "OpenStreetMap è sovraccarico: mostriamo la tua ultima ricerca qui intorno."],
   ["Equipment not mapped — tap to see what athletes say", "Attrezzatura non mappata: tocca per vedere cosa dicono gli atleti"],
   ["Find parks near me", "Trova parchi vicino a me"],
   ["Latest updates", "Ultimi aggiornamenti"],
