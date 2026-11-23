@@ -133,7 +133,7 @@ test("then vs now: from Skills, switch ranges, pick custom dates", async ({ page
   await expect(from).toBeVisible();
   const d = new Date(Date.now() - 20 * 86400000).toISOString().slice(0, 10);
   await from.fill(d);
-  await expect(page.getByText("THEN", { exact: false }).first()).toBeVisible();
+  await expect(page.locator("main").getByText("THEN", { exact: false }).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -243,25 +243,32 @@ test("bodyweight: log today's weight", async ({ page }) => {
 // ---- the outside world, mocked: OpenStreetMap, its tiles and Open-Meteo ----
 const HERE = { latitude: 45.4642, longitude: 9.19 };
 
-test("bar parks: find one, confirm its kit, react, train there", async ({ page, context }) => {
+const OSM_PARK = {
+  elements: [
+    { type: "way", id: 7, center: { lat: 45.4652, lon: 9.19 }, tags: { leisure: "fitness_station", sport: "calisthenics", name: "Riverside bars" } },
+    { type: "node", id: 1, lat: 45.4652, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "horizontal_bar" } },
+    { type: "node", id: 2, lat: 45.4653, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "parallel_bars" } },
+  ],
+};
+async function mockMap(page: import("@playwright/test").Page, hits: string[] = []) {
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 204 }));
+  await page.route(/\/interpreter$/, (r) => {
+    hits.push(r.request().url());
+    return r.fulfill({ json: OSM_PARK });
+  });
+  return hits;
+}
+
+test("bar parks: find one, confirm its kit, react, correct it, train there", async ({ page, context }) => {
   const errors = collectErrors(page);
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation(HERE);
-  await page.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 204 }));
-  await page.route("https://overpass-api.de/**", (r) =>
-    r.fulfill({
-      json: {
-        elements: [
-          { type: "way", id: 7, center: { lat: 45.4652, lon: 9.19 }, tags: { leisure: "fitness_station", sport: "calisthenics", name: "Riverside bars" } },
-          { type: "node", id: 1, lat: 45.4652, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "horizontal_bar" } },
-          { type: "node", id: 2, lat: 45.4653, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "parallel_bars" } },
-        ],
-      },
-    })
-  );
+  await mockMap(page);
   await page.goto("/parks");
-  await page.getByRole("button", { name: "Find parks near me" }).click();
-  await page.getByRole("button", { name: /Riverside bars/ }).click();
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await expect(page.getByText("OpenStreetMap data · updated", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: /1 park in 5 km/ }).click(); // the list opens up from the bottom
+  await page.getByRole("region", { name: "Bar parks", exact: true }).getByRole("button", { name: /Riverside bars/ }).click();
   const sheet = page.getByRole("dialog", { name: "Riverside bars" });
   await expect(sheet.getByText("Pull-up bar: there")).toBeVisible();
   await sheet.getByRole("button", { name: "Still like this" }).click();
@@ -269,9 +276,57 @@ test("bar parks: find one, confirm its kit, react, train there", async ({ page, 
   await sheet.getByRole("button", { name: "Thanks" }).click();
   await expect(sheet.getByRole("button", { name: "Thanks" })).toHaveAttribute("aria-pressed", "true");
   await expectNoA11yViolations(page);
-  await sheet.getByRole("button", { name: "Train here today" }).click();
+
+  // correct the name, then the spot on the map
+  await sheet.getByRole("button", { name: "Edit name" }).click();
+  await sheet.getByLabel("Name of the park").fill("Riverside calisthenics");
+  await sheet.getByRole("button", { name: "Save name" }).click();
+  await expect(page.getByRole("dialog", { name: "Riverside calisthenics" })).toBeVisible();
+  const renamed = page.getByRole("dialog", { name: "Riverside calisthenics" });
+  await expect(renamed.getByText(/Name or position updated by/)).toBeVisible();
+  await renamed.getByRole("button", { name: "Move the pin" }).click();
+  await page.getByRole("dialog", { name: "Pick the spot" }).getByRole("button", { name: "Save position" }).click();
+  await expect(page.getByRole("dialog", { name: "Riverside calisthenics" })).toBeVisible();
+
+  await page.getByRole("dialog", { name: "Riverside calisthenics" }).getByRole("button", { name: "Train here today" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByText("Today at Riverside bars")).toBeVisible();
+  await expect(page.getByText("Today at Riverside calisthenics")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("bar parks: an area already loaded comes from the shared cache", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  const hits = await mockMap(page);
+  await page.goto("/parks");
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await expect(page.getByText(/1 park in 5 km/)).toBeVisible();
+  expect(hits.length).toBe(1);
+  await page.getByRole("button", { name: "2 km" }).click(); // inside what's cached
+  await expect(page.getByText(/1 park in 2 km/)).toBeVisible();
+  await expect(page.getByText("OpenStreetMap data · updated", { exact: false })).toBeVisible();
+  expect(hits.length).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("bar parks: add a missing one by picking its spot on the map", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  await mockMap(page);
+  await page.goto("/parks");
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await page.getByRole("button", { name: /1 park in 5 km/ }).click();
+  await page.getByRole("button", { name: "Add a missing park" }).click();
+  const pick = page.getByRole("dialog", { name: "Pick the spot" });
+  await expect(pick).toBeVisible();
+  await expectNoA11yViolations(page);
+  await pick.getByRole("button", { name: "Put the park here" }).click();
+  const add = page.getByRole("dialog", { name: "Add a park" });
+  await add.getByLabel("Name of the park").fill("School bars");
+  await add.getByRole("button", { name: "Add park" }).click();
+  await expect(page.getByRole("dialog", { name: "School bars" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -314,6 +369,59 @@ test("crew feed: give a friend kudos and get some back", async ({ page }) => {
   await expect(feed.getByRole("button", { name: /^Take back kudos for/ }).first()).toHaveAttribute("aria-pressed", "true");
   await expect(feed.getByText(/You.* gave kudos|Kudos/).first()).toBeVisible();
   await expect(page.getByText(/gave you kudos/).first()).toBeVisible();
+  await expectNoA11yViolations(page);
+  expect(errors).toEqual([]);
+});
+
+// ---- finding things: the feature menu, quick actions, the sidebar ----
+
+test("phone: All features finds a feature by search and opens its section", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "All features" }).click();
+  const menu = page.getByRole("dialog", { name: "All features" });
+  await expect(menu.getByRole("link", { name: /Bar parks near you/ })).toBeVisible();
+  await expectNoA11yViolations(page);
+  await menu.getByRole("searchbox").fill("weight");
+  await menu.getByRole("link", { name: /^Bodyweight/ }).click();
+  await expect(page).toHaveURL(/\/profile\?tab=activity#bodyweight/);
+  await expect(page.locator("#bodyweight")).toBeFocused();
+  // the same page, another tab: the menu switches it
+  await page.getByRole("button", { name: "All features" }).click();
+  await page.getByRole("dialog", { name: "All features" }).getByRole("link", { name: /^Reminders/ }).click();
+  await expect(page.getByRole("tab", { name: "Settings" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#reminders")).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test("phone: quick actions open from anywhere and close with Escape", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/skills");
+  const fab = page.getByRole("button", { name: "Quick actions" });
+  await fab.click();
+  await expect(page.getByRole("link", { name: "Find a bar park" })).toBeVisible();
+  await expectNoA11yViolations(page);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("link", { name: "Find a bar park" })).toHaveCount(0);
+  await expect(fab).toBeFocused();
+  await fab.click();
+  await page.getByRole("link", { name: "Find a bar park" }).click();
+  await expect(page).toHaveURL(/\/parks/);
+  expect(errors).toEqual([]);
+});
+
+test("desktop: the sidebar lists every feature, with the current one marked", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto("/friends");
+  const sidebar = page.locator("#app-sidebar");
+  await expect(sidebar.getByRole("link", { name: "Crew", exact: true })).toHaveAttribute("aria-current", "page");
+  await sidebar.getByRole("link", { name: "Leaderboard" }).click();
+  await expect(page.locator("#leaderboard")).toBeFocused();
+  await sidebar.getByRole("link", { name: "Bar parks near you" }).click();
+  await expect(page).toHaveURL(/\/parks/);
   await expectNoA11yViolations(page);
   expect(errors).toEqual([]);
 });

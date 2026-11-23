@@ -12,7 +12,7 @@ import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 import { pickNudge, renderNudge } from "../nudges";
-import type { ParkReport, Reaction, UserParkDoc } from "../parks";
+import type { CachedPark, OsmCell, ParkReport, Reaction, UserParkDoc } from "../parks";
 import type { FeedItem } from "../feed";
 
 export type { GlobalBoardRow, PairingDoc };
@@ -230,10 +230,55 @@ export async function fetchEventTotals(_eventKey: string): Promise<{ total: numb
 export async function addPushToken(_uid: string, _token: string, _tz: string): Promise<void> {}
 export async function removePushToken(_uid: string, _token: string): Promise<void> {}
 
-// ---- bar parks: in memory for the visit ----
-const demoParks = new Map<string, UserParkDoc>();
-const demoReports = new Map<string, Map<string, ParkReport>>();
-const reportsOf = (id: string) => demoReports.get(id) ?? demoReports.set(id, new Map()).get(id)!;
+// ---- bar parks: kept for the tab's session, so a reload doesn't lose them ----
+function sessionMap<V>(key: string): Map<string, V> {
+  let initial: [string, V][] = [];
+  try {
+    initial = JSON.parse(sessionStorage.getItem(key) ?? "[]");
+  } catch {
+    // no storage (tests, private mode): memory only
+  }
+  const m = new Map<string, V>(initial);
+  const save = () => {
+    try {
+      sessionStorage.setItem(key, JSON.stringify([...m.entries()]));
+    } catch {
+      // fine
+    }
+  };
+  const set = m.set.bind(m);
+  const del = m.delete.bind(m);
+  m.set = (k, v) => {
+    set(k, v);
+    save();
+    return m;
+  };
+  m.delete = (k) => {
+    const r = del(k);
+    save();
+    return r;
+  };
+  return m;
+}
+const demoParks = sessionMap<UserParkDoc>("barquests:demo-parks");
+const demoReportsStore = sessionMap<[string, ParkReport][]>("barquests:demo-park-reports");
+const demoReports = {
+  get: (id: string) => (demoReportsStore.has(id) ? reportMap(id) : undefined),
+  set: (id: string, m: Map<string, ParkReport>) => (demoReportsStore.set(id, [...m.entries()]), m),
+};
+function reportMap(id: string): Map<string, ParkReport> {
+  const m = new Map<string, ParkReport>(demoReportsStore.get(id) ?? []);
+  const set = m.set.bind(m);
+  const del = m.delete.bind(m);
+  m.set = (k, v) => (set(k, v), demoReportsStore.set(id, [...m.entries()]), m);
+  m.delete = (k) => {
+    const r = del(k);
+    demoReportsStore.set(id, [...m.entries()]);
+    return r;
+  };
+  return m;
+}
+const reportsOf = (id: string): Map<string, ParkReport> => demoReports.get(id) ?? demoReports.set(id, reportMap(id));
 
 export async function fetchUserParks(cells: string[]): Promise<UserParkDoc[]> {
   await pause();
@@ -308,4 +353,30 @@ export async function sendKudosPing(toUid: string, _fromUid: string, _fromName: 
 }
 export async function deleteMyFeed(uid: string): Promise<void> {
   demoFeed.delete(uid);
+}
+
+export async function saveParkEdit(
+  park: { id: string; source: "user" | "osm" },
+  fields: { name: string; lat: number; lon: number; cell: string },
+  editor: { uid: string; name: string }
+): Promise<void> {
+  const at = new Date().toISOString();
+  const prev = demoParks.get(park.id);
+  demoParks.set(park.id, {
+    ...(prev ?? { id: park.id, source: park.source, createdBy: editor.uid, createdAtISO: at }),
+    ...fields,
+    editedBy: editor.uid,
+    editedByName: editor.name,
+    editedAtISO: at,
+  } as UserParkDoc);
+}
+
+// the shared OpenStreetMap cache, for this visit
+const demoCells = sessionMap<OsmCell>("barquests:demo-osm-cells");
+export async function fetchOsmCells(cells: string[]): Promise<OsmCell[]> {
+  await pause();
+  return cells.flatMap((c) => (demoCells.has(c) ? [clone(demoCells.get(c)!)] : []));
+}
+export async function saveOsmCells(cells: OsmCell[]): Promise<void> {
+  for (const c of cells) demoCells.set(c.cell, { ...clone(c), parks: c.parks.slice(0, 400) as CachedPark[] });
 }

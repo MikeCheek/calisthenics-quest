@@ -1,17 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { levelProgress } from "@/lib/levelPath";
-import { CalendarCheck, Layers, Bot, Users, User, BadgeCheck } from "lucide-react";
+import { CalendarCheck, Layers, Bot, Users, User, BadgeCheck, LayoutGrid } from "lucide-react";
+import Modal from "@/components/Modal";
+import FeatureMenu from "@/components/nav/FeatureMenu";
 import { claimCounts, syncClaims } from "@/lib/verification";
 
 export default function Nav() {
   const { userDoc } = useAuth();
   const { t, tx } = useLanguage();
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
   const progress = userDoc ? levelProgress(userDoc.xp) : null;
   const claims = userDoc ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
 
@@ -31,9 +35,22 @@ export default function Nav() {
       {/* slim top bar — identity + quick level glance, not a primary nav on mobile */}
       <header className="border-b border-zinc-800 bg-zinc-950">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-          <Link href="/dashboard" className="heading text-base text-zinc-100 flex items-center gap-1.5">
-            <span className="text-orange-400" aria-hidden="true">▲</span> BarQuests
-          </Link>
+          <div className="flex items-center gap-1">
+            {/* every feature, one tap away (on large screens it's the sidebar) */}
+            {userDoc && (
+              <button
+                onClick={() => setMenuOpen(true)}
+                className="lg:hidden -ml-2 p-2 rounded-lg text-zinc-300 hover:text-orange-400"
+                aria-label={tx("All features")}
+                aria-haspopup="dialog"
+              >
+                <LayoutGrid size={20} aria-hidden />
+              </button>
+            )}
+            <Link href="/dashboard" className="heading text-base text-zinc-100 flex items-center gap-1.5 lg:hidden">
+              <span className="text-orange-400" aria-hidden="true">▲</span> BarQuests
+            </Link>
+          </div>
           {/* sign-out lives in Profile → Account; the header just shows where you stand */}
           {progress && (
             <Link
@@ -54,7 +71,7 @@ export default function Nav() {
           )}
         </div>
         {/* desktop-only secondary nav row, since bottom tabs are the mobile-first primary nav */}
-        <nav className="hidden sm:flex max-w-5xl mx-auto px-4 gap-1 pb-2" aria-label={tx("Main menu")}>
+        <nav className="hidden sm:flex lg:hidden max-w-5xl mx-auto px-4 gap-1 pb-2" aria-label={tx("Main menu")}>
           {TABS.map((t) => (
             <Link
               key={t.href}
@@ -71,6 +88,43 @@ export default function Nav() {
           ))}
         </nav>
       </header>
+
+      {/* large screens: a sidebar with the five sections and every feature */}
+      {userDoc && (
+        <aside id="app-sidebar" className="hidden lg:flex fixed inset-y-0 left-0 z-20 w-72 flex-col border-r border-zinc-800 bg-zinc-950">
+          <Link href="/dashboard" className="heading text-lg text-zinc-100 flex items-center gap-1.5 px-5 py-4">
+            <span className="text-orange-400" aria-hidden="true">▲</span> BarQuests
+          </Link>
+          <nav aria-label={tx("Main menu")} className="px-3">
+            <ul className="space-y-0.5">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                const active = isActive(t.routes);
+                return (
+                  <li key={t.href}>
+                    <Link
+                      href={t.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${
+                        active ? "bg-orange-500/15 text-orange-100 font-medium" : "text-zinc-300 hover:bg-zinc-800/70"
+                      }`}
+                    >
+                      <Icon size={18} className={active ? "text-orange-400" : "text-zinc-400"} aria-hidden="true" /> {t.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <div className="mt-4 border-t border-zinc-800 px-3 pt-4 pb-6 overflow-y-auto flex-1" aria-label={tx("All features")} role="region">
+            <FeatureMenu compact />
+          </div>
+        </aside>
+      )}
+
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title={tx("All features")}>
+        <FeatureMenu onNavigate={() => setMenuOpen(false)} />
+      </Modal>
 
       {/* fixed bottom tab bar — primary navigation on phones */}
       <nav aria-label={tx("Main menu")} className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 safe-bottom">

@@ -28,6 +28,7 @@ export interface Park {
   source: "osm" | "user";
   mapKit: ParkKit[]; // what the map's tags say
   distanceM?: number;
+  edit?: UserParkDoc; // the community's name/position, and who changed it last
 }
 
 export type Reaction = "thanks" | "strong" | "fire";
@@ -42,15 +43,21 @@ export interface ParkReport {
   reactions?: Record<string, Reaction>; // reactor uid → reaction
 }
 
+// parks/{id}: a park added by an athlete ("u-…"/auto id, source "user"), or
+// community edits to an OpenStreetMap park ("osm-…", source "osm") whose
+// name and position then replace the map's
 export interface UserParkDoc {
   id: string;
   name: string;
   lat: number;
   lon: number;
   cell: string;
-  source: "user";
+  source: "user" | "osm";
   createdBy: string;
   createdAtISO: string;
+  editedBy?: string;
+  editedByName?: string; // first name, shown as "edited by"
+  editedAtISO?: string;
 }
 
 export const NOTE_MAX = 140;
@@ -95,10 +102,6 @@ export function kitFromTags(tags: Record<string, string> = {}): ParkKit[] {
   return [...kit];
 }
 
-export function overpassQuery(lat: number, lon: number, radiusM: number): string {
-  const a = `(around:${Math.round(radiusM)},${lat.toFixed(4)},${lon.toFixed(4)})`;
-  return `[out:json][timeout:20];(nwr["leisure"="fitness_station"]${a};nwr["sport"="calisthenics"]${a};);out tags center 400;`;
-}
 
 export interface OsmElement {
   type: "node" | "way" | "relation";
@@ -156,8 +159,6 @@ export function groupParks(elements: OsmElement[], from?: { lat: number; lon: nu
     .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0));
 }
 
-const CACHE_KEY = "barquests:parks";
-
 // public Overpass servers, tried in turn: the main one is often busy (429,
 // 504) and some networks or blockers stop one but not another
 export const OVERPASS_SERVERS = [
@@ -171,7 +172,7 @@ async function askOverpass(query: string, fetcher: typeof fetch = fetch): Promis
   const errors: string[] = [];
   for (const url of OVERPASS_SERVERS) {
     const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctl ? setTimeout(() => ctl.abort(), 20000) : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 25000) : null;
     try {
       const res = await fetcher(url, {
         method: "POST",
@@ -193,39 +194,124 @@ async function askOverpass(query: string, fetcher: typeof fetch = fetch): Promis
   throw new Error(`Overpass unreachable — ${errors.join("; ")}`);
 }
 
-interface ParkCache {
-  key: string;
-  at: number;
-  lat: number;
-  lon: number;
-  radiusM: number;
-  elements: OsmElement[];
+// ---- the shared cache: OpenStreetMap parks per 0.1° cell, in Firestore ----
+// Overpass is slow and often busy, so whoever loads an area first saves the
+// parks found, cell by cell, for everyone (osmCache/{cell}); later visits
+// read those in a moment. A cell is refreshed from OpenStreetMap when it's
+// older than CACHE_FRESH_DAYS, or on request (at most once a day: the
+// Firestore rules enforce it).
+
+export const CACHE_FRESH_DAYS = 14;
+export const REFRESH_MIN_HOURS = 24;
+
+export type CachedPark = Pick<Park, "id" | "name" | "lat" | "lon" | "mapKit">;
+
+export interface OsmCell {
+  cell: string;
+  parks: CachedPark[];
+  fetchedAtISO: string;
 }
 
-export async function fetchOsmParks(lat: number, lon: number, radiusM: number, fetcher: typeof fetch = fetch): Promise<{ parks: Park[]; stale: boolean }> {
-  const key = `${lat.toFixed(2)},${lon.toFixed(2)},${radiusM}`;
-  let cached: ParkCache | null = null;
+export interface Box {
+  s: number;
+  w: number;
+  n: number;
+  e: number;
+}
+
+const KM_PER_DEG = 111.32;
+
+// every 0.1° cell the search circle touches
+export function cellsCovering(lat: number, lon: number, radiusM: number): string[] {
+  const dLat = radiusM / 1000 / KM_PER_DEG;
+  const dLon = radiusM / 1000 / (KM_PER_DEG * Math.max(0.1, Math.cos((lat * Math.PI) / 180)));
+  const out: string[] = [];
+  for (let la = Math.floor((lat - dLat) * 10); la <= Math.floor((lat + dLat) * 10); la++)
+    for (let lo = Math.floor((lon - dLon) * 10); lo <= Math.floor((lon + dLon) * 10); lo++) out.push(`${la}:${lo}`);
+  return out;
+}
+
+export function cellBox(cells: string[]): Box {
+  const pts = cells.map((c) => c.split(":").map(Number));
+  return {
+    s: Math.min(...pts.map((p) => p[0])) / 10,
+    n: (Math.max(...pts.map((p) => p[0])) + 1) / 10,
+    w: Math.min(...pts.map((p) => p[1])) / 10,
+    e: (Math.max(...pts.map((p) => p[1])) + 1) / 10,
+  };
+}
+
+export function overpassBoxQuery(b: Box): string {
+  const a = `(${b.s.toFixed(4)},${b.w.toFixed(4)},${b.n.toFixed(4)},${b.e.toFixed(4)})`;
+  return `[out:json][timeout:25];(nwr["leisure"="fitness_station"]${a};nwr["sport"="calisthenics"]${a};);out tags center 2000;`;
+}
+
+// parks grouped over the whole box, then filed under the cell they sit in
+export function splitByCell(parks: CachedPark[], cells: string[], now = new Date()): OsmCell[] {
+  return cells.map((cell) => ({
+    cell,
+    parks: parks.filter((p) => cellOf(p.lat, p.lon) === cell).map(({ id, name, lat, lon, mapKit }) => ({ id, name, lat, lon, mapKit })),
+    fetchedAtISO: now.toISOString(),
+  }));
+}
+
+const ageDays = (iso: string, now: Date) => (now.getTime() - new Date(iso).getTime()) / 86400000;
+
+// what to do with what the cache has
+export function planLoad(cells: string[], cached: OsmCell[], now = new Date(), force = false): { fetch: boolean; usable: OsmCell[] } {
+  const usable = cached.filter((c) => cells.includes(c.cell));
+  const complete = cells.every((c) => usable.some((u) => u.cell === c));
+  const fresh = complete && usable.every((c) => ageDays(c.fetchedAtISO, now) < CACHE_FRESH_DAYS);
+  const recent = complete && usable.every((c) => ageDays(c.fetchedAtISO, now) * 24 < REFRESH_MIN_HOURS);
+  return { fetch: force ? !recent : !fresh, usable };
+}
+
+// the oldest cell's date: "updated on …" can't claim more than that
+export const updatedOn = (cells: OsmCell[]) => (cells.length ? cells.map((c) => c.fetchedAtISO).sort()[0] : null);
+
+export const canRefresh = (cells: OsmCell[], now = new Date()) => cells.some((c) => ageDays(c.fetchedAtISO, now) * 24 >= REFRESH_MIN_HOURS) || !cells.length;
+
+// cells may overlap at the edges (grouped at different times): one per id
+// and none within 30 m of another
+export function dedupe<T extends { id: string; lat: number; lon: number }>(parks: T[]): T[] {
+  const out: T[] = [];
+  for (const p of parks) if (!out.some((q) => q.id === p.id || distanceM(q, p) < 30)) out.push(p);
+  return out;
+}
+
+export interface LoadResult {
+  parks: Park[];
+  updatedAtISO: string | null; // when OpenStreetMap was last read for this area
+  from: "cache" | "openstreetmap";
+  failed: boolean; // OpenStreetMap was needed but unreachable
+}
+
+export async function loadOsmParks(
+  center: { lat: number; lon: number },
+  radiusM: number,
+  io: { read: (cells: string[]) => Promise<OsmCell[]>; write: (cells: OsmCell[]) => Promise<void>; fetcher?: typeof fetch },
+  opts: { force?: boolean; now?: Date } = {}
+): Promise<LoadResult> {
+  const now = opts.now ?? new Date();
+  const cells = cellsCovering(center.lat, center.lon, radiusM);
+  const cached = await io.read(cells).catch(() => [] as OsmCell[]);
+  const plan = planLoad(cells, cached, now, opts.force);
+  const inRange = (list: CachedPark[]) =>
+    dedupe(list)
+      .map((p) => ({ ...p, source: "osm" as const, distanceM: Math.round(distanceM(center, p)) }))
+      .filter((p) => p.distanceM <= radiusM)
+      .sort((a, b) => a.distanceM - b.distanceM);
+
+  if (!plan.fetch) return { parks: inRange(plan.usable.flatMap((c) => c.parks)), updatedAtISO: updatedOn(plan.usable), from: "cache", failed: false };
   try {
-    cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");
-  } catch {
-    // no cache
-  }
-  if (cached && cached.key === key && Date.now() - cached.at < 24 * 3600000) return { parks: groupParks(cached.elements, { lat, lon }), stale: false };
-  try {
-    const elements = await askOverpass(overpassQuery(lat, lon, radiusM), fetcher);
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ key, at: Date.now(), lat, lon, radiusM, elements }));
-    } catch {
-      // too big or blocked
-    }
-    return { parks: groupParks(elements, { lat, lon }), stale: false };
+    const elements = await askOverpass(overpassBoxQuery(cellBox(cells)), io.fetcher);
+    const fresh = splitByCell(groupParks(elements), cells, now);
+    io.write(fresh).catch((e) => console.warn("[parks] cache not saved:", (e as Error).message));
+    return { parks: inRange(fresh.flatMap((c) => c.parks)), updatedAtISO: now.toISOString(), from: "openstreetmap", failed: false };
   } catch (e) {
     console.warn("[parks]", (e as Error).message);
-    // an older search around here is better than nothing
-    if (cached?.elements && typeof cached.lat === "number" && distanceM(cached, { lat, lon }) < 3000) {
-      return { parks: groupParks(cached.elements, { lat, lon }).filter((p) => (p.distanceM ?? 0) <= radiusM), stale: true };
-    }
-    throw e;
+    // whatever the cache has is better than nothing
+    return { parks: inRange(plan.usable.flatMap((c) => c.parks)), updatedAtISO: updatedOn(plan.usable), from: "cache", failed: true };
   }
 }
 
@@ -237,6 +323,17 @@ export function cellsAround(lat: number, lon: number): string[] {
   const out: string[] = [];
   for (const dy of [-1, 0, 1]) for (const dx of [-1, 0, 1]) out.push(`${la + dy}:${lo + dx}`);
   return out;
+}
+
+// athletes' parks plus their edits to OpenStreetMap ones (name, position)
+export function mergeEdits(osm: Park[], docs: UserParkDoc[], from: { lat: number; lon: number }, radiusM: number): Park[] {
+  const edits = new Map(docs.filter((d) => d.source === "osm").map((d) => [d.id, d]));
+  const edited = osm.map((p) => {
+    const e = edits.get(p.id);
+    return e ? { ...p, name: e.name || p.name, lat: e.lat, lon: e.lon, distanceM: Math.round(distanceM(from, e)), edit: e } : p;
+  });
+  const added = docs.filter((d) => d.source !== "osm").map((d) => ({ ...userParkToPark(d, from), edit: d }));
+  return [...edited, ...added].filter((p) => (p.distanceM ?? 0) <= radiusM).sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0));
 }
 
 export const userParkToPark = (p: UserParkDoc, from?: { lat: number; lon: number }): Park => ({

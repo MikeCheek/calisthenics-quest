@@ -114,10 +114,16 @@ you have any health concerns.
   weight and in absolute terms when it changed.
 - **Vibration cues** — the phone buzzes when a set starts, rest starts and an exercise is
   done; switch it in Settings or from the session menu.
-- **Bar parks near you** — outdoor bars from OpenStreetMap on a map and a list. Athletes
-  say what each park really has (pull-up bar, dip bars, rings…), confirm it's still there
-  or update it, and react to each other's updates; missing parks can be added. *Train
-  here today* builds the session for that park's kit plus what you carry.
+- **Bar parks near you** — a full-screen dark map of outdoor bars from OpenStreetMap: pins
+  show how many kinds of kit each park has and group into one bubble when zoomed out, and
+  the search range is drawn as a circle. Search around you or move the map anywhere and
+  *Search this area*. Athletes say what each park really has (pull-up bar, dip bars,
+  rings…), confirm it's still there or update it, and react to each other's updates; anyone
+  can correct a park's name or move its pin, and missing parks are added by picking their
+  spot on the map. *Train here today* builds the session for that park's kit plus what you
+  carry. OpenStreetMap results are cached in Firestore per area by whoever loads them first
+  (refreshed after 14 days, or on request at most once a day), so the map opens quickly and
+  shows *updated on …*; if OpenStreetMap is down, the cached data is shown with its date.
 - **Log only the sets you did** — *Finish here* between sets ends the exercise with
   just those sets logged; your totals and the learning count only what you did.
 - **Sessions that survive interruptions** — the session in progress, where you are in it
@@ -442,14 +448,27 @@ service cloud.firestore {
     // each athlete's one report per park. Others may only change their own
     // reaction on a report.
     match /parks/{parkId} {
+      function validSpot(d) {
+        return d.name is string && d.name.size() <= 60
+          && d.lat is number && d.lat >= -90 && d.lat <= 90
+          && d.lon is number && d.lon >= -180 && d.lon <= 180
+          && d.cell is string && d.cell.size() <= 16;
+      }
       allow read: if request.auth != null;
+      // an athlete's own park, or the first community edit of an
+      // OpenStreetMap park (its doc id is the map's id, "osm-…")
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['name', 'lat', 'lon', 'cell', 'source', 'createdBy', 'createdAtISO'])
+        && request.resource.data.keys().hasOnly(['name', 'lat', 'lon', 'cell', 'source', 'createdBy', 'createdAtISO', 'editedBy', 'editedByName', 'editedAtISO'])
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.source == 'user'
-        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
-        && request.resource.data.lat is number && request.resource.data.lon is number
-        && request.resource.data.cell is string && request.resource.data.cell.size() <= 16;
+        && validSpot(request.resource.data)
+        && ((request.resource.data.source == 'user' && request.resource.data.name.size() > 0)
+          || (request.resource.data.source == 'osm' && parkId.matches('^osm-[nwr][0-9]+$')));
+      // anyone may correct a park's name or position, as themselves
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'lat', 'lon', 'cell', 'editedBy', 'editedByName', 'editedAtISO'])
+        && request.resource.data.editedBy == request.auth.uid
+        && request.resource.data.editedByName is string && request.resource.data.editedByName.size() <= 40
+        && validSpot(request.resource.data);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
 
       match /reports/{uid} {
@@ -467,6 +486,20 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
     }
+    // OpenStreetMap parks, cached per 0.1° cell by whoever loads an area
+    // first, so everyone else skips the slow Overpass query. A cell can be
+    // refreshed at most once a day, and the date is the server's.
+    match /osmCache/{cell} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && cell.matches('^-?[0-9]{1,4}:-?[0-9]{1,4}$')
+        && request.resource.data.keys().hasOnly(['cell', 'parks', 'fetchedAt'])
+        && request.resource.data.cell == cell
+        && request.resource.data.parks is list && request.resource.data.parks.size() <= 400
+        && request.resource.data.fetchedAt == request.time
+        && (resource == null || resource.data.fetchedAt < request.time - duration.value(1, 'd'));
+    }
+
     // account deletion (which anonymises your reports) finds them on every park (collection group);
     // it needs a single-field index exemption on reports.uid (collection group)
     match /{path=**}/reports/{uid} {

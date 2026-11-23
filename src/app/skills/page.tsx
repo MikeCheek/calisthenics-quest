@@ -1,5 +1,6 @@
 "use client";
 
+import { URL_EVENT } from "@/lib/featureMap";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,8 +44,13 @@ export default function SkillsPage() {
   const [fullRoad, setFullRoad] = useState(false);
 
   useEffect(() => {
-    const urlTab = new URLSearchParams(window.location.search).get("tab");
-    if (urlTab && TABS.some((x) => x.id === urlTab)) setTab(urlTab as SkillsTab);
+    const read = () => {
+      const urlTab = new URLSearchParams(window.location.search).get("tab");
+      if (urlTab && TABS.some((x) => x.id === urlTab)) setTab(urlTab as SkillsTab);
+    };
+    read();
+    window.addEventListener(URL_EVENT, read);
+    return () => window.removeEventListener(URL_EVENT, read);
   }, []);
 
   useEffect(() => {
@@ -70,8 +76,12 @@ export default function SkillsPage() {
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
         <CompareLink />
-        <TrainingBlockCard invite />
-        <SkillTimelineCard />
+        <div id="block">
+          <TrainingBlockCard invite />
+        </div>
+        <div id="timeline">
+          <SkillTimelineCard />
+        </div>
         <ExtrasLinks />
 
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">

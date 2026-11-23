@@ -22,8 +22,9 @@ import {
   sum,
   count,
   deleteField,
+  serverTimestamp,
 } from "firebase/firestore";
-import type { ParkReport, Reaction, UserParkDoc } from "./parks";
+import type { CachedPark, OsmCell, ParkReport, Reaction, UserParkDoc } from "./parks";
 import { FEED_PER_FRIEND, type FeedItem } from "./feed";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
@@ -435,8 +436,42 @@ export async function removePushToken(uid: string, token: string): Promise<void>
 // parks/{id}/reports/{uid} is each athlete's one report of what's there.
 
 export async function fetchUserParks(cells: string[]): Promise<UserParkDoc[]> {
-  const snap = await getDocs(query(collection(db, "parks"), where("cell", "in", cells.slice(0, 10))));
-  return snap.docs.map((d) => ({ ...(d.data() as Omit<UserParkDoc, "id">), id: d.id }));
+  const chunks = Array.from({ length: Math.ceil(cells.length / 10) }, (_, i) => cells.slice(i * 10, i * 10 + 10));
+  const snaps = await Promise.all(chunks.map((c) => getDocs(query(collection(db, "parks"), where("cell", "in", c)))));
+  return snaps.flatMap((snap) => snap.docs.map((d) => ({ ...(d.data() as Omit<UserParkDoc, "id">), id: d.id })));
+}
+
+// a park's name or position, changed by an athlete: an added park's own
+// doc, or a doc of edits laid over an OpenStreetMap park
+export async function saveParkEdit(
+  park: { id: string; source: "user" | "osm" },
+  fields: { name: string; lat: number; lon: number; cell: string },
+  editor: { uid: string; name: string }
+): Promise<void> {
+  const ref = doc(db, "parks", park.id);
+  const edit = { ...fields, editedBy: editor.uid, editedByName: editor.name, editedAtISO: new Date().toISOString() };
+  try {
+    await updateDoc(ref, edit);
+  } catch (e) {
+    // the first edit of an OpenStreetMap park creates its doc
+    if (park.source !== "osm" || (e as { code?: string }).code !== "not-found") throw e;
+    await setDoc(ref, { ...edit, source: "osm", createdBy: editor.uid, createdAtISO: edit.editedAtISO });
+  }
+}
+
+// ---- the shared OpenStreetMap cache (parks.ts: loadOsmParks) ----
+export async function fetchOsmCells(cells: string[]): Promise<OsmCell[]> {
+  const snaps = await Promise.all(cells.map((c) => getDoc(doc(db, "osmCache", c)).catch(() => null)));
+  return snaps.flatMap((snap) => {
+    const d = snap?.exists() ? (snap.data() as { parks: CachedPark[]; fetchedAt?: { toDate(): Date } }) : null;
+    return d && snap ? [{ cell: snap.id, parks: d.parks ?? [], fetchedAtISO: d.fetchedAt?.toDate().toISOString() ?? new Date(0).toISOString() }] : [];
+  });
+}
+
+export async function saveOsmCells(cells: OsmCell[]): Promise<void> {
+  // one by one: the rules refuse a cell refreshed in the last day, and that
+  // mustn't stop the others
+  await Promise.all(cells.map((c) => setDoc(doc(db, "osmCache", c.cell), { cell: c.cell, parks: c.parks.slice(0, 400), fetchedAt: serverTimestamp() }).catch(() => {})));
 }
 
 export async function addUserPark(park: Omit<UserParkDoc, "id">): Promise<string> {
