@@ -2,15 +2,16 @@
 
 import { nameFor } from "@/lib/anonymize";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, CircleHelp, MapPin, Navigation, Pencil, ThumbsUp, Trash2, X } from "lucide-react";
+import { Check, CircleHelp, Crosshair, MapPin, Navigation, Pencil, ThumbsUp, Trash2, X } from "lucide-react";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { deleteParkReport, fetchParkReports, reactToParkReport, saveParkReport } from "@/lib/store";
+import { deleteParkReport, fetchParkReports, reactToParkReport, saveParkEdit, saveParkReport } from "@/lib/store";
 import { settleWrite } from "@/lib/offlineWrites";
 import {
   KIT_LABEL,
   NOTE_MAX,
+  cellOf,
   PARK_KIT,
   REACTIONS,
   cleanNote,
@@ -39,7 +40,19 @@ const ago = (iso: string, locale: string) => {
 // One park: what's there (from athletes' reports and the map), the latest
 // updates with reactions, and your own report. "Train here" builds today's
 // session for this park's kit.
-export default function ParkSheet({ park, onClose, onTrainHere }: { park: Park | null; onClose: () => void; onTrainHere: (equipment: TrainingEquipment) => void }) {
+export default function ParkSheet({
+  park,
+  onClose,
+  onTrainHere,
+  onMovePin,
+  onChanged,
+}: {
+  park: Park | null;
+  onClose: () => void;
+  onTrainHere: (equipment: TrainingEquipment) => void;
+  onMovePin?: (park: Park) => void; // pick its real spot on the map
+  onChanged?: () => void; // the name or position changed
+}) {
   const { userDoc } = useAuth();
   const { tx, locale } = useLanguage();
   const [reports, setReports] = useState<ParkReport[] | null>(null);
@@ -48,6 +61,7 @@ export default function ParkSheet({ park, onClose, onTrainHere }: { park: Park |
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
   const uid = userDoc?.uid;
 
   const load = useCallback(() => {
@@ -60,6 +74,7 @@ export default function ParkSheet({ park, onClose, onTrainHere }: { park: Park |
   useEffect(() => {
     setReports(null);
     setEditing(false);
+    setRenaming(null);
     setMsg(null);
     load();
   }, [load]);
@@ -85,6 +100,21 @@ export default function ParkSheet({ park, onClose, onTrainHere }: { park: Park |
     setReports((rs) => [{ ...report, reactions: mine?.reactions }, ...(rs ?? []).filter((r) => r.uid !== userDoc.uid)]);
     setEditing(false);
     setMsg(state === "queued" ? tx("Saved on this device — it goes up when you're back online.") : done);
+  };
+
+  const rename = async () => {
+    const name = (renaming ?? "").trim().slice(0, 60);
+    if (!name) return;
+    setSaving(true);
+    const editor = { uid: userDoc.uid, name: userDoc.displayName?.split(" ")[0] || "Athlete" };
+    const ok = await saveParkEdit({ id: park.id, source: park.source }, { name, lat: park.lat, lon: park.lon, cell: cellOf(park.lat, park.lon) }, editor)
+      .then(() => true)
+      .catch(() => false);
+    setSaving(false);
+    if (!ok) return setMsg(tx("Couldn't save — try again."));
+    setRenaming(null);
+    setMsg(tx("Thanks — the park is updated for everyone."));
+    onChanged?.();
   };
 
   const startEdit = () => {
@@ -130,6 +160,48 @@ export default function ParkSheet({ park, onClose, onTrainHere }: { park: Park |
           {park.distanceM !== undefined && (park.distanceM < 1000 ? tx("{n} m away", { n: park.distanceM }) : tx("{n} km away", { n: (park.distanceM / 1000).toFixed(1) }))}
           {park.source === "user" ? ` · ${tx("added by an athlete")}` : ` · ${tx("from OpenStreetMap")}`}
         </p>
+        {park.edit?.editedAtISO && (
+          <p className="text-xs text-sky-300 -mt-2">
+            {tx("Name or position updated by {name} · {d}", { name: nameFor(park.edit.editedByName ?? "", tx), d: ago(park.edit.editedAtISO, locale) })}
+          </p>
+        )}
+
+        {/* the park's own info: anyone can correct the name or the spot */}
+        {renaming !== null ? (
+          <div className="rounded-xl border border-zinc-800 p-3 space-y-2">
+            <label className="block text-xs text-zinc-400">
+              {tx("Name of the park")}
+              <input
+                value={renaming}
+                maxLength={60}
+                onChange={(e) => setRenaming(e.target.value)}
+                className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-700 p-2 text-sm text-zinc-100"
+              />
+            </label>
+            {park.source === "osm" && <p className="text-xs text-zinc-400">{tx("Changes show in BarQuests for everyone; OpenStreetMap itself isn't changed.")}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setRenaming(null)} className="py-2 rounded-xl border border-zinc-700 text-sm text-zinc-200">
+                {tx("Cancel")}
+              </button>
+              <button onClick={rename} disabled={saving || !renaming.trim()} className="py-2 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-zinc-950 text-sm font-medium">
+                {saving ? tx("Saving…") : tx("Save name")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          !editing && (
+            <div className="flex gap-2 -mt-1">
+              <button onClick={() => setRenaming(park.edit?.name ?? park.name ?? "")} className="px-3 py-1.5 rounded-lg border border-zinc-700 text-xs text-zinc-200 hover:border-orange-500 flex items-center gap-1.5">
+                <Pencil size={13} aria-hidden /> {tx("Edit name")}
+              </button>
+              {onMovePin && (
+                <button onClick={() => onMovePin(park)} className="px-3 py-1.5 rounded-lg border border-zinc-700 text-xs text-zinc-200 hover:border-orange-500 flex items-center gap-1.5">
+                  <Crosshair size={13} aria-hidden /> {tx("Move the pin")}
+                </button>
+              )}
+            </div>
+          )
+        )}
 
         {reports === null ? (
           <p className="text-sm text-zinc-400" role="status">

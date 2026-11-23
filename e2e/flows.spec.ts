@@ -243,25 +243,32 @@ test("bodyweight: log today's weight", async ({ page }) => {
 // ---- the outside world, mocked: OpenStreetMap, its tiles and Open-Meteo ----
 const HERE = { latitude: 45.4642, longitude: 9.19 };
 
-test("bar parks: find one, confirm its kit, react, train there", async ({ page, context }) => {
+const OSM_PARK = {
+  elements: [
+    { type: "way", id: 7, center: { lat: 45.4652, lon: 9.19 }, tags: { leisure: "fitness_station", sport: "calisthenics", name: "Riverside bars" } },
+    { type: "node", id: 1, lat: 45.4652, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "horizontal_bar" } },
+    { type: "node", id: 2, lat: 45.4653, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "parallel_bars" } },
+  ],
+};
+async function mockMap(page: import("@playwright/test").Page, hits: string[] = []) {
+  await page.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 204 }));
+  await page.route(/\/interpreter$/, (r) => {
+    hits.push(r.request().url());
+    return r.fulfill({ json: OSM_PARK });
+  });
+  return hits;
+}
+
+test("bar parks: find one, confirm its kit, react, correct it, train there", async ({ page, context }) => {
   const errors = collectErrors(page);
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation(HERE);
-  await page.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 204 }));
-  await page.route("https://overpass-api.de/**", (r) =>
-    r.fulfill({
-      json: {
-        elements: [
-          { type: "way", id: 7, center: { lat: 45.4652, lon: 9.19 }, tags: { leisure: "fitness_station", sport: "calisthenics", name: "Riverside bars" } },
-          { type: "node", id: 1, lat: 45.4652, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "horizontal_bar" } },
-          { type: "node", id: 2, lat: 45.4653, lon: 9.1901, tags: { leisure: "fitness_station", fitness_station: "parallel_bars" } },
-        ],
-      },
-    })
-  );
+  await mockMap(page);
   await page.goto("/parks");
-  await page.getByRole("button", { name: "Find parks near me" }).click();
-  await page.getByRole("button", { name: /Riverside bars/ }).click();
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await expect(page.getByText("OpenStreetMap data · updated", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: /1 park in 5 km/ }).click(); // the list opens up from the bottom
+  await page.getByRole("region", { name: "Bar parks", exact: true }).getByRole("button", { name: /Riverside bars/ }).click();
   const sheet = page.getByRole("dialog", { name: "Riverside bars" });
   await expect(sheet.getByText("Pull-up bar: there")).toBeVisible();
   await sheet.getByRole("button", { name: "Still like this" }).click();
@@ -269,9 +276,57 @@ test("bar parks: find one, confirm its kit, react, train there", async ({ page, 
   await sheet.getByRole("button", { name: "Thanks" }).click();
   await expect(sheet.getByRole("button", { name: "Thanks" })).toHaveAttribute("aria-pressed", "true");
   await expectNoA11yViolations(page);
-  await sheet.getByRole("button", { name: "Train here today" }).click();
+
+  // correct the name, then the spot on the map
+  await sheet.getByRole("button", { name: "Edit name" }).click();
+  await sheet.getByLabel("Name of the park").fill("Riverside calisthenics");
+  await sheet.getByRole("button", { name: "Save name" }).click();
+  await expect(page.getByRole("dialog", { name: "Riverside calisthenics" })).toBeVisible();
+  const renamed = page.getByRole("dialog", { name: "Riverside calisthenics" });
+  await expect(renamed.getByText(/Name or position updated by/)).toBeVisible();
+  await renamed.getByRole("button", { name: "Move the pin" }).click();
+  await page.getByRole("dialog", { name: "Pick the spot" }).getByRole("button", { name: "Save position" }).click();
+  await expect(page.getByRole("dialog", { name: "Riverside calisthenics" })).toBeVisible();
+
+  await page.getByRole("dialog", { name: "Riverside calisthenics" }).getByRole("button", { name: "Train here today" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByText("Today at Riverside bars")).toBeVisible();
+  await expect(page.getByText("Today at Riverside calisthenics")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("bar parks: an area already loaded comes from the shared cache", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  const hits = await mockMap(page);
+  await page.goto("/parks");
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await expect(page.getByText(/1 park in 5 km/)).toBeVisible();
+  expect(hits.length).toBe(1);
+  await page.getByRole("button", { name: "2 km" }).click(); // inside what's cached
+  await expect(page.getByText(/1 park in 2 km/)).toBeVisible();
+  await expect(page.getByText("OpenStreetMap data · updated", { exact: false })).toBeVisible();
+  expect(hits.length).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("bar parks: add a missing one by picking its spot on the map", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  await mockMap(page);
+  await page.goto("/parks");
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await page.getByRole("button", { name: /1 park in 5 km/ }).click();
+  await page.getByRole("button", { name: "Add a missing park" }).click();
+  const pick = page.getByRole("dialog", { name: "Pick the spot" });
+  await expect(pick).toBeVisible();
+  await expectNoA11yViolations(page);
+  await pick.getByRole("button", { name: "Put the park here" }).click();
+  const add = page.getByRole("dialog", { name: "Add a park" });
+  await add.getByLabel("Name of the park").fill("School bars");
+  await add.getByRole("button", { name: "Add park" }).click();
+  await expect(page.getByRole("dialog", { name: "School bars" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

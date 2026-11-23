@@ -19,7 +19,7 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { announceUrlChange } from "@/lib/featureMap";
 
 // pages where it would get in the way (the session page has its own start button)
-const HIDDEN_ON = ["/", "/it", "/onboarding", "/training", "/about"];
+const HIDDEN_ON = ["/", "/it", "/onboarding", "/training", "/about", "/parks"];
 
 // A floating button that opens the things people do most, from anywhere.
 export default function QuickActions() {

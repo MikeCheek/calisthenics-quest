@@ -198,6 +198,9 @@ export async function deleteAccount(user: User, userDoc: UserDoc, onStep?: (s: D
   ]);
   // park reports keep their vote on the kit; parks I added stay (they're places)
   await Promise.all((reports?.docs ?? []).map((d) => setDoc(d.ref, anonymizeParkReport(d.data() as ParkReport)).catch(() => {})));
+  // park names or positions I corrected stay; my name on them goes
+  const edited = await getDocs(query(collection(db, "parks"), where("editedBy", "==", uid))).catch(() => null);
+  await Promise.all((edited?.docs ?? []).map((d) => updateDoc(d.ref, { editedByName: ANON_NAME }).catch(() => {})));
   // train-together invites I hosted: my name and body stats go
   await Promise.all(pairings.docs.map((d) => updateDoc(d.ref, { hostName: ANON_NAME, hostBody: deleteField() }).catch(() => {})));
   // the global board: the week's numbers stay, the name goes

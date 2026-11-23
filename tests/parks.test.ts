@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { OVERPASS_SERVERS, fetchOsmParks, cellOf, cellsAround, cleanNote, confirmation, distanceM, equipmentAt, groupParks, kitFromTags, overpassQuery, parkKit, reactionCounts, type OsmElement, type ParkReport } from "../src/lib/parks";
+import { OVERPASS_SERVERS, loadOsmParks, cellsCovering, cellBox, overpassBoxQuery, planLoad, splitByCell, mergeEdits, dedupe, type OsmCell, type UserParkDoc, cellOf, cellsAround, cleanNote, confirmation, distanceM, equipmentAt, groupParks, kitFromTags, parkKit, reactionCounts, type OsmElement, type ParkReport } from "../src/lib/parks";
 import { DEFAULT_EQUIPMENT } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
 
@@ -35,9 +35,9 @@ test("stations close together are one park; an area takes the stations in it", (
   assert.ok(Math.abs(river.distanceM! - 1112) < 15);
 });
 
-test("the Overpass query asks for stations and calisthenics areas around you", () => {
-  const q = overpassQuery(45.4642, 9.19, 5000);
-  assert.match(q, /leisure"="fitness_station"\]\(around:5000,45\.4642,9\.1900\)/);
+test("the Overpass query asks for stations and calisthenics areas in the cells' box", () => {
+  const q = overpassBoxQuery(cellBox(["454:91", "455:92"]));
+  assert.match(q, /leisure"="fitness_station"\]\(45\.4000,9\.1000,45\.6000,9\.3000\)/);
   assert.match(q, /sport"="calisthenics"/);
   assert.match(q, /out tags center/);
 });
@@ -89,6 +89,99 @@ test("parks copy is in Italian", () => {
   assert.equal(translate("it", "{n} confirmed · {d}", { n: 3, d: "ieri" }), "3 conferme · ieri");
 });
 
+// ---- the shared cache ----
+const now2 = new Date("2026-11-23T12:00:00Z");
+const daysAgo = (d: number) => new Date(now2.getTime() - d * 86400000).toISOString();
+const memory = (cells: OsmCell[] = []) => {
+  const store = new Map(cells.map((c) => [c.cell, c]));
+  const writes: OsmCell[][] = [];
+  return {
+    store,
+    writes,
+    io: {
+      read: async (ids: string[]) => ids.flatMap((id) => (store.has(id) ? [store.get(id)!] : [])),
+      write: async (cs: OsmCell[]) => {
+        writes.push(cs);
+        cs.forEach((c) => store.set(c.cell, c));
+      },
+    },
+  };
+};
+const okFetcher = (elements: unknown[], hits: string[] = []) =>
+  (async (url: string) => {
+    hits.push(url);
+    return new Response(JSON.stringify({ elements }), { status: 200 });
+  }) as unknown as typeof fetch;
+
+test("the cells a search circle touches", () => {
+  assert.deepEqual(cellsCovering(45.45, 9.15, 2000), ["454:91"]);
+  const wide = cellsCovering(45.45, 9.15, 10000);
+  assert.ok(wide.length >= 9 && wide.includes("454:91") && wide.includes("455:92") && wide.includes("453:90"));
+});
+
+test("fresh cache: no Overpass at all, and the date it was read", async () => {
+  const cells = cellsCovering(at.lat, at.lon, 2000);
+  const m = memory(cells.map((cell) => ({ cell, parks: [{ id: "osm-n9", name: "Cached bars", lat: at.lat + 0.001, lon: at.lon, mapKit: ["rings" as const] }], fetchedAtISO: daysAgo(3) })));
+  const hits: string[] = [];
+  const r = await loadOsmParks(at, 2000, { ...m.io, fetcher: okFetcher([], hits) }, { now: now2 });
+  assert.equal(hits.length, 0);
+  assert.equal(r.from, "cache");
+  assert.equal(r.parks.length, 1); // the same park in several cells shows once
+  assert.equal(r.updatedAtISO, daysAgo(3));
+});
+
+test("missing or stale cells: one Overpass query for them all, saved cell by cell", async () => {
+  const m = memory();
+  const hits: string[] = [];
+  const r = await loadOsmParks(at, 2000, { ...m.io, fetcher: okFetcher([station(9, 0.001, "rings")], hits) }, { now: now2 });
+  assert.equal(hits.length, 1);
+  assert.equal(r.from, "openstreetmap");
+  assert.equal(r.parks.length, 1);
+  assert.equal(m.writes.length, 1);
+  assert.deepEqual(m.writes[0].map((c) => c.cell), cellsCovering(at.lat, at.lon, 2000));
+  assert.equal(m.writes[0].flatMap((c) => c.parks).length, 1);
+  assert.equal(r.updatedAtISO, now2.toISOString());
+});
+
+test("Overpass down: the cache, however old, and the date it's from", async () => {
+  const cells = cellsCovering(at.lat, at.lon, 2000);
+  const m = memory(cells.map((cell) => ({ cell, parks: [{ id: "osm-n9", name: null, lat: at.lat, lon: at.lon, mapKit: [] }], fetchedAtISO: daysAgo(40) })));
+  const down = (async () => new Response("busy", { status: 504 })) as unknown as typeof fetch;
+  const r = await loadOsmParks(at, 2000, { ...m.io, fetcher: down }, { now: now2 });
+  assert.equal(r.failed, true);
+  assert.equal(r.parks.length, 1);
+  assert.equal(r.updatedAtISO, daysAgo(40));
+});
+
+test("refreshing on request: at most once a day per area", () => {
+  const cells = ["454:91"];
+  const c = (d: number) => [{ cell: "454:91", parks: [], fetchedAtISO: daysAgo(d) }];
+  assert.equal(planLoad(cells, c(3), now2).fetch, false);
+  assert.equal(planLoad(cells, c(20), now2).fetch, true);
+  assert.equal(planLoad(cells, c(3), now2, true).fetch, true);
+  assert.equal(planLoad(cells, c(0.2), now2, true).fetch, false);
+  assert.equal(planLoad(["454:91", "454:92"], c(1), now2).fetch, true); // a cell missing
+});
+
+test("parks are filed under the cell they sit in", () => {
+  const out = splitByCell([{ id: "a", name: null, lat: 45.46, lon: 9.19, mapKit: [] }, { id: "b", name: null, lat: 45.51, lon: 9.19, mapKit: [] }], ["454:91", "455:91"], now2);
+  assert.deepEqual(out.map((c) => c.parks.map((p) => p.id)), [["a"], ["b"]]);
+  assert.equal(dedupe([{ id: "a", lat: 45, lon: 9 }, { id: "b", lat: 45.0001, lon: 9 }]).length, 1);
+});
+
+test("community edits rename and move OpenStreetMap parks; added parks join the list", () => {
+  const osm = [{ id: "osm-n1", name: null, lat: at.lat, lon: at.lon, source: "osm" as const, mapKit: [], distanceM: 0 }];
+  const edit: UserParkDoc = { id: "osm-n1", name: "Riverside bars", lat: at.lat + 0.001, lon: at.lon, cell: "454:91", source: "osm", createdBy: "u", createdAtISO: "", editedByName: "Sam" };
+  const added: UserParkDoc = { id: "u-1", name: "School bars", lat: at.lat + 0.002, lon: at.lon, cell: "454:91", source: "user", createdBy: "u", createdAtISO: "" };
+  const far: UserParkDoc = { ...added, id: "u-2", lat: at.lat + 0.5 };
+  const out = mergeEdits(osm, [edit, added, far], at, 2000);
+  assert.deepEqual(out.map((p) => p.id), ["osm-n1", "u-1"]);
+  assert.equal(out[0].name, "Riverside bars");
+  assert.equal(out[0].lat, at.lat + 0.001);
+  assert.ok(out[0].distanceM! > 100);
+  assert.equal(out[0].edit?.editedByName, "Sam");
+});
+
 test("a busy Overpass server falls through to the next one", async () => {
   const hits: string[] = [];
   const fetcher = (async (url: string) => {
@@ -97,14 +190,16 @@ test("a busy Overpass server falls through to the next one", async () => {
     if (hits.length === 2) return new Response(JSON.stringify({ elements: [], remark: "runtime error: Query timed out" }), { status: 200 });
     return new Response(JSON.stringify({ elements: [station(9, 0, "rings")] }), { status: 200 });
   }) as unknown as typeof fetch;
-  const r = await fetchOsmParks(at.lat, at.lon, 2000, fetcher);
+  const r = await loadOsmParks(at, 2000, { ...memory().io, fetcher }, { now: now2 });
   assert.equal(hits.length, 3);
   assert.equal(r.parks.length, 1);
   assert.deepEqual(r.parks[0].mapKit, ["rings"]);
 });
 
-test("every server down: the error names each one", async () => {
+test("every server down and nothing cached: no parks, marked as failed", async () => {
   const fetcher = (async () => new Response("no", { status: 429 })) as unknown as typeof fetch;
-  await assert.rejects(fetchOsmParks(at.lat, at.lon, 2000, fetcher), /overpass-api\.de: HTTP 429/);
+  const r = await loadOsmParks(at, 2000, { ...memory().io, fetcher }, { now: now2 });
+  assert.equal(r.failed, true);
+  assert.deepEqual(r.parks, []);
   assert.ok(OVERPASS_SERVERS.length >= 3);
 });
