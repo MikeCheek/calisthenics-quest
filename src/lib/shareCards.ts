@@ -97,7 +97,7 @@ function figure(exerciseName: string | undefined, x: number, y: number, w: numbe
   if (!entry) return "";
   const vb = fittedViewBox(entry.demo, 10);
   // strokes are drawn in viewBox units; thicken them a touch for a poster
-  const shapes = figureShapes(entry.demo.props, keyPose(entry.demo)).map((s) => shapeToSvg(s, 1.25)).join("");
+  const shapes = figureShapes(entry.demo.props, keyPose(entry.demo), entry.demo.view).map((s) => shapeToSvg(s, 1.25)).join("");
   return `<svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${vb.map((n) => n.toFixed(1)).join(" ")}" preserveAspectRatio="xMidYMid meet">${shapes}</svg>`;
 }
 

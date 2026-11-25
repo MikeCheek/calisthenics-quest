@@ -50,7 +50,7 @@ export default function ExerciseDemo({
   if (!entry || !viewBox) return null;
   const { demo } = entry;
   const pose = reduced ? keyPose(demo) : poseAt(demo, ms);
-  const shapes = figureShapes(demo.props, pose);
+  const shapes = figureShapes(demo.props, pose, demo.view);
   const [, , vw, vh] = viewBox;
   const height = Math.min((width * vh) / vw, width * 1.1);
 
