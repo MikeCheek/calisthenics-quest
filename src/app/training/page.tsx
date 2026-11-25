@@ -12,7 +12,6 @@ import SessionView from "@/components/SessionView";
 import PlanReviewButton from "@/components/PlanReviewButton";
 import TrainSwitcher from "@/components/TrainSwitcher";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
-import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { ExerciseFeedback, TrainingSession } from "@/lib/types";
 import { adaptedCount, historySummary } from "@/lib/adaptation";
@@ -21,6 +20,7 @@ import { Play, ChevronDown, Dices } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTodaysSession } from "@/hooks/useTodaysSession";
 import PageLoading from "@/components/PageLoading";
+import type { SkillTrack } from "@/lib/types";
 
 export default function TrainingPage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
@@ -50,7 +50,7 @@ export default function TrainingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { focus, options, fitted, lighterBy, setFocusOverride, todayEquipment } = useTodaysSession(userDoc);
+  const { focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -97,7 +97,7 @@ export default function TrainingPage() {
           className="w-full panel px-3.5 py-2.5 flex items-center justify-between text-sm"
         >
           <span className="text-zinc-300">
-            {tx("Focus:")} <span className="text-zinc-100">{tx(FOCUS_LABEL[focus!])}</span>
+            {tx("Focus:")} <span className="text-zinc-100">{tx(labelOf(focus!))}</span>
           </span>
           <span className="text-xs text-muted flex items-center gap-1">
             {tx("Change")} <ChevronDown size={14} className={showFocusPicker ? "rotate-180 transition-transform" : "transition-transform"} />
@@ -121,8 +121,8 @@ export default function TrainingPage() {
                       : "border-zinc-700 text-zinc-400 hover:text-zinc-100"
                   }`}
                 >
-                  {tx(FOCUS_LABEL[f])}
-                  {userDoc.goalTracks?.includes(f) && <span className="text-orange-400"> ★</span>}
+                  {tx(labelOf(f))}
+                  {userDoc.goalTracks?.includes(f as SkillTrack) && <span className="text-orange-400"> ★</span>}
                 </button>
               ))}
             </div>

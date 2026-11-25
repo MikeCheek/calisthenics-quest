@@ -455,3 +455,53 @@ test("bar parks: favourite one, then pick it before training", async ({ page, co
   await expect(page.getByText(/^1 \/ \d+ ·/)).toBeVisible(); // the session is running
   expect(errors).toEqual([]);
 });
+
+test("sports: start yoga, train it, switch back to calisthenics with nothing lost", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/dashboard");
+  // add yoga: experience, goals, length
+  await page.getByRole("banner").getByRole("button", { name: /Sport: Calisthenics/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Your sports" });
+  const cali = (await dialog.getByRole("button", { name: /Calisthenics/ }).textContent())!;
+  await dialog.getByRole("button", { name: /Yoga/ }).click();
+  const setup = page.getByRole("dialog", { name: "Start Yoga" });
+  await setup.getByRole("radio", { name: /Some practice/ }).click();
+  await setup.getByRole("button", { name: "Crow" }).click();
+  await expectNoA11yViolations(page);
+  await setup.getByRole("button", { name: "Start Yoga" }).click();
+
+  // Today is a yoga session, with its own "up next"
+  await expect(page.getByRole("banner").getByRole("button", { name: /Sport: Yoga/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Up next in Yoga/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: /Up next in Yoga/ })).toContainText("Crow");
+  await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
+  for (let k = 0; k < 40; k++) {
+    if (await page.getByText("Session complete!").isVisible()) break;
+    const skip = page.getByRole("button", { name: "Skip rest" }).first();
+    if (await skip.isVisible()) await skip.click();
+    else await page.getByRole("button", { name: /^Next/ }).click();
+  }
+  await page.getByRole("button", { name: /Finish & log session/ }).click();
+  await expect(page.getByRole("heading", { name: "Done for today" })).toBeAttached({ timeout: 5000 });
+  await page.getByRole("button", { name: "Got it" }).click();
+
+  // Skills and the library follow the sport
+  // (in-app navigation: the demo data lives in memory, a reload resets it)
+  await page.getByRole("navigation", { name: "Main menu" }).getByRole("link", { name: "Skills" }).filter({ visible: true }).click();
+  await expect(page.locator("[data-sport-skill=crow]")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Proven" })).toHaveCount(0);
+  await page.getByRole("button", { name: "All features" }).click();
+  await page.getByRole("dialog", { name: "All features" }).getByRole("searchbox").fill("library");
+  await page.getByRole("dialog", { name: "All features" }).getByRole("link", { name: /library/i }).first().click();
+  await page.getByRole("main").getByRole("searchbox").fill("pigeon");
+  await expect(page.getByText(/Pigeon/).first()).toBeVisible();
+
+  // back to calisthenics: its level and skills are where they were
+  await page.getByRole("banner").getByRole("button", { name: /Sport: Yoga/ }).click();
+  await expect(dialog.getByRole("button", { name: /Calisthenics/ })).toContainText(cali.match(/Level \d+ · \d+ XP/)![0]);
+  await expect(dialog.getByRole("button", { name: /Yoga/ })).toContainText(/Level \d+ · [1-9]\d* XP/);
+  await dialog.getByRole("button", { name: /Calisthenics/ }).click();
+  await page.getByRole("navigation", { name: "Main menu" }).getByRole("link", { name: "Skills" }).filter({ visible: true }).click();
+  await expect(page.getByRole("tab", { name: "Proven" })).toBeVisible();
+  expect(errors).toEqual([]);
+});

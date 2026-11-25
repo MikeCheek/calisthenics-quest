@@ -105,3 +105,15 @@ test("the active sport: calisthenics unless another is started and picked", () =
   assert.equal(activeSportOf({ activeSport: "yoga", sports }), "yoga");
   assert.deepEqual(enrolledSports({ sports }), ["calisthenics", "yoga"]);
 });
+
+test("every string in the sport screens has Italian", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = "src/components/sports";
+  const strings = new Set<string>();
+  for (const f of readdirSync(dir)) {
+    const src = readFileSync(`${dir}/${f}`, "utf8");
+    for (const m of src.matchAll(/(?:tx\(|tx\(goal \? |label: |hint: )"([^"]{2,})"/g)) if (/[a-z]{3}/.test(m[1]) && !/^(text|bg|border|px|py|flex|h-|w-|grid|rounded)/.test(m[1])) strings.add(m[1]);
+  }
+  const missing = [...strings].filter((s) => translate("it", s) === s && !["Calisthenics", "Yoga", "Pilates", "{n} min"].includes(s));
+  assert.deepEqual(missing, []);
+});

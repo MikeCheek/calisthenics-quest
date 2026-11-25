@@ -132,6 +132,13 @@ you have any health concerns.
   locked, the screen stays on during guided mode, and a *training in progress*
   notification (current exercise, when the rest ends) brings you back with one tap.
 
+### More than one sport
+
+- **Sport tracks, like learning more than one language** — calisthenics is the main track, and yoga and Pilates can be added from the sport chip in the header ("Your sports"). Each new sport starts with three questions: how much you've done (new, some, experienced, which sets the starting stage of every skill), up to three goal skills, and a session length.
+- **Switch anytime, lose nothing** — each sport keeps its own skill stages, mastery, exercise history, records, XP and level. The weekly streak, total XP and missions are shared, so a yoga day keeps the streak alive.
+- **Same loop as calisthenics** — Today builds a session for the active sport (warm-up, a focus that rotates and leans on your goals, supporting work, cool-down), fitted to your time. Feedback moves mastery up or down; five out of five unlocks the next stage. Skills shows each skill as a ladder, and the library and "Do it now" list that sport's exercises. Yoga: sun salutations, standing balances, crow, headstand, wheel, splits, forward fold, hips. Pilates: the hundred, roll-up, teaser, swan, side kicks, shoulder bridge, plank series, rolling.
+- Weather, bar parks and the "where are you training?" question only appear for calisthenics, since the other sports are indoors.
+
 ### Learning and verification
 - **Adaptive sessions** — swaps in an easier variation after “too hard”, brings the
   original back once you're ready, adds sets when you're consistent, remembers your

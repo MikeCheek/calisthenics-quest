@@ -135,6 +135,12 @@ export async function completeSession(
   }
 
   const totalXp = userDoc.xp + earnedTotal + xpFromMissions;
+  // missions finished by this session count for its sport too, so each
+  // sport's XP plus calisthenics' always adds up to the total
+  if (isExtraSport(sport) && learnPatch.sports?.[sport]) {
+    const t = learnPatch.sports[sport]!;
+    learnPatch = { sports: { ...learnPatch.sports, [sport]: { ...t, xp: t.xp + xpFromMissions } } };
+  }
   const trimmedHistory = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }].slice(-30);
 
   // this week's totals, for the friends leaderboard

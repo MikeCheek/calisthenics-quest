@@ -9,6 +9,9 @@ import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { balanceSession, effortCapacity } from "@/lib/effort";
 import { readTodayEquipment, onTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
 import { applyDeload, blockWeek, focusWithBlock, isActive, phaseOf } from "@/lib/trainingBlock";
+import { FOCUS_LABEL } from "@/lib/trainingGenerator";
+import { SPORTS, activeSportOf, isExtraSport, type SportId } from "@/lib/sports";
+import { focusOptions, generateSportSession, groupLabel, pickSportFocus } from "@/lib/sports/generator";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -28,7 +31,7 @@ function readOverride(): SkillTrack | null {
   }
 }
 
-export function useTodaysSession(userDoc: UserDoc | null) {
+function useCalisthenicsSession(userDoc: UserDoc | null) {
   const [focusOverride, setOverride] = useState<SkillTrack | null>(null);
   useEffect(() => setOverride(readOverride()), []);
 
@@ -84,4 +87,67 @@ export function useTodaysSession(userDoc: UserDoc | null) {
   }, [skillsKey, equipmentKey, focus, !!userDoc, deload]);
 
   return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride };
+}
+
+// ---- another sport (sports/): today's session from its own track ----
+
+const SPORT_KEY = (s: string) => `barquests:focusOverride:${s}`;
+
+function useSportSession(userDoc: UserDoc | null, sport: SportId) {
+  const def = isExtraSport(sport) ? SPORTS[sport] : null;
+  const track = def ? userDoc?.sports?.[def.id] : undefined;
+  const [override, setOverride] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const v = JSON.parse(sessionStorage.getItem(SPORT_KEY(sport)) ?? "null") as { day: string; focus: string } | null;
+      setOverride(v && v.day === today() ? v.focus : null);
+    } catch {
+      setOverride(null);
+    }
+  }, [sport]);
+  const setFocusOverride = useCallback(
+    (f: string | null) => {
+      setOverride(f);
+      try {
+        if (f) sessionStorage.setItem(SPORT_KEY(sport), JSON.stringify({ day: today(), focus: f }));
+        else sessionStorage.removeItem(SPORT_KEY(sport));
+      } catch {
+        // this page only
+      }
+    },
+    [sport]
+  );
+  const options = useMemo(() => (def ? focusOptions(def) : []), [def]);
+  const focus = def && track ? (override && options.includes(override) ? override : pickSportFocus(def, track, new Date())) : null;
+  const trackKey = JSON.stringify(track ? { stage: track.stage, mastery: track.mastery, minutes: track.sessionLengthMinutes } : null);
+  const built = useMemo(() => {
+    if (!def || !track || !focus) return null;
+    // the same pipeline as calisthenics: adapted to your history, fitted to
+    // your time, balanced against your recent energy
+    const adapted = adaptSession(generateSportSession(def, track, focus), track.exerciseStats, userDoc!.equipment);
+    const fitted = fitSessionToMinutes(adapted, track.sessionLengthMinutes ?? userDoc?.body?.sessionLengthMinutes);
+    const balanced = balanceSession(fitted.session, effortCapacity(userDoc?.effortHistory));
+    return { fitted: { ...fitted, session: { ...balanced.session, sport: def.id } }, lighterBy: balanced.trimmed };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackKey, focus, def]);
+  return { focus, options, fitted: built?.fitted ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, labelOf: (f: string) => (def ? groupLabel(def, f) : f) };
+}
+
+// Today's session in the sport you're following now (calisthenics unless
+// you picked another), in one shape for the Today screen and the session page.
+export function useTodaysSession(userDoc: UserDoc | null) {
+  const sport = activeSportOf(userDoc);
+  const cal = useCalisthenicsSession(userDoc);
+  const other = useSportSession(userDoc, sport);
+  if (sport === "calisthenics") {
+    return {
+      sport,
+      ...cal,
+      focus: cal.focus as string | null,
+      options: cal.options as string[],
+      setFocusOverride: (f: string | null) => cal.setFocusOverride(f as SkillTrack | null),
+      labelOf: (f: string) => FOCUS_LABEL[f as SkillTrack] ?? f,
+    };
+  }
+  return { sport, ...other, check: null, todayEquipment: null };
 }

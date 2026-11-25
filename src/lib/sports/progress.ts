@@ -22,11 +22,19 @@ export function applySportSession(
   def: SportDef,
   track: SportTrack,
   feedback: ExerciseFeedback[],
-  now = new Date()
+  now = new Date(),
 ): { track: SportTrack; stageUps: StageUp[]; newRecords: PersonalRecord[] } {
   const nowISO = now.toISOString();
-  const exerciseStats = recordLastTimes(applyExerciseFeedback(track.exerciseStats ?? {}, feedback, nowISO), feedback, nowISO);
-  const { records, newRecords } = detectRecords(track.records ?? {}, feedback, nowISO);
+  const exerciseStats = recordLastTimes(
+    applyExerciseFeedback(track.exerciseStats ?? {}, feedback, nowISO),
+    feedback,
+    nowISO,
+  );
+  const { records, newRecords } = detectRecords(
+    track.records ?? {},
+    feedback,
+    nowISO,
+  );
   const mastery = { ...track.mastery };
   const stage = { ...track.stage };
   const touched = new Set<string>();
@@ -37,7 +45,8 @@ export function applySportSession(
     // only the current stage counts toward moving up (a step-back exercise doesn't)
     if (at.stage !== (stage[at.skill] ?? 0) && f.outcome === "done") continue;
     const m = mastery[at.skill] ?? 2;
-    if (f.outcome === "done") mastery[at.skill] = Math.min(MASTERY_MAX, m + 0.5);
+    if (f.outcome === "done")
+      mastery[at.skill] = Math.min(MASTERY_MAX, m + 0.5);
     else if (f.outcome === "tooHard") mastery[at.skill] = Math.max(1, m - 1);
     touched.add(at.skill);
   }
@@ -48,11 +57,23 @@ export function applySportSession(
     if ((mastery[key] ?? 0) >= MASTERY_MAX && i < sk.stages.length - 1) {
       stage[key] = i + 1;
       mastery[key] = 2.5;
-      stageUps.push({ skill: sk.name, from: sk.stages[i].label, to: sk.stages[i + 1].label });
+      stageUps.push({
+        skill: sk.name,
+        from: sk.stages[i].label,
+        to: sk.stages[i + 1].label,
+      });
     }
   }
   return {
-    track: { ...track, exerciseStats, records, mastery, stage, sessions: (track.sessions ?? 0) + 1, lastSessionISO: nowISO },
+    track: {
+      ...track,
+      exerciseStats,
+      records,
+      mastery,
+      stage,
+      sessions: (track.sessions ?? 0) + 1,
+      lastSessionISO: nowISO,
+    },
     stageUps,
     newRecords,
   };

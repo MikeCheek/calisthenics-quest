@@ -6,6 +6,7 @@ import { exerciseArea, AREA_LABEL, type Area } from "./compare";
 import { exerciseNeeds, fitsEquipment, type Needs } from "./equipmentNeeds";
 import { exerciseDifficulty } from "./effort";
 import { demoFor } from "./demos/catalog";
+import { SPORTS, type ExtraSport, type SportId } from "./sports";
 
 // ---------------------------------------------------------------------------
 // The exercise library: everything the app can give, browsable and
@@ -25,15 +26,65 @@ export interface LibraryEntry {
   needs: Needs;
   difficulty: number; // 1 easy … 5 elite (effort.ts)
   hasDemo: boolean;
+  sport?: ExtraSport; // yoga, Pilates… (none = calisthenics)
+  sportSkill?: string; // that sport's skill name; stage holds the stage label
 }
 
 let cache: LibraryEntry[] | null = null;
 
-export function libraryEntries(): LibraryEntry[] {
+const sportCache: Partial<Record<ExtraSport, LibraryEntry[]>> = {};
+
+// One sport's exercises: its skills' stages, then warm-up and cool-down
+function sportEntries(sport: ExtraSport): LibraryEntry[] {
+  if (sportCache[sport]) return sportCache[sport]!;
+  const def = SPORTS[sport];
+  const out: LibraryEntry[] = [];
+  const seen = new Set<string>();
+  const add = (
+    x: Exercise & { it?: unknown },
+    kind: LibraryKind,
+    extra: Partial<LibraryEntry> = {},
+  ) => {
+    if (seen.has(x.name)) return;
+    seen.add(x.name);
+    const { it: _it, ...exercise } = x;
+    out.push({
+      exercise,
+      kind,
+      area: exerciseArea(exercise.name),
+      needs: [],
+      difficulty: 1,
+      hasDemo: !!demoFor(exercise.name),
+      sport,
+      ...extra,
+    });
+  };
+  for (const sk of def.skills)
+    sk.stages.forEach((st, i) => {
+      const difficulty = Math.min(
+        5,
+        1 + Math.round((i * 4) / Math.max(1, sk.stages.length - 1)),
+      );
+      for (const e of st.exercises)
+        add(e, "skill", { sportSkill: sk.name, stage: st.label, difficulty });
+    });
+  for (const e of [...def.warmup, ...def.cooldown]) add(e, "mobility");
+  return (sportCache[sport] = out);
+}
+
+export function libraryEntries(
+  sport: SportId = "calisthenics",
+): LibraryEntry[] {
+  if (sport !== "calisthenics") return sportEntries(sport);
   if (cache) return cache;
   const out: LibraryEntry[] = [];
   const seen = new Set<string>();
-  const add = (exercise: Exercise, kind: LibraryKind, extra: Partial<LibraryEntry> = {}, setTitle = "Strength") => {
+  const add = (
+    exercise: Exercise,
+    kind: LibraryKind,
+    extra: Partial<LibraryEntry> = {},
+    setTitle = "Strength",
+  ) => {
     if (seen.has(exercise.name)) return;
     seen.add(exercise.name);
     out.push({
@@ -47,8 +98,10 @@ export function libraryEntries(): LibraryEntry[] {
     });
   };
   for (const { exercise, group, stage } of allExercises()) {
-    if (group === "pullStrength" || group === "pushStrength") add(exercise, "strength", { group });
-    else add(exercise, "skill", { skill: group as StagedSkillKey, stage, group });
+    if (group === "pullStrength" || group === "pushStrength")
+      add(exercise, "strength", { group });
+    else
+      add(exercise, "skill", { skill: group as StagedSkillKey, stage, group });
   }
   for (const d of MOBILITY_POOL) {
     const { areas: _a, ...exercise } = d;
@@ -67,9 +120,14 @@ export interface LibraryFilter {
   equipment?: TrainingEquipment; // only what this kit allows
 }
 
-const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const norm = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-export function searchLibrary(entries: LibraryEntry[], f: LibraryFilter, describe: (e: LibraryEntry) => string = () => ""): LibraryEntry[] {
+export function searchLibrary(
+  entries: LibraryEntry[],
+  f: LibraryFilter,
+  describe: (e: LibraryEntry) => string = () => "",
+): LibraryEntry[] {
   const q = norm(f.query?.trim() ?? "");
   return entries
     .filter((e) => !f.kind || f.kind === "all" || e.kind === f.kind)
@@ -78,10 +136,25 @@ export function searchLibrary(entries: LibraryEntry[], f: LibraryFilter, describ
     .filter((e) => !f.equipment || fitsEquipment(e.exercise, f.equipment))
     .filter((e) => {
       if (!q) return true;
-      const hay = norm([e.exercise.name, e.skill ? SKILL_FIELD_LABEL[e.skill] : "", AREA_LABEL[e.area], describe(e)].join(" "));
+      const hay = norm(
+        [
+          e.exercise.name,
+          e.skill ? SKILL_FIELD_LABEL[e.skill] : "",
+          AREA_LABEL[e.area],
+          describe(e),
+        ].join(" "),
+      );
       return q.split(/\s+/).every((w) => hay.includes(w));
     })
-    .sort((a, b) => a.difficulty - b.difficulty || a.exercise.name.localeCompare(b.exercise.name));
+    .sort(
+      (a, b) =>
+        a.difficulty - b.difficulty ||
+        a.exercise.name.localeCompare(b.exercise.name),
+    );
 }
 
-export const findEntry = (name: string) => libraryEntries().find((e) => e.exercise.name === name);
+export const findEntry = (name: string) =>
+  libraryEntries().find((e) => e.exercise.name === name) ??
+  (Object.keys(SPORTS) as ExtraSport[])
+    .map((s) => sportEntries(s).find((e) => e.exercise.name === name))
+    .find(Boolean);
