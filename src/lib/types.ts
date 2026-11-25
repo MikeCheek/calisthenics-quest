@@ -310,6 +310,7 @@ export interface SessionRecord {
   exercises: ExerciseRecord[];
   records?: PersonalRecord[];
   park?: { id: string; name: string }; // where it was done, when you said
+  sport?: import("./sports/types").SportId; // calisthenics unless stated
 }
 
 // This week's running totals, mirrored to the public profile for the
@@ -353,7 +354,7 @@ export interface SkillProgress {
   snoozeUntil?: string; // a declined suggestion isn't re-offered before this
 }
 
-export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill" | "skillCheck";
+export type TrainingSetKind = SkillTrack | "warmup" | "finisher" | "bonusSkill" | "skillCheck" | "sport";
 
 export interface TrainingSet {
   track: TrainingSetKind;
@@ -368,6 +369,7 @@ export interface TrainingSession {
   sets: TrainingSet[];
   estXp: number;
   forUid?: string; // present in paired sessions
+  sport?: import("./sports/types").SportId; // a session of another sport (sports/)
   partnerLabel?: string; // e.g. "Your side" / "Friend's side"
 }
 
@@ -445,6 +447,9 @@ export interface UserDoc {
   // favourite bar parks (parks.ts), and whether to ask which park you're at before training
   favParks?: import("./parks").FavPark[];
   askPark?: boolean;
+  // other sports (sports/): the one Today shows, and your progress in each
+  activeSport?: import("./sports/types").SportId;
+  sports?: Partial<Record<import("./sports/types").ExtraSport, import("./sports/types").SportTrack>>;
   lastSessionDateISO?: string;
   totalSessionsCompleted: number;
   missions: Mission[];

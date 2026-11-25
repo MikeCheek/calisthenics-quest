@@ -1,5 +1,6 @@
 import { Exercise, TrainingSession, Locale } from "./types";
 import itExerciseDescriptions from "./i18n/exerciseDescriptions.it";
+import { SPORT_DESCRIPTIONS_IT } from "./sports";
 
 export interface ExerciseTiming {
   sets: number;
@@ -119,7 +120,7 @@ export function estimateSessionMinutes(session: TrainingSession): number {
 // nothing) if a given exercise isn't in the Italian dictionary yet.
 export function localizedDescription(exercise: Exercise, locale: Locale): string | undefined {
   if (locale === "it") {
-    return itExerciseDescriptions[exercise.name] ?? exercise.description;
+    return itExerciseDescriptions[exercise.name] ?? SPORT_DESCRIPTIONS_IT[exercise.name] ?? exercise.description;
   }
   return exercise.description;
 }

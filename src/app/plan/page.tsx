@@ -1,5 +1,6 @@
 "use client";
 
+import { SPORT_META, activeSportOf } from "@/lib/sports";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -35,7 +36,9 @@ export default function PlanPage() {
   const [useAI, setUseAI] = useState(false);
   const [aiIntro, setAiIntro] = useState<string | null>(null);
   const [aiNotes, setAiNotes] = useState<Record<string, string>>({});
-  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "error" | "unconfigured" | "done">("idle");
+  const [aiStatus, setAiStatus] = useState<
+    "idle" | "loading" | "error" | "unconfigured" | "done"
+  >("idle");
   const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,12 +62,23 @@ export default function PlanPage() {
       `max pull-ups: ${s.pullUpMaxReps}`,
       `max dips: ${s.dipMaxReps}`,
       historySummary(userDoc.exerciseStats, userDoc.claims),
-    ].filter(Boolean).join(", ");
+    ]
+      .filter(Boolean)
+      .join(", ");
   }, [userDoc]);
 
   const handleGenerate = async () => {
     if (!userDoc) return;
-    const newPlan = generatePlan(userDoc.skills, userDoc.equipment, userDoc.goalTracks ?? [], userDoc.body, range, new Date(), userDoc.exerciseStats, userDoc.trainingBlock);
+    const newPlan = generatePlan(
+      userDoc.skills,
+      userDoc.equipment,
+      userDoc.goalTracks ?? [],
+      userDoc.body,
+      range,
+      new Date(),
+      userDoc.exerciseStats,
+      userDoc.trainingBlock,
+    );
     setPlan(newPlan);
     setExpanded(newPlan.find((d) => !d.isRestDay)?.dateISO ?? null);
     setAiIntro(null);
@@ -104,7 +118,9 @@ export default function PlanPage() {
         setAiStatus("done");
       } catch (e) {
         setAiStatus("error");
-        setAiError(e instanceof Error ? e.message : "Couldn't reach the AI coach.");
+        setAiError(
+          e instanceof Error ? e.message : "Couldn't reach the AI coach.",
+        );
       }
     }
   };
@@ -118,13 +134,27 @@ export default function PlanPage() {
   return (
     <>
       <Nav />
-      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4"
+      >
         <div>
           <TrainSwitcher active="week" />
-          <h1 className="heading text-2xl text-zinc-100 mt-4">{tx("Training plan")}</h1>
+          <h1 className="heading text-2xl text-zinc-100 mt-4">
+            {tx("Training plan")}
+          </h1>
           <p className="text-zinc-400 text-sm">
             {tx("Lay out sessions ahead of time instead of just today's.")}
           </p>
+          {activeSportOf(userDoc) !== "calisthenics" && (
+            <p className="text-sm text-amber-300 mt-2">
+              {tx(
+                "This plan is for calisthenics. Your {sport} sessions come from Today.",
+                { sport: tx(SPORT_META[activeSportOf(userDoc)].name) },
+              )}
+            </p>
+          )}
         </div>
 
         <div className="panel p-4 space-y-3">
@@ -164,16 +194,21 @@ export default function PlanPage() {
         </div>
 
         {aiStatus === "loading" && (
-          <div className="text-xs text-muted">{tx("Asking the AI coach for a few notes…")}</div>
+          <div className="text-xs text-muted">
+            {tx("Asking the AI coach for a few notes…")}
+          </div>
         )}
         {aiStatus === "unconfigured" && (
           <div className="panel p-3 text-xs text-muted">
-            {tx("AI coach notes aren't set up on this server — showing your plan without them. It still works fully without this.")}
+            {tx(
+              "AI coach notes aren't set up on this server — showing your plan without them. It still works fully without this.",
+            )}
           </div>
         )}
         {aiStatus === "error" && (
           <div className="panel p-3 text-xs text-muted">
-            {aiError ? tx(aiError) : ""} {tx("Showing your plan without AI notes.")}
+            {aiError ? tx(aiError) : ""}{" "}
+            {tx("Showing your plan without AI notes.")}
           </div>
         )}
         {aiIntro && (
@@ -185,7 +220,8 @@ export default function PlanPage() {
 
         {plan.length > 0 && (
           <div className="text-xs text-muted">
-            {trainingDays} training day{trainingDays === 1 ? "" : "s"} · {plan.length - trainingDays} rest day
+            {trainingDays} training day{trainingDays === 1 ? "" : "s"} ·{" "}
+            {plan.length - trainingDays} rest day
             {plan.length - trainingDays === 1 ? "" : "s"}
           </div>
         )}
@@ -202,8 +238,12 @@ export default function PlanPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-center w-10 shrink-0">
-                      <div className="text-xs text-muted uppercase">{d.weekday}</div>
-                      <div className="stat-mono text-sm text-zinc-200">{d.dateISO.slice(8, 10)}</div>
+                      <div className="text-xs text-muted uppercase">
+                        {d.weekday}
+                      </div>
+                      <div className="stat-mono text-sm text-zinc-200">
+                        {d.dateISO.slice(8, 10)}
+                      </div>
                     </div>
                     <div>
                       {d.isRestDay ? (
@@ -221,7 +261,9 @@ export default function PlanPage() {
                         </div>
                       )}
                       {aiNotes[d.dateISO] && (
-                        <div className="text-xs text-muted mt-0.5">{aiNotes[d.dateISO]}</div>
+                        <div className="text-xs text-muted mt-0.5">
+                          {aiNotes[d.dateISO]}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -235,13 +277,21 @@ export default function PlanPage() {
                 {open && d.session && (
                   <div className="px-3 pb-3">
                     {today ? (
-                      <Link href="/training" className="block text-center text-xs text-orange-400 mb-2 hover:underline">
+                      <Link
+                        href="/training"
+                        className="block text-center text-xs text-orange-400 mb-2 hover:underline"
+                      >
                         Open today&apos;s session to start and log it →
                       </Link>
                     ) : (
-                      <div className="text-xs text-muted mb-2">Preview — come back on this day to log it.</div>
+                      <div className="text-xs text-muted mb-2">
+                        Preview — come back on this day to log it.
+                      </div>
                     )}
-                    <SessionView session={d.session} equipment={userDoc.equipment} />
+                    <SessionView
+                      session={d.session}
+                      equipment={userDoc.equipment}
+                    />
                   </div>
                 )}
               </div>

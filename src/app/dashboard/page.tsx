@@ -1,5 +1,6 @@
 "use client";
 
+import SportProgressCard from "@/components/sports/SportProgressCard";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
 import { shownStreak } from "@/lib/weekStreak";
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +19,6 @@ import NextGoalCard from "@/components/today/NextGoalCard";
 import CommunityEventCard from "@/components/CommunityEventCard";
 import { useTodaysSession } from "@/hooks/useTodaysSession";
 import { ensureCurrentWeekMissions } from "@/lib/missions";
-import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { levelProgress } from "@/lib/levelPath";
 import { fetchSessionsBetween } from "@/lib/store";
 import { trainedToday, weekStart, weekStrip } from "@/lib/weekStrip";
@@ -45,8 +45,7 @@ export default function TodayPage() {
     startSession,
     expand,
   } = useTrainingSession();
-  const { focus, fitted, check, lighterBy, todayEquipment } =
-    useTodaysSession(userDoc);
+  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf } = useTodaysSession(userDoc);
   const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
@@ -75,6 +74,7 @@ export default function TodayPage() {
     return <PageLoading variant="today" />;
 
   const level = levelProgress(userDoc.xp).level;
+  const outdoor = sport === "calisthenics";
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
   // the week's plan, moved if a training day was skipped (weekShift.ts)
   const baseDays = userDoc.body?.trainingDaysOfWeek ?? [];
@@ -129,7 +129,8 @@ export default function TodayPage() {
             <SaveProgressPrompt compact />
             <NotificationPrompt />
 
-            {!doneToday && !(activeSession && !activeCompleted) && (
+            {/* weather and bar-park kit are for outdoor calisthenics */}
+            {outdoor && !doneToday && !(activeSession && !activeCompleted) && (
               <>
                 <TodayEquipmentBanner value={todayEquipment} />
                 <WeatherCard userDoc={userDoc} override={todayEquipment} />
@@ -138,12 +139,14 @@ export default function TodayPage() {
 
             <TodaySessionCard
               session={fitted.session}
-              focusLabel={FOCUS_LABEL[focus]}
+              focusLabel={labelOf(focus)}
               inProgress={!!activeSession && !activeCompleted}
               doneToday={doneToday}
               lighterBy={lighterBy}
               onStart={() =>
-                askParkFirst(userDoc).then(() => startSession(fitted.session))
+                outdoor
+                  ? askParkFirst(userDoc).then(() => startSession(fitted.session))
+                  : startSession(fitted.session)
               }
               onResume={expand}
             />
@@ -176,14 +179,19 @@ export default function TodayPage() {
           <div className="space-y-4 lg:col-span-5">
             <WeekStrip days={days} planned={plannedCount} />
 
-            <TrainingBlockCard />
-
-            {/* once today's session is done, its Skill Check is no longer "today" */}
-            <NextGoalCard
-              userDoc={userDoc}
-              check={doneToday ? null : check}
-              playerLevel={level}
-            />
+            {outdoor ? (
+              <>
+                <TrainingBlockCard />
+                {/* once today's session is done, its Skill Check is no longer "today" */}
+                <NextGoalCard
+                  userDoc={userDoc}
+                  check={doneToday ? null : check}
+                  playerLevel={level}
+                />
+              </>
+            ) : (
+              <SportProgressCard />
+            )}
 
             <ExtrasLinks />
 

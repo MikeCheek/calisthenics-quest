@@ -29,7 +29,7 @@ export default function AdaptationReportModal() {
   if (!report) return null;
   const lines = summary ? summaryLines(summary.celebration, summary.xpGained) : null;
   const hasCoachNews =
-    report.masteryChanges.length + report.suggestions.length + report.verifications.length + report.records.length > 0;
+    report.masteryChanges.length + (report.stageUps?.length ?? 0) + report.suggestions.length + report.verifications.length + report.records.length > 0;
 
   const resolve = async (i: number, accept: boolean) => {
     const s = report.suggestions[i];
@@ -127,6 +127,20 @@ export default function AdaptationReportModal() {
               ))}
             </ul>
           </div>
+        )}
+
+        {(report.stageUps?.length ?? 0) > 0 && (
+          <ul className="space-y-1.5" aria-label={tx("New stages")}>
+            {report.stageUps!.map((u) => (
+              <li key={u.skill} className="flex items-center gap-2 text-sm">
+                <TrendingUp size={15} className="text-emerald-400" aria-hidden />
+                <span className="text-zinc-100">{tx("{skill}: next stage unlocked", { skill: u.skill })}</span>
+                <span className="text-muted text-xs ml-auto">
+                  {u.from} → <span className="text-emerald-400">{u.to}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
 
         {report.masteryChanges.length > 0 && (

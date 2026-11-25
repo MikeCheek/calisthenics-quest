@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useToast } from "@/context/ToastContext";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
+import { activeSportOf } from "@/lib/sports";
 import { libraryEntries, searchLibrary, type LibraryEntry, type LibraryKind } from "@/lib/exerciseLibrary";
 import { AREA_LABEL, AREAS, type Area } from "@/lib/compare";
 import { buildCustomSession, setsOf, type CustomItem } from "@/lib/customSession";
@@ -88,7 +89,8 @@ export default function ExerciseBrowser({ onPick, picked = [] }: { onPick?: (e: 
   const [shown, setShown] = useState(PAGE);
   const [open, setOpen] = useState<LibraryEntry | null>(null);
 
-  const all = useMemo(() => libraryEntries(), []);
+  const sport = activeSportOf(userDoc);
+  const all = useMemo(() => libraryEntries(sport), [sport]);
   const results = useMemo(
     () =>
       searchLibrary(
@@ -150,7 +152,7 @@ export default function ExerciseBrowser({ onPick, picked = [] }: { onPick?: (e: 
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm text-zinc-100">{e.exercise.name}</span>
                   <span className="block text-xs text-zinc-400 truncate">
-                    {e.skill ? `${SKILL_FIELD_LABEL[e.skill]} · ${tx(STAGE_LABEL[e.stage ?? ""] ?? e.stage ?? "")}` : tx(AREA_LABEL[e.area])} · {localizeDetail(e.exercise.detail, locale)}
+                    {e.sportSkill ? `${e.sportSkill} · ${e.stage}` : e.skill ? `${SKILL_FIELD_LABEL[e.skill]} · ${tx(STAGE_LABEL[e.stage ?? ""] ?? e.stage ?? "")}` : tx(AREA_LABEL[e.area])} · {localizeDetail(e.exercise.detail, locale)}
                   </span>
                 </span>
                 <Difficulty value={e.difficulty} />

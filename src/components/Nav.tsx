@@ -1,5 +1,6 @@
 "use client";
 
+import SportSwitcher from "@/components/sports/SportSwitcher";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -50,6 +51,9 @@ export default function Nav() {
             <Link href="/dashboard" className="heading text-base text-zinc-100 flex items-center gap-1.5 lg:hidden">
               <span className="text-orange-400" aria-hidden="true">▲</span> BarQuests
             </Link>
+            <span className="lg:hidden ml-2">
+              <SportSwitcher compact />
+            </span>
           </div>
           {/* sign-out lives in Profile → Account; the header just shows where you stand */}
           {progress && (
@@ -95,6 +99,9 @@ export default function Nav() {
           <Link href="/dashboard" className="heading text-lg text-zinc-100 flex items-center gap-1.5 px-5 py-4">
             <span className="text-orange-400" aria-hidden="true">▲</span> BarQuests
           </Link>
+          <div className="px-5 pb-3">
+            <SportSwitcher />
+          </div>
           <nav aria-label={tx("Main menu")} className="px-3">
             <ul className="space-y-0.5">
               {TABS.map((t) => {

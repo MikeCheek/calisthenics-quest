@@ -1,5 +1,7 @@
 "use client";
 
+import SportSkills from "@/components/sports/SportSkills";
+import { activeSportOf, isExtraSport } from "@/lib/sports";
 import { URL_EVENT } from "@/lib/featureMap";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -81,6 +83,10 @@ export default function SkillsPage() {
       >
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
+        {isExtraSport(activeSportOf(userDoc)) ? (
+          <SportSkills />
+        ) : (
+          <>
 
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">
           <div
@@ -201,6 +207,8 @@ export default function SkillsPage() {
             </button>
             {fullRoad && <TrophyRoad userDoc={userDoc} />}
           </div>
+        )}
+        </>
         )}
       </main>
 

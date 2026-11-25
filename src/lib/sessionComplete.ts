@@ -1,10 +1,12 @@
 import { settleWrite } from "./offlineWrites";
 import { readTodayPark } from "./todayPark";
 import { nextStreak } from "./weekStreak";
+import { SPORTS, isExtraSport } from "./sports";
+import { applySportSession } from "./sports/progress";
 import { skillHistoryPatch } from "./skillHistory";
-import { earnedXp } from "./sessionXp";
+import { earnedXp, xpRules } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
-import { ExerciseFeedback, TrainingSession, UserDoc } from "./types";
+import { ExerciseFeedback, PersonalRecord, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { applyCheckResults, syncClaims } from "./verification";
 import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
@@ -75,73 +77,82 @@ export async function completeSession(
   });
 
 
-  // Learn from what actually happened in this session (see adaptation.ts).
-  const exerciseStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
-  const { records, newRecords } = detectRecords(userDoc.records ?? {}, feedback);
-  const learned = applySkillFeedback(
-    userDoc.skills,
-    userDoc.skillMastery ?? {},
-    userDoc.skillProgress ?? {},
-    feedback
-  );
-  // Verify (or question) what the athlete claimed, from any Skill Check.
-  const verified = applyCheckResults(
-    syncClaims(userDoc.claims, userDoc.skills),
-    userDoc.skills,
-    learned.mastery,
-    learned.progress,
-    feedback
-  );
-  const newSkills = verified.skills;
-  const claims = syncClaims(verified.claims, newSkills);
-
-  // XP from the work actually done, plus bonuses for proving skills and
-  // new records (sessionXp.ts) — the level comes from this alone
-  const earned = earnedXp(session, feedback, {
-    verified: verified.events.filter((e) => e.outcome === "verified" || e.outcome === "raised").length,
-    records: newRecords.length,
-  });
-  const totalXp = userDoc.xp + earned.total + xpFromMissions;
-  const history = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }];
-  const trimmedHistory = history.slice(-30);
-  const suggestions = [
-    ...verified.suggestions,
-    ...learned.suggestions.filter((s) => !verified.suggestions.some((v) => v.skill === s.skill)),
-  ];
-
-  const report: AdaptationReport = {
-    masteryChanges: learned.masteryChanges,
-    suggestions,
-    verifications: verified.events,
-    ignoredTimingSamples: feedback.reduce((n, f) => n + (f.timing?.ignored ?? 0), 0),
-    records: newRecords,
-    feedbackCounts: {
-      done: feedback.filter((f) => f.outcome === "done").length,
-      skipped: feedback.filter((f) => f.outcome === "skipped").length,
-      tooHard: feedback.filter((f) => f.outcome === "tooHard").length,
-    },
+  const counts = {
+    done: feedback.filter((f) => f.outcome === "done").length,
+    skipped: feedback.filter((f) => f.outcome === "skipped").length,
+    tooHard: feedback.filter((f) => f.outcome === "tooHard").length,
   };
-  const newMastery = verified.mastery;
+  const ignoredTimingSamples = feedback.reduce((n, f) => n + (f.timing?.ignored ?? 0), 0);
+
+  // What the session teaches: calisthenics learns its skills, checks and
+  // claims (adaptation.ts, verification.ts); another sport moves its own
+  // track (sports/progress.ts). Both earn XP the same way.
+  let learnPatch: Partial<UserDoc>;
+  let report: AdaptationReport;
+  let earnedTotal: number;
+  let verifiedCount = 0;
+  let newRecords: PersonalRecord[];
+  let profileSkills = userDoc.skills;
+  let profileMastery = userDoc.skillMastery ?? {};
+  const sport = isExtraSport(session.sport) && userDoc.sports?.[session.sport] ? session.sport : null;
+
+  if (sport) {
+    const def = SPORTS[sport];
+    const applied = applySportSession(def, userDoc.sports![sport]!, feedback);
+    newRecords = applied.newRecords;
+    const earned = earnedXp(session, feedback, { verified: 0, records: newRecords.length });
+    earnedTotal = earned.total + applied.stageUps.length * xpRules().stageUp;
+    learnPatch = { sports: { ...userDoc.sports, [sport]: { ...applied.track, xp: (applied.track.xp ?? 0) + earnedTotal } } };
+    report = { masteryChanges: [], suggestions: [], verifications: [], ignoredTimingSamples, records: newRecords, feedbackCounts: counts, stageUps: applied.stageUps };
+  } else {
+    // Learn from what actually happened in this session (see adaptation.ts).
+    const exerciseStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
+    const detected = detectRecords(userDoc.records ?? {}, feedback);
+    newRecords = detected.newRecords;
+    const learned = applySkillFeedback(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.skillProgress ?? {}, feedback);
+    // Verify (or question) what the athlete claimed, from any Skill Check.
+    const verified = applyCheckResults(syncClaims(userDoc.claims, userDoc.skills), userDoc.skills, learned.mastery, learned.progress, feedback);
+    const newSkills = verified.skills;
+    const claims = syncClaims(verified.claims, newSkills);
+    verifiedCount = verified.events.filter((e) => e.outcome === "verified" || e.outcome === "raised").length;
+    // XP from the work actually done, plus bonuses for proving skills and
+    // new records (sessionXp.ts) — the level comes from this alone
+    earnedTotal = earnedXp(session, feedback, { verified: verifiedCount, records: newRecords.length }).total;
+    const suggestions = [...verified.suggestions, ...learned.suggestions.filter((s) => !verified.suggestions.some((v) => v.skill === s.skill))];
+    report = { masteryChanges: learned.masteryChanges, suggestions, verifications: verified.events, ignoredTimingSamples, records: newRecords, feedbackCounts: counts };
+    profileSkills = newSkills;
+    profileMastery = verified.mastery;
+    learnPatch = {
+      exerciseStats,
+      skillProgress: learned.progress,
+      skillMastery: verified.mastery,
+      skills: newSkills,
+      ...skillHistoryPatch(userDoc, newSkills),
+      claims,
+      records: detected.records,
+      ...(opts.transitionRestRatio !== undefined ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) } : {}),
+    };
+  }
+
+  const totalXp = userDoc.xp + earnedTotal + xpFromMissions;
+  // missions finished by this session count for its sport too, so each
+  // sport's XP plus calisthenics' always adds up to the total
+  if (isExtraSport(sport) && learnPatch.sports?.[sport]) {
+    const t = learnPatch.sports[sport]!;
+    learnPatch = { sports: { ...learnPatch.sports, [sport]: { ...t, xp: t.xp + xpFromMissions } } };
+  }
+  const trimmedHistory = [...(userDoc.xpHistory ?? []), { dateISO: new Date().toISOString(), xp: totalXp }].slice(-30);
 
   // this week's totals, for the friends leaderboard
   const week = addToWeek(userDoc.week, {
     minutes: opts.durationMin,
     xp: totalXp - userDoc.xp,
-    verified: verified.events.filter((e) => e.outcome === "verified" || e.outcome === "raised").length,
+    verified: verifiedCount,
   });
 
   const patch: Partial<UserDoc> = {
+    ...learnPatch,
     week,
-    exerciseStats,
-    skillProgress: learned.progress,
-    skillMastery: newMastery,
-    skills: newSkills,
-    ...skillHistoryPatch(userDoc, newSkills),
-    claims,
-    records,
-    ...(opts.transitionRestRatio !== undefined
-      ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) }
-      : {}),
     ...(opts.effort && opts.effort.planned > 0
       ? {
           effortHistory: [
@@ -170,6 +181,7 @@ export async function completeSession(
     paired: opts.isPaired,
     records: newRecords,
   });
+  if (sport) sessionRecord.sport = sport;
   // where it was done, if you said (todayPark.ts): on the session, and as a visit to the park
   const park = readTodayPark();
   if (park && park !== "none") {
@@ -191,8 +203,8 @@ export async function completeSession(
       streak: newStreak,
       xp: totalXp,
       totalSessionsCompleted: userDoc.totalSessionsCompleted + 1,
-      skills: newSkills,
-      skillMastery: newMastery,
+      skills: profileSkills,
+      skillMastery: profileMastery,
       week,
     }).catch(() => {
       // best-effort — a stale level/streak shown to friends isn't critical
