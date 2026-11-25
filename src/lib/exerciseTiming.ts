@@ -123,3 +123,24 @@ export function localizedDescription(exercise: Exercise, locale: Locale): string
   }
   return exercise.description;
 }
+
+// What a count-based exercise counts: "3 x 1-2 laps" → laps, "5 x max
+// attempt" → attempts; everything else is reps.
+export type CountUnit = "reps" | "laps" | "attempts" | "steps";
+export function countUnit(detail: string): CountUnit {
+  if (/\blaps?\b/i.test(detail)) return "laps";
+  if (/\battempts?\b/i.test(detail)) return "attempts";
+  if (/\bsteps?\b/i.test(detail)) return "steps";
+  return "reps";
+}
+
+// the lower end of the prescribed count ("3 x 8-10 reps" → 8, "3 x 1-2 laps" → 1);
+// null = "max", undefined = not stated
+export function targetCount(detail: string): number | null | undefined {
+  const m = detail.match(/(\d+)(?:-\d+)?\s*(?:reps?|laps?|attempts?|steps?)\b/i) ?? detail.match(/^\d+\s*x\s*(\d+)(?:-\d+)?\s*(?:$|[,(])/i);
+  if (m) return parseInt(m[1], 10);
+  return /max/i.test(detail) ? null : undefined;
+}
+
+// a hold whose length isn't prescribed ("max hold"): the athlete says how long
+export const isOpenHold = (detail: string) => /hold/i.test(detail) && !/\d+\s*(s|min)\b/i.test(detail.replace(/\(target[^)]*\)/i, ""));

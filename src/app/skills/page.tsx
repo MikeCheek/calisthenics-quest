@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CompareLink from "@/components/CompareLink";
 import SkillTimelineCard from "@/components/SkillTimelineCard";
-import ExtrasLinks from "@/components/ExtrasLinks";
 import TrainingBlockCard from "@/components/TrainingBlockCard";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -75,14 +74,6 @@ export default function SkillsPage() {
       <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
-        <CompareLink />
-        <div id="block">
-          <TrainingBlockCard invite />
-        </div>
-        <div id="timeline">
-          <SkillTimelineCard />
-        </div>
-        <ExtrasLinks />
 
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">
           <div role="tablist" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
@@ -105,6 +96,13 @@ export default function SkillsPage() {
         {tab === "tree" && (
           <div className="space-y-4 animate-overlay-fade-in">
             <SkillTree userDoc={userDoc} playerLevel={level} onInfo={setActiveSkill} />
+            <div id="block">
+              <TrainingBlockCard invite />
+            </div>
+            <div id="timeline">
+              <SkillTimelineCard />
+            </div>
+            <CompareLink />
 
             {userDoc.goalTracks?.length > 0 && (
               <div className="panel p-4">
