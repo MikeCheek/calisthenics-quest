@@ -522,7 +522,15 @@ test("sports: starting from the yoga page opens yoga's setup in the app", async 
 
 test.describe("first login: pick a sport", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => sessionStorage.setItem("barquests:demo-fresh", "1"));
+    // runs in every document, some of which (opaque-origin frames) refuse
+    // storage access: guard it like the app does
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem("barquests:demo-fresh", "1");
+      } catch {
+        /* not this document */
+      }
+    });
   });
 
   test("start with yoga: its three questions, then Today is yoga; calisthenics asks for its check when added", async ({ page }) => {
