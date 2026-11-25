@@ -14,7 +14,7 @@ import ParkSheet from "@/components/parks/ParkSheet";
 import type { LatLon } from "@/components/parks/ParksMap";
 import { addUserPark, fetchOsmCells, fetchUserParks, saveOsmCells, saveParkEdit } from "@/lib/store";
 import { locate, savedPlace, savePlace } from "@/lib/weather";
-import { REFRESH_MIN_HOURS, cellOf, cellsCovering, distanceM, KIT_LABEL, loadOsmParks, mergeEdits, parkName, type LoadResult, type Park, type UserParkDoc } from "@/lib/parks";
+import { REFRESH_MIN_HOURS, cellOf, cellsCovering, distanceM, KIT_LABEL, loadOsmParks, mergeEdits, parkName, placeAt, type LoadResult, type Park, type UserParkDoc } from "@/lib/parks";
 import { setTodayEquipment } from "@/lib/todayEquipment";
 import type { TrainingEquipment } from "@/lib/types";
 
@@ -48,6 +48,7 @@ export default function ParksPage() {
   const [picking, setPicking] = useState<Picking>(null);
   const [newSpot, setNewSpot] = useState<LatLon | null>(null);
   const [newName, setNewName] = useState("");
+  const [suggested, setSuggested] = useState<"looking" | "found" | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -121,6 +122,14 @@ export default function ParksPage() {
     if (picking.kind === "add") {
       setNewSpot(spot);
       setPicking(null);
+      // name it after the park it's in, if the map knows one
+      setSuggested("looking");
+      placeAt(spot.lat, spot.lon)
+        .then((place) => {
+          if (place) setNewName((n) => n || place.name);
+          setSuggested(place ? "found" : null);
+        })
+        .catch(() => setSuggested(null));
       return;
     }
     const park = picking.park;
@@ -295,6 +304,10 @@ export default function ParksPage() {
                       className={`w-full text-left rounded-xl border px-3 py-2.5 ${open === p.id ? "border-orange-500/70 bg-orange-500/10" : "border-zinc-800 hover:border-zinc-600"}`}
                     >
                       <span className="flex items-center gap-2">
+                        {p.photo && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.photo} alt="" loading="lazy" className="w-9 h-9 rounded-lg object-cover shrink-0" onError={(e) => (e.currentTarget.style.display = "none")} />
+                        )}
                         <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${p.source === "user" ? "bg-purple-400" : p.edit ? "bg-sky-400" : "bg-orange-500"}`} aria-hidden />
                         <span className="flex-1 min-w-0 truncate text-sm text-zinc-100">{parkName(p, tx("Bar park"))}</span>
                         {p.distanceM !== undefined && <span className="text-xs text-zinc-400 shrink-0">{km(p.distanceM)}</span>}
@@ -344,9 +357,10 @@ export default function ParksPage() {
               maxLength={60}
               onChange={(e) => setNewName(e.target.value)}
               className="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-700 p-2.5 text-sm text-zinc-100"
-              placeholder={tx("e.g. Riverside bars")}
+              placeholder={suggested === "looking" ? tx("Looking up the park's name…") : tx("e.g. Riverside bars")}
             />
           </label>
+          {suggested === "found" && <p className="text-xs text-zinc-400 -mt-1">{tx("Suggested from the park it's in on OpenStreetMap — change it if you like.")}</p>}
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setNewSpot(null)} className="py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-200">
               {tx("Cancel")}

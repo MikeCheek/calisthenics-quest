@@ -252,7 +252,9 @@ const OSM_PARK = {
 };
 async function mockMap(page: import("@playwright/test").Page, hits: string[] = []) {
   await page.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 204 }));
-  await page.route(/\/interpreter$/, (r) => {
+  await page.route("**/api/parks/osm", (r) => {
+    const body = r.request().postDataJSON() as { box?: unknown; at?: unknown };
+    if (body.at) return r.fulfill({ json: { elements: [{ type: "area", id: 1, tags: { leisure: "park", name: "Giardini Pubblici" } }] } });
     hits.push(r.request().url());
     return r.fulfill({ json: OSM_PARK });
   });
@@ -271,6 +273,8 @@ test("bar parks: find one, confirm its kit, react, correct it, train there", asy
   await page.getByRole("region", { name: "Bar parks", exact: true }).getByRole("button", { name: /Riverside bars/ }).click();
   const sheet = page.getByRole("dialog", { name: "Riverside bars" });
   await expect(sheet.getByText("Pull-up bar: there")).toBeVisible();
+  await sheet.getByRole("button", { name: "Like Riverside bars" }).click();
+  await expect(sheet.getByRole("button", { name: "Unlike Riverside bars" })).toHaveAttribute("aria-pressed", "true");
   await sheet.getByRole("button", { name: "Still like this" }).click();
   await expect(sheet.getByText("Thanks for confirming!")).toBeVisible();
   await sheet.getByRole("button", { name: "Thanks" }).click();
@@ -324,6 +328,7 @@ test("bar parks: add a missing one by picking its spot on the map", async ({ pag
   await expectNoA11yViolations(page);
   await pick.getByRole("button", { name: "Put the park here" }).click();
   const add = page.getByRole("dialog", { name: "Add a park" });
+  await expect(add.getByLabel("Name of the park")).toHaveValue("Giardini Pubblici"); // named after the park it's in
   await add.getByLabel("Name of the park").fill("School bars");
   await add.getByRole("button", { name: "Add park" }).click();
   await expect(page.getByRole("dialog", { name: "School bars" })).toBeVisible();

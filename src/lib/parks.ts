@@ -29,6 +29,9 @@ export interface Park {
   mapKit: ParkKit[]; // what the map's tags say
   distanceM?: number;
   edit?: UserParkDoc; // the community's name/position, and who changed it last
+  place?: string; // the park it's in, when it has no name of its own
+  photo?: string; // from the map's tags
+  wikidata?: string; // where a photo may be found
 }
 
 export type Reaction = "thanks" | "strong" | "fire";
@@ -104,12 +107,52 @@ export function kitFromTags(tags: Record<string, string> = {}): ParkKit[] {
 
 
 export interface OsmElement {
-  type: "node" | "way" | "relation";
+  type: "node" | "way" | "relation" | "area";
   id: number;
   lat?: number;
   lon?: number;
   center?: { lat: number; lon: number };
+  bounds?: { minlat: number; minlon: number; maxlat: number; maxlon: number };
   tags?: Record<string, string>;
+}
+
+// ---- names and photos from the park around a station ----
+
+// a named park, recreation ground… (they come with their outline's box)
+const PLACE_LEISURE = /^(park|recreation_ground|playground|pitch|sports_centre)$/;
+const isPlace = (e: OsmElement) => !!e.bounds && !!e.tags?.name && PLACE_LEISURE.test(e.tags.leisure ?? "") && e.tags.sport !== "calisthenics";
+
+const inside = (b: NonNullable<OsmElement["bounds"]>, p: { lat: number; lon: number }) => p.lat >= b.minlat && p.lat <= b.maxlat && p.lon >= b.minlon && p.lon <= b.maxlon;
+const area = (b: NonNullable<OsmElement["bounds"]>) => (b.maxlat - b.minlat) * (b.maxlon - b.minlon);
+
+// the smallest named place whose outline's box holds the point
+export function placeAround(places: OsmElement[], p: { lat: number; lon: number }): OsmElement | null {
+  return places.filter((x) => x.bounds && inside(x.bounds, p)).sort((a, b) => area(a.bounds!) - area(b.bounds!))[0] ?? null;
+}
+
+// a photo straight from the tags: an image link, or a Wikimedia Commons file
+export function photoFromTags(tags: Record<string, string> = {}): string | undefined {
+  const img = tags.image?.trim();
+  if (img && /^https:\/\//.test(img)) {
+    const file = img.match(/commons\.wikimedia\.org\/wiki\/(File:[^?#]+)/)?.[1];
+    if (file) return commonsThumb(decodeURIComponent(file));
+    if (/\.(jpe?g|png|webp)(\?|$)/i.test(img)) return img;
+  }
+  const commons = tags.wikimedia_commons?.trim();
+  if (commons?.startsWith("File:")) return commonsThumb(commons);
+  return undefined;
+}
+
+export const commonsThumb = (file: string) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file.replace(/^File:/, ""))}?width=640`;
+
+// the photo on a Wikidata item (P18), for places whose tags only link there
+export async function wikidataPhoto(qid: string, fetcher: typeof fetch = fetch): Promise<string | undefined> {
+  if (!/^Q\d+$/.test(qid)) return undefined;
+  const res = await fetcher(`https://www.wikidata.org/w/api.php?action=wbgetclaims&property=P18&entity=${qid}&format=json&origin=*`);
+  if (!res.ok) return undefined;
+  const json = (await res.json()) as { claims?: { P18?: { mainsnak?: { datavalue?: { value?: string } } }[] } };
+  const file = json.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+  return file ? commonsThumb(file) : undefined;
 }
 
 // metres between two points
@@ -124,7 +167,9 @@ const ATTACH_M = 120; // a station this close to an area belongs to it
 const CLUSTER_M = 80; // stations this close together are one park
 
 // one park per calisthenics area (or named spot), stations grouped around
-export function groupParks(elements: OsmElement[], from?: { lat: number; lon: number }): Park[] {
+export function groupParks(all: OsmElement[], from?: { lat: number; lon: number }): Park[] {
+  const places = all.filter(isPlace);
+  const elements = all.filter((e) => !isPlace(e) && (e.tags?.leisure === "fitness_station" || e.tags?.sport === "calisthenics"));
   const pts = elements
     .map((e) => ({ e, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon }))
     .filter((p): p is { e: OsmElement; lat: number; lon: number } => typeof p.lat === "number" && typeof p.lon === "number");
@@ -151,47 +196,45 @@ export function groupParks(elements: OsmElement[], from?: { lat: number; lon: nu
       best.n++;
       if (!best.name && p.e.tags?.name) best.name = p.e.tags.name;
     } else {
-      parks.push({ id: `osm-n${p.e.id}`, name: null, lat: p.lat, lon: p.lon, source: "osm", mapKit: [], kit: new Set(kit), n: 1, cluster: true });
+      parks.push({ id: `osm-n${p.e.id}`, name: p.e.tags?.name ?? null, lat: p.lat, lon: p.lon, source: "osm", mapKit: [], kit: new Set(kit), n: 1, cluster: true });
     }
   }
+  const tagsById = new Map(elements.map((e) => [`osm-${e.type[0]}${e.id}`, e.tags ?? {}]));
   return parks
-    .map(({ kit, n: _n, cluster: _c, ...p }) => ({ ...p, mapKit: PARK_KIT.filter((k) => kit.has(k)), ...(from ? { distanceM: Math.round(distanceM(from, p)) } : {}) }))
+    .map(({ kit, n: _n, cluster: _c, ...p }) => {
+      const own = tagsById.get(p.id) ?? {};
+      const around = placeAround(places, p);
+      const photo = photoFromTags(own) ?? photoFromTags(around?.tags);
+      const wikidata = own.wikidata ?? around?.tags?.wikidata;
+      return {
+        ...p,
+        ...(!p.name && around?.tags?.name ? { place: around.tags.name } : {}),
+        ...(photo ? { photo } : {}),
+        ...(wikidata ? { wikidata } : {}),
+        mapKit: PARK_KIT.filter((k) => kit.has(k)),
+        ...(from ? { distanceM: Math.round(distanceM(from, p)) } : {}),
+      };
+    })
     .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0));
 }
 
-// public Overpass servers, tried in turn: the main one is often busy (429,
-// 504) and some networks or blockers stop one but not another
-export const OVERPASS_SERVERS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-];
+// OpenStreetMap goes through our own server (api/parks/osm): browsers
+// can't call Overpass reliably (CORS, busy public servers)
+async function askServer(body: object, fetcher: typeof fetch = fetch): Promise<OsmElement[]> {
+  const res = await fetcher("/api/parks/osm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return ((await res.json()) as { elements?: OsmElement[] }).elements ?? [];
+}
 
-async function askOverpass(query: string, fetcher: typeof fetch = fetch): Promise<OsmElement[]> {
-  const errors: string[] = [];
-  for (const url of OVERPASS_SERVERS) {
-    const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctl ? setTimeout(() => ctl.abort(), 25000) : null;
-    try {
-      const res = await fetcher(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "data=" + encodeURIComponent(query),
-        signal: ctl?.signal,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as { elements?: OsmElement[]; remark?: string };
-      // a server that ran out of time answers 200 with a remark and no data
-      if (!json.elements || (json.remark && /runtime error|timeout/i.test(json.remark) && !json.elements.length)) throw new Error(json.remark ?? "no elements");
-      return json.elements;
-    } catch (e) {
-      errors.push(`${new URL(url).host}: ${(e as Error).message}`);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  }
-  throw new Error(`Overpass unreachable — ${errors.join("; ")}`);
+// the name (and a photo, if the map has one) of the park a point is in,
+// to suggest for a park someone adds there
+export async function placeAt(lat: number, lon: number, fetcher?: typeof fetch): Promise<{ name: string; photo?: string; wikidata?: string } | null> {
+  const areas = await askServer({ at: { lat, lon } }, fetcher);
+  const rank = (t: Record<string, string> = {}) => (/^(park|recreation_ground)$/.test(t.leisure ?? "") ? 0 : t.leisure ? 1 : 2);
+  const best = areas.filter((a) => a.tags?.name).sort((a, b) => rank(a.tags) - rank(b.tags))[0];
+  if (!best?.tags?.name) return null;
+  const photo = photoFromTags(best.tags);
+  return { name: best.tags.name, ...(photo ? { photo } : {}), ...(best.tags.wikidata ? { wikidata: best.tags.wikidata } : {}) };
 }
 
 // ---- the shared cache: OpenStreetMap parks per 0.1° cell, in Firestore ----
@@ -204,7 +247,7 @@ async function askOverpass(query: string, fetcher: typeof fetch = fetch): Promis
 export const CACHE_FRESH_DAYS = 14;
 export const REFRESH_MIN_HOURS = 24;
 
-export type CachedPark = Pick<Park, "id" | "name" | "lat" | "lon" | "mapKit">;
+export type CachedPark = Pick<Park, "id" | "name" | "lat" | "lon" | "mapKit" | "place" | "photo" | "wikidata">;
 
 export interface OsmCell {
   cell: string;
@@ -241,16 +284,13 @@ export function cellBox(cells: string[]): Box {
   };
 }
 
-export function overpassBoxQuery(b: Box): string {
-  const a = `(${b.s.toFixed(4)},${b.w.toFixed(4)},${b.n.toFixed(4)},${b.e.toFixed(4)})`;
-  return `[out:json][timeout:25];(nwr["leisure"="fitness_station"]${a};nwr["sport"="calisthenics"]${a};);out tags center 2000;`;
-}
-
 // parks grouped over the whole box, then filed under the cell they sit in
 export function splitByCell(parks: CachedPark[], cells: string[], now = new Date()): OsmCell[] {
   return cells.map((cell) => ({
     cell,
-    parks: parks.filter((p) => cellOf(p.lat, p.lon) === cell).map(({ id, name, lat, lon, mapKit }) => ({ id, name, lat, lon, mapKit })),
+    parks: parks
+      .filter((p) => cellOf(p.lat, p.lon) === cell)
+      .map(({ id, name, lat, lon, mapKit, place, photo, wikidata }) => ({ id, name, lat, lon, mapKit, ...(place ? { place } : {}), ...(photo ? { photo } : {}), ...(wikidata ? { wikidata } : {}) })),
     fetchedAtISO: now.toISOString(),
   }));
 }
@@ -304,7 +344,7 @@ export async function loadOsmParks(
 
   if (!plan.fetch) return { parks: inRange(plan.usable.flatMap((c) => c.parks)), updatedAtISO: updatedOn(plan.usable), from: "cache", failed: false };
   try {
-    const elements = await askOverpass(overpassBoxQuery(cellBox(cells)), io.fetcher);
+    const elements = await askServer({ box: cellBox(cells) }, io.fetcher);
     const fresh = splitByCell(groupParks(elements), cells, now);
     io.write(fresh).catch((e) => console.warn("[parks] cache not saved:", (e as Error).message));
     return { parks: inRange(fresh.flatMap((c) => c.parks)), updatedAtISO: now.toISOString(), from: "openstreetmap", failed: false };
@@ -401,5 +441,5 @@ export function reactionCounts(r: ParkReport): Partial<Record<Reaction, number>>
   return out;
 }
 
-export const parkName = (p: Pick<Park, "name">, fallback = "Bar park") => p.name?.trim() || fallback;
+export const parkName = (p: Pick<Park, "name"> & { place?: string }, fallback = "Bar park") => p.name?.trim() || p.place?.trim() || fallback;
 export const directionsUrl = (p: Pick<Park, "lat" | "lon">) => `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=18/${p.lat}/${p.lon}`;

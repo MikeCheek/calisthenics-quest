@@ -471,6 +471,14 @@ service cloud.firestore {
         && validSpot(request.resource.data);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
 
+      // likes: one per athlete, counted with an aggregation query
+      match /likes/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['atISO']) && request.resource.data.atISO is string;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
       match /reports/{uid} {
         allow read: if request.auth != null;
         allow create, update: if request.auth != null && request.auth.uid == uid
@@ -625,7 +633,7 @@ docs/
   (smaller for guests) so the OpenRouter key can't be drained by strangers.
 - **Skill Check videos** never leave your device.
 - **Location** (weather and parks) is rounded to about 1 km and kept on the device; only
-  that point goes to Open-Meteo and OpenStreetMap's Overpass API. Park reports (first
+  that point goes to Open-Meteo, and (through the app's own `/api/parks/osm` route, since browsers can't call Overpass reliably) to OpenStreetMap's Overpass API. Park photos load from Wikimedia Commons. Park reports (first
   name, equipment, optional note) are visible to signed-in users; the crew feed only to
   your friends.
 - **Your controls:** export everything, reset progress in steps, or delete the account

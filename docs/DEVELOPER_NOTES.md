@@ -241,6 +241,14 @@ service cloud.firestore {
         && validSpot(request.resource.data);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
 
+      // likes: one per athlete, counted with an aggregation query
+      match /likes/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['atISO']) && request.resource.data.atISO is string;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
       match /reports/{uid} {
         allow read: if request.auth != null;
         allow create, update: if request.auth != null && request.auth.uid == uid

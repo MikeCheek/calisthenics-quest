@@ -380,3 +380,14 @@ export async function fetchOsmCells(cells: string[]): Promise<OsmCell[]> {
 export async function saveOsmCells(cells: OsmCell[]): Promise<void> {
   for (const c of cells) demoCells.set(c.cell, { ...clone(c), parks: c.parks.slice(0, 400) as CachedPark[] });
 }
+
+// park likes, for the tab's session
+const demoLikes = sessionMap<string[]>("barquests:demo-park-likes");
+export async function fetchParkLikes(parkId: string, uid: string): Promise<{ count: number; mine: boolean }> {
+  const who = demoLikes.get(parkId) ?? ["demo-friend-park"];
+  return { count: who.length, mine: who.includes(uid) };
+}
+export async function setParkLike(parkId: string, uid: string, on: boolean): Promise<void> {
+  const who = (demoLikes.get(parkId) ?? ["demo-friend-park"]).filter((u) => u !== uid);
+  demoLikes.set(parkId, on ? [...who, uid] : who);
+}

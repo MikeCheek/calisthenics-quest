@@ -2,16 +2,17 @@
 
 import { nameFor } from "@/lib/anonymize";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, CircleHelp, Crosshair, MapPin, Navigation, Pencil, ThumbsUp, Trash2, X } from "lucide-react";
+import { Check, CircleHelp, Crosshair, Heart, MapPin, Navigation, Pencil, ThumbsUp, Trash2, X } from "lucide-react";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { deleteParkReport, fetchParkReports, reactToParkReport, saveParkEdit, saveParkReport } from "@/lib/store";
+import { deleteParkReport, fetchParkLikes, fetchParkReports, reactToParkReport, saveParkEdit, saveParkReport, setParkLike } from "@/lib/store";
 import { settleWrite } from "@/lib/offlineWrites";
 import {
   KIT_LABEL,
   NOTE_MAX,
   cellOf,
+  wikidataPhoto,
   PARK_KIT,
   REACTIONS,
   cleanNote,
@@ -62,7 +63,29 @@ export default function ParkSheet({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
+  const [likes, setLikes] = useState<{ count: number; mine: boolean } | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoOk, setPhotoOk] = useState(true);
   const uid = userDoc?.uid;
+
+  // likes and a photo (from the map's tags, or the place's Wikidata item)
+  useEffect(() => {
+    setLikes(null);
+    setPhoto(park?.photo ?? null);
+    setPhotoOk(true);
+    if (!park || !uid) return;
+    let live = true;
+    fetchParkLikes(park.id, uid)
+      .then((l) => live && setLikes(l))
+      .catch(() => live && setLikes({ count: 0, mine: false }));
+    if (!park.photo && park.wikidata)
+      wikidataPhoto(park.wikidata)
+        .then((p) => live && p && setPhoto(p))
+        .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [park?.id, park?.photo, park?.wikidata, uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(() => {
     if (!park) return;
@@ -117,6 +140,18 @@ export default function ParkSheet({
     onChanged?.();
   };
 
+  const toggleLike = async () => {
+    if (!likes) return;
+    const on = !likes.mine;
+    setLikes({ count: likes.count + (on ? 1 : -1), mine: on });
+    try {
+      await setParkLike(park.id, userDoc.uid, on);
+    } catch {
+      setLikes(likes);
+      setMsg(tx("Couldn't save — try again."));
+    }
+  };
+
   const startEdit = () => {
     setDraft(mine?.kit ?? confirmation(status));
     setNote(mine?.note ?? "");
@@ -135,7 +170,10 @@ export default function ParkSheet({
         return { ...x, reactions };
       })
     );
-    await reactToParkReport(park.id, r.uid, userDoc.uid, next).catch(() => load());
+    await reactToParkReport(park.id, r.uid, userDoc.uid, next).catch(() => {
+      setMsg(tx("Couldn't save — try again."));
+      load();
+    });
   };
 
   const removeMine = async () => {
@@ -155,6 +193,25 @@ export default function ParkSheet({
   return (
     <Modal open={!!park} onClose={onClose} title={name}>
       <div className="space-y-4">
+        {photo && photoOk && (
+          <figure className="-mt-1 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photo} alt={tx("Photo of {name}", { name })} loading="lazy" onError={() => setPhotoOk(false)} className="w-full h-40 object-cover" />
+            <figcaption className="px-2 py-1 text-xs text-zinc-400">{tx("Photo: Wikimedia Commons / OpenStreetMap")}</figcaption>
+          </figure>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleLike}
+            disabled={!likes}
+            aria-pressed={!!likes?.mine}
+            aria-label={likes?.mine ? tx("Unlike {name}", { name }) : tx("Like {name}", { name })}
+            className={`px-3 py-1.5 rounded-full border text-sm flex items-center gap-1.5 ${likes?.mine ? "border-rose-500 bg-rose-500/15 text-rose-100" : "border-zinc-700 text-zinc-200 hover:border-rose-400"}`}
+          >
+            <Heart size={15} className={likes?.mine ? "fill-rose-400 text-rose-400" : ""} aria-hidden /> {likes ? likes.count : "…"}
+          </button>
+          {park.place && !park.name && <span className="text-xs text-zinc-400 truncate">{tx("In {place}", { place: park.place })}</span>}
+        </div>
         <p className="text-xs text-zinc-400 flex items-center gap-1.5">
           <MapPin size={13} />
           {park.distanceM !== undefined && (park.distanceM < 1000 ? tx("{n} m away", { n: park.distanceM }) : tx("{n} km away", { n: (park.distanceM / 1000).toFixed(1) }))}
@@ -293,8 +350,8 @@ export default function ParkSheet({
 
             <div className="grid grid-cols-2 gap-2">
               <button
-                disabled={saving || !known.length}
-                onClick={() => write(confirmation(status), mine?.note ?? "", tx("Thanks for confirming!"))}
+                disabled={saving}
+                onClick={() => (known.length ? write(confirmation(status), mine?.note ?? "", tx("Thanks for confirming!")) : startEdit())}
                 className="py-2.5 rounded-xl border border-emerald-600/60 bg-emerald-500/10 text-emerald-100 text-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 <ThumbsUp size={15} /> {tx("Still like this")}
@@ -307,7 +364,7 @@ export default function ParkSheet({
         )}
 
         {msg && (
-          <p className="text-sm text-emerald-300" role="status">
+          <p className={`text-sm ${msg === tx("Couldn't save — try again.") ? "text-amber-300" : "text-emerald-300"}`} role="status">
             {msg}
           </p>
         )}

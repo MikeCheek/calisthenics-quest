@@ -450,13 +450,28 @@ export async function saveParkEdit(
 ): Promise<void> {
   const ref = doc(db, "parks", park.id);
   const edit = { ...fields, editedBy: editor.uid, editedByName: editor.name, editedAtISO: new Date().toISOString() };
-  try {
-    await updateDoc(ref, edit);
-  } catch (e) {
-    // the first edit of an OpenStreetMap park creates its doc
-    if (park.source !== "osm" || (e as { code?: string }).code !== "not-found") throw e;
-    await setDoc(ref, { ...edit, source: "osm", createdBy: editor.uid, createdAtISO: edit.editedAtISO });
-  }
+  // Firestore checks the rules before it knows a doc is missing, so an
+  // update of a doc that isn't there fails as "permission denied", not
+  // "not found": look first, then create or update
+  const exists = (await getDoc(ref)).exists();
+  if (exists) await updateDoc(ref, edit);
+  else if (park.source === "osm") await setDoc(ref, { ...edit, source: "osm", createdBy: editor.uid, createdAtISO: edit.editedAtISO });
+  else throw new Error("park not found");
+}
+
+// ---- park likes: parks/{id}/likes/{uid} ----
+export async function fetchParkLikes(parkId: string, uid: string): Promise<{ count: number; mine: boolean }> {
+  const [agg, mine] = await Promise.all([
+    getAggregateFromServer(collection(db, "parks", parkId, "likes"), { n: count() }).catch(() => null),
+    getDoc(doc(db, "parks", parkId, "likes", uid)).catch(() => null),
+  ]);
+  return { count: agg?.data().n ?? 0, mine: !!mine?.exists() };
+}
+
+export async function setParkLike(parkId: string, uid: string, on: boolean): Promise<void> {
+  const ref = doc(db, "parks", parkId, "likes", uid);
+  if (on) await setDoc(ref, { atISO: new Date().toISOString() });
+  else await deleteDoc(ref);
 }
 
 // ---- the shared OpenStreetMap cache (parks.ts: loadOsmParks) ----
