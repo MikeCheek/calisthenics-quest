@@ -34,6 +34,7 @@ export default function OnboardingStepper({
   currentXp,
   onSave,
   saving,
+  onBackFromStart,
 }: {
   initialBody: BodyProfile;
   initialSkills: SkillProfile;
@@ -49,6 +50,7 @@ export default function OnboardingStepper({
     mastery: Partial<Record<StagedSkillKey, SkillMastery>>
   ) => void;
   saving?: boolean;
+  onBackFromStart?: () => void; // back from the first step (to the sport picker)
 }) {
   const { tx } = useLanguage();
   const [step, setStep] = useState(0);
@@ -76,13 +78,13 @@ export default function OnboardingStepper({
 
   const next = () =>
     step < STEPS.length - 1 ? setStep(step + 1) : onSave(body, skills, equipment, goals, mastery);
-  const back = () => step > 0 && setStep(step - 1);
+  const back = () => (step > 0 ? setStep(step - 1) : onBackFromStart?.());
 
   return (
     <div className="space-y-5">
       {/* progress dots */}
       <div className="flex items-center gap-2">
-        {step > 0 && (
+        {(step > 0 || onBackFromStart) && (
           <button onClick={back} className="p-1.5 -ml-1.5 text-zinc-400" aria-label={tx("Back")}>
             <ChevronLeft size={20} />
           </button>

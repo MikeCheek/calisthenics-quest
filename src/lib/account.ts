@@ -106,6 +106,8 @@ export async function resetAllProgress(userDoc: UserDoc): Promise<void> {
     xpHistory: [],
     records: deleteField(),
     claims: deleteField(),
+    sports: deleteField(),
+    activeSport: deleteField(),
     ...LEARNING_FIELDS,
   });
   await deleteSessionHistory(userDoc.uid);

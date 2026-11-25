@@ -1965,6 +1965,12 @@ const IT_PHRASES: [string, string][] = [
   ["Make {name} a goal", "Rendi {name} un obiettivo"],
   ["Remove {name} from goals", "Togli {name} dagli obiettivi"],
   ["New stages", "Nuovi livelli"],
+  ["What do you want to train?", "Cosa vuoi allenare?"],
+  ["Start with one. You can add the others whenever you like — each keeps its own progress.", "Inizia con uno. Puoi aggiungere gli altri quando vuoi: ognuno tiene i suoi progressi."],
+  ["Main track", "Percorso principale"],
+  ["Pull-ups to front lever, planche and handstand — at the bars or at home.", "Dalle trazioni a front lever, planche e handstand — al parco o a casa."],
+  ["Your streak and XP count every sport.", "Streak e XP contano ogni sport."],
+
   ["This plan is for calisthenics. Your {sport} sessions come from Today.", "Questo piano è per il calisthenics. Le sessioni di {sport} arrivano da Oggi."],
   ["Session length", "Durata della sessione"],
   ["{skill}: next stage unlocked", "{skill}: livello successivo sbloccato"],

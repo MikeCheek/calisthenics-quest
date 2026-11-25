@@ -142,7 +142,8 @@ service cloud.firestore {
         // account is deleted — see anonymize.ts)
         allow create, update: if request.auth != null && request.auth.uid == uid
           && request.resource.data.uid == uid
-          && request.resource.data.keys().hasOnly(['uid', 'name', 'focusLabel', 'minutes', 'xp', 'exercises', 'records', 'streak', 'paired', 'createdAtISO', 'kudos'])
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'focusLabel', 'sport', 'minutes', 'xp', 'exercises', 'records', 'streak', 'paired', 'createdAtISO', 'kudos'])
+          && (!('sport' in request.resource.data) || request.resource.data.sport in ['yoga', 'pilates'])
           && request.resource.data.name is string && request.resource.data.name.size() <= 40
           && request.resource.data.records is list && request.resource.data.records.size() <= 3;
         allow update: if request.auth != null && request.auth.uid != uid

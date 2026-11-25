@@ -161,3 +161,28 @@ test("the coach knows the other sports: stages, goals, the active one, and which
   assert.match(ctx, /Currently training Yoga/);
   assert.match(ctx, /Session 2026-11-20 \(Yoga: Balance/);
 });
+
+test("sport landing pages: a line for every skill in both languages, and every move shown has an animation", async () => {
+  const { SPORT_COPY, SPORTS_SECTION, SPORT_PAGE } = await import("../src/lib/sportLandingCopy");
+  const { demoFor } = await import("../src/lib/demos/catalog");
+  const { PUBLIC_PATHS } = await import("../src/lib/site");
+  for (const s of EXTRA_SPORTS) {
+    const c = SPORT_COPY[s];
+    assert.deepEqual(Object.keys(c.skills).sort(), SPORTS[s].skills.map((k) => k.key).sort(), s);
+    for (const name of [c.demo, ...c.showcase]) assert.ok(demoFor(name), `${name} has no animation`);
+    const texts = [c.card, c.title, c.description, c.tagline, c.lead, ...c.points, ...Object.values(c.skills), ...c.faq.flatMap((f) => [f.q, f.a])];
+    for (const t of texts) assert.ok(t.en && t.it && (t.en !== t.it || /^[A-Z][a-z]+(-| )/.test(t.en)), t.en);
+    assert.ok(PUBLIC_PATHS.includes(c.path) && PUBLIC_PATHS.includes(`/it${c.path}`), c.path);
+  }
+  for (const t of [...Object.values(SPORTS_SECTION), ...Object.values(SPORT_PAGE)]) assert.notEqual(t.en, t.it);
+});
+
+test("sport page titles and descriptions fit search results", async () => {
+  const { SPORT_COPY } = await import("../src/lib/sportLandingCopy");
+  for (const s of EXTRA_SPORTS)
+    for (const l of ["en", "it"] as const) {
+      assert.ok(SPORT_COPY[s].title[l].length <= 60, SPORT_COPY[s].title[l]);
+      const d = SPORT_COPY[s].description[l].length;
+      assert.ok(d >= 100 && d <= 230, `${s} ${l}: ${d}`);
+    }
+});

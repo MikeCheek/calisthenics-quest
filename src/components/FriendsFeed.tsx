@@ -1,5 +1,6 @@
 "use client";
 
+import { SPORT_META } from "@/lib/sports";
 import { nameFor } from "@/lib/anonymize";
 import { useEffect, useState } from "react";
 import { Activity, Flame, Trophy, Users } from "lucide-react";
@@ -96,7 +97,13 @@ export default function FriendsFeed() {
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-zinc-100">
-                      <span className="font-medium">{nameFor(i.name, tx)}</span> · {tx(i.focusLabel)}
+                      <span className="font-medium">{nameFor(i.name, tx)}</span> ·{" "}
+                      {i.sport && SPORT_META[i.sport] && (
+                        <span role="img" aria-label={tx(SPORT_META[i.sport].name)}>
+                          {SPORT_META[i.sport].emoji}{" "}
+                        </span>
+                      )}
+                      {tx(i.focusLabel)}
                       {i.paired && (
                         <span className="text-zinc-400">
                           {" "}
