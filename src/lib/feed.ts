@@ -1,4 +1,5 @@
 import type { SessionRecord, UserDoc } from "./types";
+import type { ExtraSport } from "./sports/types";
 
 // ---------------------------------------------------------------------------
 // The crew's activity feed: when you finish a session, a short line goes to
@@ -12,6 +13,7 @@ export interface FeedItem {
   uid: string; // whose session
   name: string; // their first name
   focusLabel: string; // English; shown translated
+  sport?: ExtraSport; // yoga or Pilates; absent for calisthenics
   minutes?: number;
   xp: number;
   exercises: number;
@@ -35,6 +37,8 @@ export function feedItemFor(u: Pick<UserDoc, "uid" | "displayName">, r: SessionR
     uid: u.uid,
     name: firstName(u.displayName),
     focusLabel: r.focusLabel,
+    // only for the other sports, so calisthenics posts look as they always did
+    ...(r.sport && r.sport !== "calisthenics" ? { sport: r.sport } : {}),
     ...(r.durationMin ? { minutes: Math.round(r.durationMin) } : {}),
     xp: r.xp,
     exercises: r.exercises.filter((e) => e.outcome === "done").length,

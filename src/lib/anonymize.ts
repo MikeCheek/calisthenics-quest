@@ -102,6 +102,7 @@ export function anonymizeSession(r: SessionRecord): SessionRecord {
   return clean({
     finishedAt: toDay(r.finishedAt) ?? r.finishedAt,
     focusLabel: r.focusLabel,
+    sport: r.sport,
     durationMin: r.durationMin,
     xp: r.xp,
     paired: r.paired,

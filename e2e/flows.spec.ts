@@ -374,6 +374,8 @@ test("crew feed: give a friend kudos and get some back", async ({ page }) => {
   await expect(feed.getByRole("button", { name: /^Take back kudos for/ }).first()).toHaveAttribute("aria-pressed", "true");
   await expect(feed.getByText(/You.* gave kudos|Kudos/).first()).toBeVisible();
   await expect(page.getByText(/gave you kudos/).first()).toBeVisible();
+  // a friend's yoga session says so
+  await expect(feed.getByRole("img", { name: "Yoga" }).first()).toBeVisible();
   await expectNoA11yViolations(page);
   expect(errors).toEqual([]);
 });

@@ -332,7 +332,7 @@ const demoFeed = new Map<string, FeedItem[]>(
     const name = f.displayName.split(" ")[0];
     const items: FeedItem[] = [
       { id: `f${i}a`, uid: f.uid, name, focusLabel: ["Front Lever", "Handstand", "Muscle-up"][i % 3], minutes: 38 + i * 6, xp: 140 + i * 20, exercises: 7, records: i === 0 ? ["Tuck front lever holds"] : [], streak: 4 + i, createdAtISO: hoursAgo(3 + i * 9), kudos: i === 0 ? { "demo-g-lena": "Lena" } : {} },
-      { id: `f${i}b`, uid: f.uid, name, focusLabel: ["Pull", "Legs", "Core"][i % 3], minutes: 30, xp: 110, exercises: 6, records: [], streak: 3 + i, createdAtISO: hoursAgo(30 + i * 14) },
+      { id: `f${i}b`, uid: f.uid, name, focusLabel: ["Pull", "Balance", "Core"][i % 3], ...(i % 3 === 1 ? { sport: "yoga" as const } : {}), minutes: 30, xp: 110, exercises: 6, records: [], streak: 3 + i, createdAtISO: hoursAgo(30 + i * 14) },
     ];
     return [f.uid, items];
   })
