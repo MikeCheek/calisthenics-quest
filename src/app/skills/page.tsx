@@ -45,7 +45,8 @@ export default function SkillsPage() {
   useEffect(() => {
     const read = () => {
       const urlTab = new URLSearchParams(window.location.search).get("tab");
-      if (urlTab && TABS.some((x) => x.id === urlTab)) setTab(urlTab as SkillsTab);
+      if (urlTab && TABS.some((x) => x.id === urlTab))
+        setTab(urlTab as SkillsTab);
     };
     read();
     window.addEventListener(URL_EVENT, read);
@@ -64,19 +65,28 @@ export default function SkillsPage() {
 
   const selectTab = (next: SkillsTab) => {
     setTab(next);
-    router.replace(next === "tree" ? "/skills" : `/skills?tab=${next}`, { scroll: false });
+    router.replace(next === "tree" ? "/skills" : `/skills?tab=${next}`, {
+      scroll: false,
+    });
     window.scrollTo({ top: 0 });
   };
 
   return (
     <>
       <Nav />
-      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4"
+      >
         <h1 className="heading text-2xl text-zinc-100">{tx("Skills")}</h1>
         <HeadlineCard userDoc={userDoc} />
 
         <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-zinc-950/85 backdrop-blur">
-          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+          <div
+            role="tablist"
+            className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800"
+          >
             {TABS.map((x) => (
               <button
                 key={x.id}
@@ -84,7 +94,9 @@ export default function SkillsPage() {
                 aria-selected={tab === x.id}
                 onClick={() => selectTab(x.id)}
                 className={`py-2 rounded-lg text-sm transition-colors ${
-                  tab === x.id ? "bg-zinc-800 text-zinc-100 shadow" : "text-muted hover:text-zinc-300"
+                  tab === x.id
+                    ? "bg-zinc-800 text-zinc-100 shadow"
+                    : "text-muted hover:text-zinc-300"
                 }`}
               >
                 {tx(x.label)}
@@ -95,59 +107,83 @@ export default function SkillsPage() {
 
         {tab === "tree" && (
           <div className="space-y-4 animate-overlay-fade-in">
-            <SkillTree userDoc={userDoc} playerLevel={level} onInfo={setActiveSkill} />
-            <div id="block">
-              <TrainingBlockCard invite />
-            </div>
-            <div id="timeline">
-              <SkillTimelineCard />
-            </div>
-            <CompareLink />
-
-            {userDoc.goalTracks?.length > 0 && (
-              <div className="panel p-4">
-                <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
-                  <Target size={16} className="text-orange-400" /> {tx("Your goals")}
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {userDoc.goalTracks.map((track) => (
-                    <span key={track} className="text-xs px-2.5 py-1 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300">
-                      {tx(TRACK_LABEL[track])}
-                    </span>
-                  ))}
-                </div>
+            <SkillTree
+              userDoc={userDoc}
+              playerLevel={level}
+              onInfo={setActiveSkill}
+            />
+            {/* the cards around the tree: side by side on wide screens */}
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+              <div id="block">
+                <TrainingBlockCard invite />
               </div>
-            )}
+              <div id="timeline">
+                <SkillTimelineCard />
+              </div>
+              <div className="lg:col-span-2">
+                <CompareLink />
+              </div>
 
-            <div className="panel p-4">
-              <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
-                <Sparkles size={16} className="text-orange-400" /> {t("profile", "updateSkills")}
-              </h2>
-              <p className="text-xs text-zinc-400 mb-3">{t("profile", "updateSkillsHint")}</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setDeclareOpen(true)}
-                  className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
-                >
-                  {t("profile", "declareSkill")}
-                </button>
-                <Link
-                  href="/onboarding"
-                  className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 text-sm text-center"
-                >
-                  {t("profile", "retakeAssessment")}
-                </Link>
+              {userDoc.goalTracks?.length > 0 && (
+                <div className="panel p-4">
+                  <h2 className="heading text-base text-zinc-100 mb-2 flex items-center gap-2">
+                    <Target size={16} className="text-orange-400" />{" "}
+                    {tx("Your goals")}
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {userDoc.goalTracks.map((track) => (
+                      <span
+                        key={track}
+                        className="text-xs px-2.5 py-1 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-300"
+                      >
+                        {tx(TRACK_LABEL[track])}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="panel p-4">
+                <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">
+                  <Sparkles size={16} className="text-orange-400" />{" "}
+                  {t("profile", "updateSkills")}
+                </h2>
+                <p className="text-xs text-zinc-400 mb-3">
+                  {t("profile", "updateSkillsHint")}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDeclareOpen(true)}
+                    className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium"
+                  >
+                    {t("profile", "declareSkill")}
+                  </button>
+                  <Link
+                    href="/onboarding"
+                    className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 text-sm text-center"
+                  >
+                    {t("profile", "retakeAssessment")}
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {tab === "proven" && (
-          <div className="space-y-4 animate-overlay-fade-in">
-            <VerifiedSkillsCard userDoc={userDoc} />
-            <SkillWall skills={userDoc.skills} mastery={userDoc.skillMastery} playerLevel={level} />
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
+            <div className="lg:col-span-2">
+              <VerifiedSkillsCard userDoc={userDoc} />
+            </div>
+            <SkillWall
+              skills={userDoc.skills}
+              mastery={userDoc.skillMastery}
+              playerLevel={level}
+            />
             <div className="panel p-4">
-              <h2 className="heading text-base text-zinc-100 mb-2">{t("profile", "skillRadar")}</h2>
+              <h2 className="heading text-base text-zinc-100 mb-2">
+                {t("profile", "skillRadar")}
+              </h2>
               <SkillRadarChart skills={userDoc.skills} />
             </div>
           </div>
@@ -175,7 +211,12 @@ export default function SkillsPage() {
         skills={userDoc.skills}
         skillMastery={userDoc.skillMastery}
       />
-      <DeclareSkillModal open={declareOpen} onClose={() => setDeclareOpen(false)} userDoc={userDoc} onSaved={refreshUserDoc} />
+      <DeclareSkillModal
+        open={declareOpen}
+        onClose={() => setDeclareOpen(false)}
+        userDoc={userDoc}
+        onSaved={refreshUserDoc}
+      />
     </>
   );
 }

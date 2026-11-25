@@ -13,8 +13,17 @@ import FriendsLeaderboard from "@/components/FriendsLeaderboard";
 import FriendsFeed from "@/components/FriendsFeed";
 import CommunityEventCard from "@/components/CommunityEventCard";
 import CelebrationOverlay from "@/components/CelebrationOverlay";
-import { createPairing, joinPairing, sendPairingInvite, setPairingBarCount, PairingDoc } from "@/lib/store";
-import { generatePairedSession, applyAlternatingBarTurns } from "@/lib/trainingGenerator";
+import {
+  createPairing,
+  joinPairing,
+  sendPairingInvite,
+  setPairingBarCount,
+  PairingDoc,
+} from "@/lib/store";
+import {
+  generatePairedSession,
+  applyAlternatingBarTurns,
+} from "@/lib/trainingGenerator";
 import { completeSession, Celebration } from "@/lib/sessionComplete";
 import { adaptSession } from "@/lib/adaptation";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
@@ -32,11 +41,7 @@ type Mode = "choose" | "create" | "join";
 
 export default function FriendsPage() {
   return (
-    <Suspense
-      fallback={
-        <PageLoading variant="list" />
-      }
-    >
+    <Suspense fallback={<PageLoading variant="list" />}>
       <PairContent />
     </Suspense>
   );
@@ -88,7 +93,7 @@ function PairContent() {
       userDoc.displayName,
       userDoc.body,
       userDoc.skills,
-      userDoc.equipment
+      userDoc.equipment,
     );
     setCode(newCode);
     setMode("create");
@@ -100,9 +105,14 @@ function PairContent() {
       userDoc.displayName,
       userDoc.body,
       userDoc.skills,
-      userDoc.equipment
+      userDoc.equipment,
     );
-    await sendPairingInvite(friend.uid, userDoc.uid, userDoc.displayName, newCode);
+    await sendPairingInvite(
+      friend.uid,
+      userDoc.uid,
+      userDoc.displayName,
+      newCode,
+    );
     pushToFriend(friend.uid, "pairing_invite", { pairingCode: newCode });
     setInvitedName(friend.displayName);
     setCode(newCode);
@@ -124,7 +134,13 @@ function PairContent() {
       toast.error("That's your own code — share it with your friend instead.");
       return;
     }
-    await joinPairing(c, userDoc.uid, userDoc.displayName, userDoc.body, userDoc.skills);
+    await joinPairing(
+      c,
+      userDoc.uid,
+      userDoc.displayName,
+      userDoc.body,
+      userDoc.skills,
+    );
     setCode(c);
   };
 
@@ -134,23 +150,50 @@ function PairContent() {
 
   const paired =
     pairing && bothReady && barCount
-      ? generatePairedSession(pairing.hostSkills, pairing.guestSkills!, pairing.hostEquipment)
+      ? generatePairedSession(
+          pairing.hostSkills,
+          pairing.guestSkills!,
+          pairing.hostEquipment,
+        )
       : null;
 
-  const rawMySession = paired ? (isHost ? paired.hostSession : paired.guestSession) : null;
-  const rawTheirSession = paired ? (isHost ? paired.guestSession : paired.hostSession) : null;
+  const rawMySession = paired
+    ? isHost
+      ? paired.hostSession
+      : paired.guestSession
+    : null;
+  const rawTheirSession = paired
+    ? isHost
+      ? paired.guestSession
+      : paired.hostSession
+    : null;
   // my side adapts to my own history (the partner's side to theirs on their device)
   // both partners get the same length: the shorter of their two preferences
   const pairMinutes = Math.min(
     pairing?.hostBody?.sessionLengthMinutes ?? 90,
-    pairing?.guestBody?.sessionLengthMinutes ?? 90
+    pairing?.guestBody?.sessionLengthMinutes ?? 90,
   );
   const adaptedMine = rawMySession
-    ? fitSessionToMinutes(adaptSession(rawMySession, userDoc.exerciseStats, pairing!.hostEquipment), pairMinutes).session
+    ? fitSessionToMinutes(
+        adaptSession(
+          rawMySession,
+          userDoc.exerciseStats,
+          pairing!.hostEquipment,
+        ),
+        pairMinutes,
+      ).session
     : null;
-  const mySession = adaptedMine && barCount === 1 ? applyAlternatingBarTurns(adaptedMine) : adaptedMine;
-  const fittedTheirs = rawTheirSession ? fitSessionToMinutes(rawTheirSession, pairMinutes).session : null;
-  const theirSession = fittedTheirs && barCount === 1 ? applyAlternatingBarTurns(fittedTheirs) : fittedTheirs;
+  const mySession =
+    adaptedMine && barCount === 1
+      ? applyAlternatingBarTurns(adaptedMine)
+      : adaptedMine;
+  const fittedTheirs = rawTheirSession
+    ? fitSessionToMinutes(rawTheirSession, pairMinutes).session
+    : null;
+  const theirSession =
+    fittedTheirs && barCount === 1
+      ? applyAlternatingBarTurns(fittedTheirs)
+      : fittedTheirs;
   const partnerName = isHost ? pairing?.guestName : pairing?.hostName;
 
   const chooseBarCount = async (n: 1 | 2) => {
@@ -162,19 +205,34 @@ function PairContent() {
     }
   };
 
-  const handleComplete = async (feedback: ExerciseFeedback[], meta: { durationMin?: number }) => {
+  const handleComplete = async (
+    feedback: ExerciseFeedback[],
+    meta: { durationMin?: number },
+  ) => {
     if (!mySession) return;
     try {
-      const { patch, celebration: c, report } = await completeSession(userDoc, mySession, {
+      const {
+        patch,
+        celebration: c,
+        report,
+      } = await completeSession(userDoc, mySession, {
         isPaired: true,
         feedback,
         durationMin: meta.durationMin,
       });
       setCompleted(true);
-      if (!showReport(report, { celebration: c, xpGained: (patch.xp ?? userDoc.xp) - userDoc.xp })) setCelebration(c);
+      if (
+        !showReport(report, {
+          celebration: c,
+          xpGained: (patch.xp ?? userDoc.xp) - userDoc.xp,
+        })
+      )
+        setCelebration(c);
       await refreshUserDoc();
     } catch {
-      toast.error("Couldn't log your session — check your connection and try again.");
+      toast.error(
+        "Couldn't log your session — check your connection and try again.",
+      );
     }
   };
 
@@ -190,9 +248,14 @@ function PairContent() {
     return (
       <>
         <Nav />
-        <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4"
+        >
           <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
-            <Users size={26} className="text-orange-400" /> {t("nav", "friends")}
+            <Users size={26} className="text-orange-400" />{" "}
+            {t("nav", "friends")}
           </h1>
           <SaveProgressPrompt reason="Friends, nudges and training together need an account, so others can find you. Save your progress with Google — nothing you've done so far is lost." />
         </main>
@@ -204,11 +267,19 @@ function PairContent() {
     <>
       <Nav />
       <CelebrationOverlay celebration={celebration} />
-      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4"
+      >
         <h1 className="heading text-2xl text-zinc-100 flex items-center gap-2">
           <Users size={26} className="text-orange-400" /> {t("nav", "friends")}
         </h1>
-        <p className="text-sm text-zinc-400 -mt-2">{tx("Your training crew — nudge them, or train together with a shared session.")}</p>
+        <p className="text-sm text-zinc-400 -mt-2">
+          {tx(
+            "Your training crew — nudge them, or train together with a shared session.",
+          )}
+        </p>
 
         {!code && mode === "choose" && (
           <SectionNav
@@ -221,36 +292,36 @@ function PairContent() {
           />
         )}
         {!code && mode === "choose" && (
-          <div id="activity">
-            <FriendsFeed />
-          </div>
-        )}
-        {!code && mode === "choose" && (
-          <div id="leaderboard">
-            <FriendsLeaderboard />
-          </div>
-        )}
-        {!code && mode === "choose" && (
-          <div id="event">
-            <CommunityEventCard />
-          </div>
-        )}
-
-        {!code && mode === "choose" && (
-          <div id="friends">
-            <FriendsPanel onTrainTogether={handleTrainTogether} />
+          // wide screens: the crew's activity beside the board, the event beside your friends
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+            <div id="activity">
+              <FriendsFeed />
+            </div>
+            <div id="leaderboard">
+              <FriendsLeaderboard />
+            </div>
+            <div id="friends">
+              <FriendsPanel onTrainTogether={handleTrainTogether} />
+            </div>
+            <div id="event">
+              <CommunityEventCard />
+            </div>
           </div>
         )}
 
         {!code && mode === "choose" && (
           <div>
-            <div className="text-xs text-muted mb-2">Or link up with anyone using a one-off code</div>
+            <div className="text-xs text-muted mb-2">
+              Or link up with anyone using a one-off code
+            </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <button
                 onClick={handleCreate}
                 className="panel p-5 text-left hover:border-orange-500 border border-transparent"
               >
-                <h2 className="heading text-lg text-zinc-100 mb-1">Create a code</h2>
+                <h2 className="heading text-lg text-zinc-100 mb-1">
+                  Create a code
+                </h2>
                 <div className="text-sm text-zinc-400">
                   Generate a code from your profile and send it to anyone.
                 </div>
@@ -259,7 +330,9 @@ function PairContent() {
                 onClick={() => setMode("join")}
                 className="panel p-5 text-left hover:border-orange-500 border border-transparent"
               >
-                <h2 className="heading text-lg text-zinc-100 mb-1">Join a code</h2>
+                <h2 className="heading text-lg text-zinc-100 mb-1">
+                  Join a code
+                </h2>
                 <div className="text-sm text-zinc-400">
                   Enter a code someone shared to link up your session.
                 </div>
@@ -284,7 +357,10 @@ function PairContent() {
             >
               Link up
             </button>
-            <button onClick={resetToChoose} className="w-full text-xs text-muted">
+            <button
+              onClick={resetToChoose}
+              className="w-full text-xs text-muted"
+            >
               Back
             </button>
           </div>
@@ -296,11 +372,13 @@ function PairContent() {
               {isHost === false
                 ? "Waiting for the host..."
                 : invitedName
-                ? `Invite sent to ${invitedName} — waiting for them to accept`
-                : "Share this code with whoever you're training with"}
+                  ? `Invite sent to ${invitedName} — waiting for them to accept`
+                  : "Share this code with whoever you're training with"}
             </div>
             <div className="flex items-center justify-center gap-2">
-              <div className="stat-mono text-4xl tracking-[0.3em] text-orange-400">{code}</div>
+              <div className="stat-mono text-4xl tracking-[0.3em] text-orange-400">
+                {code}
+              </div>
               <button
                 onClick={() => navigator.clipboard.writeText(code)}
                 className="p-2 border border-zinc-600 rounded-lg text-zinc-300 hover:text-zinc-100"
@@ -321,9 +399,12 @@ function PairContent() {
         {code && bothReady && !barCount && (
           <div className="panel p-6 text-center space-y-3">
             <div className="text-sm text-zinc-100">
-              Linked with <span className="text-orange-400">{partnerName}</span>! One last thing —
+              Linked with <span className="text-orange-400">{partnerName}</span>
+              ! One last thing —
             </div>
-            <div className="text-sm text-zinc-400">How many pull-up bars do you have between you?</div>
+            <div className="text-sm text-zinc-400">
+              How many pull-up bars do you have between you?
+            </div>
             {isHost ? (
               <div className="flex gap-2 justify-center">
                 <button
@@ -340,7 +421,9 @@ function PairContent() {
                 </button>
               </div>
             ) : (
-              <div className="text-xs text-muted">Waiting for {pairing?.hostName ?? "the host"} to answer...</div>
+              <div className="text-xs text-muted">
+                Waiting for {pairing?.hostName ?? "the host"} to answer...
+              </div>
             )}
           </div>
         )}
@@ -348,20 +431,31 @@ function PairContent() {
         {paired && mySession && theirSession && (
           <div className="space-y-4">
             <div className="panel p-3 text-sm text-zinc-400">
-              Linked with <span className="text-zinc-100">{partnerName}</span> — today&apos;s
-              shared focus: <span className="text-orange-400">{paired.focusLabel}</span>. You
-              each get exercises matched to your own skill stage, based on the equipment at{" "}
+              Linked with <span className="text-zinc-100">{partnerName}</span> —
+              today&apos;s shared focus:{" "}
+              <span className="text-orange-400">{paired.focusLabel}</span>. You
+              each get exercises matched to your own skill stage, based on the
+              equipment at{" "}
               {isHost ? "your" : `${pairing?.hostName ?? "the host"}'s`} spot.
               {barCount === 1 && (
                 <span className="block mt-1 text-orange-400">
-                  Just one bar — pull/front lever/back lever/muscle-up work is set up to alternate
-                  turns, with rest stretched to cover your partner&apos;s turn too.
+                  Just one bar — pull/front lever/back lever/muscle-up work is
+                  set up to alternate turns, with rest stretched to cover your
+                  partner&apos;s turn too.
                 </span>
               )}
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
-              <SessionView session={mySession} equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT} onComplete={handleComplete} completed={completed} />
-              <SessionView session={theirSession} equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT} />
+              <SessionView
+                session={mySession}
+                equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT}
+                onComplete={handleComplete}
+                completed={completed}
+              />
+              <SessionView
+                session={theirSession}
+                equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT}
+              />
             </div>
           </div>
         )}

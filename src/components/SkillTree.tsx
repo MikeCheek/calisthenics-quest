@@ -50,7 +50,7 @@ export default function SkillTree({
           <h2 className="heading text-base text-zinc-100 mb-3 flex items-center gap-2">
             <Target size={16} className="text-orange-400" /> {tx("Up next")}
           </h2>
-          <ul className="space-y-2">
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {next.map((u) => (
               <li key={u.skill}>
                 <button
@@ -91,7 +91,8 @@ export default function SkillTree({
               <h3 className="text-xs uppercase tracking-wide text-emerald-400">{tx(cat.name)}</h3>
               <span className="text-xs text-muted">{tx("{a} of {b} started", { a: started.length, b: cat.skills.length })}</span>
             </div>
-            <div className="space-y-1.5">
+            {/* a grid of skill cards: two across on a phone, more on wide screens; an open card takes the whole row */}
+            <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3 xl:grid-cols-4">
               {visible.map((skill) => (
                 <SkillNode
                   key={skill}
@@ -109,7 +110,7 @@ export default function SkillTree({
               {untouched.length > 0 && (
                 <button
                   onClick={() => toggleUntouched(cat.name)}
-                  className="w-full text-xs text-zinc-400 hover:text-zinc-200 py-2 rounded-xl border border-dashed border-zinc-800 hover:border-zinc-600"
+                  className="col-span-full w-full text-xs text-zinc-400 hover:text-zinc-200 py-2 rounded-xl border border-dashed border-zinc-800 hover:border-zinc-600"
                 >
                   {showAll ? tx("Hide not started") : tx("Show {n} not started", { n: untouched.length })}
                 </button>
@@ -161,16 +162,16 @@ function SkillNode({
   const started = stage !== "none";
 
   return (
-    <div id={`skill-${skill}`} className={`panel overflow-hidden ${open ? "border-zinc-600" : ""}`}>
-      <button onClick={onToggle} aria-expanded={open} className="w-full text-left px-3 py-2.5">
-        <div className="flex items-center gap-1.5">
+    <div id={`skill-${skill}`} className={`panel overflow-hidden ${open ? "border-zinc-600 col-span-full" : ""}`}>
+      <button onClick={onToggle} aria-expanded={open} className="w-full h-full text-left px-3 py-2.5 flex flex-col">
+        <div className="flex items-center gap-1.5 w-full">
           <span className={`text-sm truncate ${started ? "text-zinc-100" : "text-zinc-400"}`}>{SKILL_FIELD_LABEL[skill]}</span>
           {verified && <BadgeCheck size={13} className="text-emerald-400 shrink-0" aria-label={tx("verified")} />}
-          <span className="ml-auto text-xs text-muted shrink-0">{tx(STAGE_LABEL[stage] ?? stage)}</span>
-          <ChevronDown size={14} className={`text-muted shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown size={14} className={`ml-auto text-muted shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
         </div>
+        <span className="text-xs text-muted truncate mt-0.5 w-full">{tx(STAGE_LABEL[stage] ?? stage)}</span>
         {/* the chain: one pip per stage */}
-        <div className="flex items-center gap-1 mt-2" aria-hidden>
+        <div className="flex items-center gap-1 mt-auto pt-2 w-full" aria-hidden>
           {states.map((s, i) => (
             <div key={s.stage} className="flex items-center flex-1 gap-1">
               <span

@@ -24,7 +24,7 @@ export default function LibraryPage() {
   return (
     <>
       <Nav />
-      <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
+      <main id="main" tabIndex={-1} className="max-w-3xl lg:max-w-6xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div>
           <h1 className="heading text-2xl text-zinc-100">{tx("Exercise library")}</h1>
           <p className="text-sm text-zinc-400">{tx("Every exercise in the app — how to do it, what it needs, and where it fits. Do one right now, or build a session.")}</p>
