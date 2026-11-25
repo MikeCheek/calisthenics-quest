@@ -1,0 +1,107 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { SPORTS, EXTRA_SPORTS, activeSportOf, enrolledSports, newTrack, sportExercises, locate, SPORT_DESCRIPTIONS_IT } from "../src/lib/sports";
+import { generateSportSession, pickSportFocus, focusOptions } from "../src/lib/sports/generator";
+import { applySportSession } from "../src/lib/sports/progress";
+import { parseTiming } from "../src/lib/exerciseTiming";
+import { localizeDetail, ENGLISH_DETAIL_WORDS } from "../src/lib/i18n/detail";
+import { localizedDescription } from "../src/lib/exerciseTiming";
+import { translate } from "../src/lib/i18n/tx";
+import type { ExerciseFeedback } from "../src/lib/types";
+
+test("every sport skill has stages, every stage has exercises with a description in both languages", () => {
+  for (const id of EXTRA_SPORTS) {
+    const def = SPORTS[id];
+    assert.ok(def.skills.length >= 6, id);
+    for (const sk of def.skills) {
+      assert.ok(def.groups.some((g) => g.key === sk.group), `${sk.key}: unknown group`);
+      assert.ok(sk.stages.length >= 2, sk.key);
+      for (const st of sk.stages) assert.ok(st.exercises.length >= 1, `${sk.key}/${st.id}`);
+    }
+    for (const { exercise } of sportExercises(def)) {
+      assert.ok(exercise.description, exercise.name);
+      assert.ok(SPORT_DESCRIPTIONS_IT[exercise.name] || localizedDescription(exercise, "it") !== exercise.description, `${exercise.name}: no Italian description`);
+      if (exercise.cue) assert.notEqual(translate("it", exercise.cue), exercise.cue, `${exercise.name}: cue not in Italian`);
+    }
+  }
+});
+
+test("prescriptions parse (sets, holds) and read in Italian", () => {
+  for (const id of EXTRA_SPORTS)
+    for (const { exercise } of sportExercises(SPORTS[id])) {
+      const t = parseTiming(exercise.detail);
+      assert.ok(t.sets >= 1, exercise.detail);
+      if (/\ds\b/.test(exercise.detail)) assert.equal(t.isTimed, true, exercise.detail);
+      assert.ok(!ENGLISH_DETAIL_WORDS.test(localizeDetail(exercise.detail, "it")), `${exercise.detail} → ${localizeDetail(exercise.detail, "it")}`);
+    }
+});
+
+test("sport names, groups and taglines are in Italian", () => {
+  for (const id of EXTRA_SPORTS) {
+    const def = SPORTS[id];
+    assert.notEqual(translate("it", def.tagline), def.tagline);
+    // "Flow" and "Core" are the words Italian practitioners use too
+    for (const g of def.groups.filter((g) => !["Flow", "Core"].includes(g.label))) assert.notEqual(translate("it", g.label), g.label, g.label);
+  }
+});
+
+test("a new track starts where your experience says", () => {
+  const def = SPORTS.yoga;
+  const t = newTrack(def, "some", ["crow", "nope"], 30);
+  assert.equal(t.stage.crow, 1);
+  assert.equal(t.stage.headstand, 1);
+  assert.deepEqual(t.goals, ["crow"]); // unknown skills dropped
+  assert.equal(newTrack(def, "experienced", []).stage.headstand, 2);
+  assert.equal(newTrack(def, "new", []).stage.wheel, 0);
+});
+
+test("today's session: warm-up, the focus at your stage, one other skill, cool-down", () => {
+  const def = SPORTS.yoga;
+  const track = newTrack(def, "some", []);
+  const s = generateSportSession(def, track, "strength", new Date(2026, 10, 25));
+  assert.equal(s.sport, "yoga");
+  assert.deepEqual(s.sets.map((x) => x.title), ["Warm-Up", "Arm balances & inversions", "Supporting work", "Cool-Down"]);
+  const names = s.sets[1].exercises.map((e) => e.name);
+  assert.ok(names.includes("Crow pose") && names.includes("Supported headstand at the wall"));
+  // a shaky stage starts with a step back
+  assert.ok(names.includes("Garland squat"));
+  assert.ok(!s.sets[1].exercises.some((e) => "it" in e)); // translations stay out of the session
+});
+
+test("the focus rotates and comes round more for your goals", () => {
+  const def = SPORTS.pilates;
+  const plain = newTrack(def, "new", []);
+  const seen = new Set([...Array(10)].map((_, i) => pickSportFocus(def, plain, new Date(2026, 0, 1 + i))));
+  assert.deepEqual([...seen].sort(), [...focusOptions(def)].sort());
+  const withGoal = newTrack(def, "new", ["teaser"]); // a core skill
+  const days = [...Array(30)].map((_, i) => pickSportFocus(def, withGoal, new Date(2026, 0, 1 + i)));
+  assert.ok(days.filter((f) => f === "core").length > days.filter((f) => f === "spine").length);
+});
+
+const fb = (name: string, outcome: ExerciseFeedback["outcome"], setTitle = "Balance"): ExerciseFeedback => ({ name, outcome, setTitle }) as ExerciseFeedback;
+
+test("mastery grows with good sessions and moves you up a stage", () => {
+  const def = SPORTS.yoga;
+  let track = newTrack(def, "new", []);
+  const up: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    const r = applySportSession(def, track, [fb("Tree pose", "done"), fb("Warrior II", "done")]);
+    track = r.track;
+    up.push(...r.stageUps.map((u) => `${u.from}→${u.to}`));
+  }
+  assert.deepEqual(up, ["Tree→Warrior III"]);
+  assert.equal(track.stage.standingBalance, 1);
+  assert.equal(track.sessions, 4);
+  // too hard takes it back down; warm-ups don't count
+  const r = applySportSession(def, track, [fb("Warrior III", "tooHard"), fb("Child's pose", "done", "Warm-Up")]);
+  assert.ok(r.track.mastery.standingBalance < track.mastery.standingBalance);
+  assert.deepEqual(locate(def, "Crow pose"), { skill: "crow", stage: 1 });
+});
+
+test("the active sport: calisthenics unless another is started and picked", () => {
+  assert.equal(activeSportOf({}), "calisthenics");
+  assert.equal(activeSportOf({ activeSport: "yoga" }), "calisthenics"); // not started
+  const sports = { yoga: newTrack(SPORTS.yoga, "new", []) };
+  assert.equal(activeSportOf({ activeSport: "yoga", sports }), "yoga");
+  assert.deepEqual(enrolledSports({ sports }), ["calisthenics", "yoga"]);
+});

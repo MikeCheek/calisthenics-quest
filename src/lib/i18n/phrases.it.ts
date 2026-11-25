@@ -1,4 +1,5 @@
 import { ABOUT } from "../aboutCopy";
+import { SPORT_CUES_IT } from "../sports";
 
 // Italian phrase table for lib/i18n/tx.ts — keyed by the English text.
 // Entries with {placeholders} are templates: they also translate generated
@@ -1823,6 +1824,20 @@ const IT_PHRASES: [string, string][] = [
   ["Ask which park I'm at", "Chiedimi in quale parco sono"],
   ["Before a session, pick the bar park you're training at to log it there.", "Prima di una sessione, scegli il parco in cui ti alleni per registrarla lì."],
   ["at {park}", "a {park}"],
+  // ---- sports ----
+  ["Flexibility, balance and calm strength", "Flessibilità, equilibrio e forza calma"],
+  ["Core control, posture and precise movement", "Controllo del core, postura e movimento preciso"],
+  ["Bodyweight strength and skills at the bar", "Forza a corpo libero e skill alla sbarra"],
+  ["Flow", "Flow"],
+  ["Balance", "Equilibrio"],
+  ["Arm balances & inversions", "Equilibri sulle braccia e inversioni"],
+  ["Backbends", "Estensioni della schiena"],
+  ["Flexibility", "Flessibilità"],
+  ["Spine", "Colonna"],
+  ["Legs & hips", "Gambe e anche"],
+  ["Full body", "Corpo intero"],
+  ["Supporting work", "Lavoro di supporto"],
+  ["Cool-Down", "Defaticamento"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
@@ -1925,4 +1940,6 @@ const IT_PHRASES: [string, string][] = [
   ["You're already friends.", "Siete già amici."],
 ];
 
-export default IT_PHRASES;
+// cues for the other sports live with their content (sports/)
+const ALL_PHRASES: [string, string][] = [...IT_PHRASES, ...SPORT_CUES_IT];
+export default ALL_PHRASES;

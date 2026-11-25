@@ -297,6 +297,7 @@ export interface AdaptationReport {
   records: PersonalRecord[]; // new personal bests set this session
   sessionRecord?: SessionRecord; // the session just logged, for sharing
   ignoredTimingSamples: number; // timer samples dropped as unreliable
+  stageUps?: import("./sports/progress").StageUp[]; // another sport: stages moved up this session
 }
 
 export function applySkillFeedback(

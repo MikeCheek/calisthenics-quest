@@ -137,7 +137,7 @@ function hierarchyFor(group: HierarchyGroup, equipment: TrainingEquipment): Exer
 // skill's difficulty hierarchy — shared by every difficulty control
 // (whole-session feedback, "can't do this," "I'm tired") so none of them
 // touch these two blocks. Matched against `TrainingSet.title`.
-export const HIERARCHY_EXEMPT_SETS = new Set(["Warm-Up", "Final Hits"]);
+export const HIERARCHY_EXEMPT_SETS = new Set(["Warm-Up", "Final Hits", "Cool-Down"]);
 
 interface ExerciseLocation {
   group: HierarchyGroup;
