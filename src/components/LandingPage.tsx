@@ -150,7 +150,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
 
       <main id="main" tabIndex={-1} className="px-4 pb-16">
         {/* hero */}
-        <section className="max-w-5xl mx-auto grid md:grid-cols-2 gap-10 items-center pt-4 pb-12">
+        <section className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center pt-4 pb-12">
           <div>
             <p className="inline-block text-xs text-orange-300 border border-orange-500/30 bg-orange-500/10 rounded-full px-3 py-1 mb-4">
               {p(LANDING.hero.eyebrow)}
@@ -187,7 +187,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
         <section className="max-w-5xl mx-auto mb-20">
           <h2 className="heading text-3xl text-zinc-100 mb-2">{p(LANDING.why.title)}</h2>
           <p className="text-zinc-400 max-w-2xl mb-6">{p(LANDING.why.intro)}</p>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {LANDING.why.items.map((it) => {
               const Icon = ICONS[it.icon];
               return (
@@ -206,7 +206,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
         {/* the app, screen by screen */}
         <div className="max-w-5xl mx-auto space-y-20 mb-20">
           {LANDING.showcase.map((s, i) => (
-            <section key={s.id} className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <section key={s.id} className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
               <div className={i % 2 ? "md:order-2" : ""}>
                 <p className="text-xs uppercase tracking-widest text-orange-400 mb-2">{p(s.eyebrow)}</p>
                 <h2 className="heading text-3xl text-zinc-100 mb-3">{p(s.title)}</h2>

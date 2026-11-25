@@ -25,6 +25,10 @@ for (const [path, title] of SCREENS) {
     await page.goto(path);
     await expect(page.locator("h1").first()).toBeVisible();
     await expect(page).toHaveTitle(title);
+    // nothing wider than the phone: an overflow makes mobile browsers zoom
+    // the page out, and taps then land away from what they aim at
+    const fit = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, screen: Math.round(window.visualViewport?.width ?? window.innerWidth) }));
+    expect(fit.page, "page wider than the screen").toBeLessThanOrEqual(fit.screen + 1);
     await expectNoA11yViolations(page);
     expect(errors).toEqual([]);
   });

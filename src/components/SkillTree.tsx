@@ -50,7 +50,7 @@ export default function SkillTree({
           <h2 className="heading text-base text-zinc-100 mb-3 flex items-center gap-2">
             <Target size={16} className="text-orange-400" /> {tx("Up next")}
           </h2>
-          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {next.map((u) => (
               <li key={u.skill}>
                 <button

@@ -232,7 +232,7 @@ export default function ProfilePage() {
         )}
 
         {tab === "activity" && (
-          <div className="grid gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
             <div className="lg:col-span-2">
               <CompareLink />
             </div>
@@ -258,7 +258,7 @@ export default function ProfilePage() {
         )}
 
         {tab === "settings" && (
-          <div className="grid gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
             <Link
               id="body"
               href="/onboarding"

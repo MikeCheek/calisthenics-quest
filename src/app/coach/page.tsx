@@ -70,7 +70,7 @@ export default function CoachPage() {
         </div>
 
         {/* wide screens: the chat beside what the coach has learned */}
-        <div className="grid gap-4 lg:grid-cols-12 lg:items-start">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start">
           {featureAiCoach && (
             <div id="chat" className="lg:col-span-7">
               <CoachChat />
@@ -88,7 +88,7 @@ export default function CoachPage() {
           <h2 className="text-xs uppercase tracking-wide text-muted px-1 mb-2">
             {tx("Tools")}
           </h2>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {tools.map(({ href, icon: Icon, title, body }) => (
               <Link
                 key={href}

@@ -138,7 +138,7 @@ export default function ExerciseBrowser({ onPick, picked = [] }: { onPick?: (e: 
       <p className="text-xs text-zinc-400" aria-live="polite">
         {tx("{n} exercises", { n: results.length })}
       </p>
-      <ul className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
         {results.slice(0, shown).map((e) => {
           const isPicked = picked.includes(e.exercise.name);
           return (

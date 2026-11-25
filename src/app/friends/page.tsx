@@ -293,7 +293,7 @@ function PairContent() {
         )}
         {!code && mode === "choose" && (
           // wide screens: the crew's activity beside the board, the event beside your friends
-          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
             <div id="activity">
               <FriendsFeed />
             </div>
@@ -314,7 +314,7 @@ function PairContent() {
             <div className="text-xs text-muted mb-2">
               Or link up with anyone using a one-off code
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 onClick={handleCreate}
                 className="panel p-5 text-left hover:border-orange-500 border border-transparent"
@@ -445,7 +445,7 @@ function PairContent() {
                 </span>
               )}
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SessionView
                 session={mySession}
                 equipment={pairing?.hostEquipment ?? DEFAULT_EQUIPMENT}
