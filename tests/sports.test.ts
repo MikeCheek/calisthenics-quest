@@ -117,3 +117,36 @@ test("every string in the sport screens has Italian", async () => {
   const missing = [...strings].filter((s) => translate("it", s) === s && !["Calisthenics", "Yoga", "Pilates", "{n} min"].includes(s));
   assert.deepEqual(missing, []);
 });
+
+test("every yoga and Pilates exercise has a demo that's drawn right", async () => {
+  const { demoFor } = await import("../src/lib/demos/catalog");
+  const { skeleton, poseAt, demoDuration } = await import("../src/lib/demos/figure");
+  const problems: string[] = [];
+  for (const def of EXTRA_SPORTS.map((s) => SPORTS[s]))
+    for (const { exercise: { name } } of sportExercises(def)) {
+      const e = demoFor(name);
+      if (!e) {
+        problems.push(`${name}: no demo`);
+        continue;
+      }
+      const [x0, y0, w, h] = e.demo.viewBox;
+      const total = demoDuration(e.demo);
+      let prev: ReturnType<typeof skeleton> | null = null;
+      for (let ms = 0; ms <= total; ms += 20) {
+        const sk = skeleton(poseAt(e.demo, ms), e.demo.view);
+        const pts = [sk.hip, sk.shoulder, ...sk.arms.flatMap((a) => [a.joint, a.end]), ...sk.legs.flatMap((l) => [l.joint, l.end])];
+        const err = Math.max(...[...sk.arms, ...sk.legs].map((l) => l.error));
+        const issue =
+          err > 2 ? `misses its anchor by ${err.toFixed(1)}` :
+          [...pts, sk.head].some(([x, y]) => x < x0 - 2 || y < y0 - 2 || x > x0 + w + 2 || y > y0 + h + 2) ? "leaves the frame" :
+          pts.some(([, y]) => y > 108 + 2.5) || sk.head[1] > 108 + 2.5 ? `goes through the floor (${pts.findIndex(([, y]) => y > 110.5)})` :
+          prev && Math.max(...pts.map((p, i) => Math.hypot(p[0] - [prev!.hip, prev!.shoulder, ...prev!.arms.flatMap((a) => [a.joint, a.end]), ...prev!.legs.flatMap((l) => [l.joint, l.end])][i][0], p[1] - [prev!.hip, prev!.shoulder, ...prev!.arms.flatMap((a) => [a.joint, a.end]), ...prev!.legs.flatMap((l) => [l.joint, l.end])][i][1]))) > 12 ? "jumps" : null;
+        if (issue) {
+          problems.push(`${name} @${ms}ms: ${issue}`);
+          break;
+        }
+        prev = sk;
+      }
+    }
+  assert.deepEqual(problems, []);
+});

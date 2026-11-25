@@ -1,6 +1,7 @@
 import { Demo } from "./figure";
 import * as T from "./templates";
 import * as T2 from "./templates2";
+import * as T3 from "./templates3";
 import type { Variant } from "./templates";
 
 // ---------------------------------------------------------------------------
@@ -18,7 +19,8 @@ export type Family =
   | "flag" | "calf" | "gluteBridge"
   | "cross" | "crow" | "elbowLever" | "monkeyBars" | "rope" | "jump" | "rdl"
   | "jacks" | "armCircles" | "pullApart" | "hipCircles" | "catCow" | "childsPose" | "hipFlexor" | "worldsGreatest" | "fold"
-  | "legSwings" | "highKnees" | "climbers" | "burpee" | "prone" | "wrists" | "chestOpener" | "stretch";
+  | "legSwings" | "highKnees" | "climbers" | "burpee" | "prone" | "wrists" | "chestOpener" | "stretch"
+  | "flow" | "downDog" | "balance" | "backbend" | "split" | "seated" | "inversion" | "curl" | "rolling" | "sideLying" | "rest";
 
 export const MISTAKES: Record<Family, string[]> = {
   pullUp: ["Kipping or swinging to get up", "Half reps — not starting from a full hang", "Shrugging: shoulders up by the ears at the bottom"],
@@ -74,6 +76,17 @@ export const MISTAKES: Record<Family, string[]> = {
   wrists: ["Rushing — wrists like slow, steady warm-up", "Fingers lifting off the floor", "Going past mild discomfort"],
   chestOpener: ["Shrugging the shoulder", "Twisting the lower back to fake range", "Hand too high on the wall"],
   stretch: ["Bouncing", "Going to pain instead of a mild pull", "Holding the breath"],
+  flow: ["Rushing — one breath per movement", "Collapsing the lower back in the low plank", "Shoulders dropping toward the floor in upward dog"],
+  downDog: ["Rounding the back to get the heels down — bend the knees instead", "Shoulders sinking toward the ears", "Weight only in the hands"],
+  balance: ["Locking the standing knee", "Staring at a moving point — fix the gaze", "Hip of the lifted leg hiking up"],
+  backbend: ["Bending only from the lower back", "Squeezing the neck back", "Knees splaying out"],
+  split: ["Hips twisting open", "Forcing the last inch", "Back knee on a hard floor — pad it"],
+  seated: ["Rounding to fake the range — lengthen first", "Forcing the knees down", "Holding the breath"],
+  inversion: ["Weight on the head instead of the forearms", "Kicking up instead of walking the feet in", "Arching the lower back"],
+  curl: ["Pulling on the neck", "Lower back lifting off the mat", "Legs lower than you can keep the back down"],
+  rolling: ["Using momentum to sit back up", "Rolling onto the neck", "Losing the shape halfway"],
+  sideLying: ["Rolling back onto the hips", "Moving the waist instead of the leg", "Collapsing the bottom shoulder"],
+  rest: ["Fidgeting — let the floor hold you", "Holding tension in the jaw and shoulders", "Skipping it"],
 };
 
 function variantOf(name: string): Variant {
@@ -90,7 +103,102 @@ interface Rule {
   build: (name: string) => Demo;
 }
 
+// Yoga and Pilates names first: they reuse words like "bridge", "plank", "cross"
+const SPORT_RULES: Rule[] = [
+  { test: /half sun salutation/i, family: "flow", build: () => T3.halfSunSalutation() },
+  { test: /sun salutation b/i, family: "flow", build: () => T3.sunSalutation({ b: true }) },
+  { test: /sun salutation/i, family: "flow", build: () => T3.sunSalutation() },
+  { test: /vinyasa/i, family: "flow", build: () => T3.vinyasa() },
+  { test: /jump back to chaturanga/i, family: "flow", build: () => T3.vinyasa({ jumpBack: true }) },
+  { test: /chaturanga/i, family: "flow", build: () => T3.chaturanga() },
+  { test: /downward dog pedal/i, family: "downDog", build: () => T3.downwardDog({ pedal: true }) },
+  { test: /downward dog/i, family: "downDog", build: () => T3.downwardDog() },
+  { test: /dolphin/i, family: "downDog", build: () => T3.downwardDog({ dolphin: true }) },
+  { test: /cobra|swan prep/i, family: "backbend", build: () => T3.cobra() },
+  { test: /swan dive/i, family: "backbend", build: () => T3.cobra({ swanDive: true }) },
+  { test: /^swan$/i, family: "backbend", build: () => T3.cobra({ high: true }) },
+  { test: /tree pose/i, family: "balance", build: () => T3.tree() },
+  { test: /warrior ii\b/i, family: "balance", build: () => T3.warrior2() },
+  { test: /warrior iii/i, family: "balance", build: () => T3.warrior3() },
+  { test: /eagle pose/i, family: "balance", build: () => T3.eagle() },
+  { test: /half moon/i, family: "balance", build: () => T3.halfMoon() },
+  { test: /dancer pose/i, family: "balance", build: () => T3.dancer() },
+  { test: /standing split/i, family: "balance", build: () => T3.standingSplit() },
+  { test: /hand-to-big-toe/i, family: "balance", build: () => T3.handToToe() },
+  { test: /garland/i, family: "stretch", build: () => T3.garland() },
+  { test: /firefly|eight-angle/i, family: "crow", build: () => T2.crowStand() },
+  { test: /boat pose/i, family: "curl", build: () => T3.boat({ build: true }) },
+  { test: /boat hold/i, family: "curl", build: () => T3.boat() },
+  { test: /single-leg teaser/i, family: "curl", build: () => T3.teaser({ singleLeg: true }) },
+  { test: /teaser prep/i, family: "curl", build: () => T3.teaser({ prep: true }) },
+  { test: /teaser hold/i, family: "curl", build: () => T3.teaser({ hold: true }) },
+  { test: /teaser/i, family: "curl", build: () => T3.teaser() },
+  { test: /forearm plank/i, family: "plank", build: () => T.plank() },
+  { test: /headstand leg lowers/i, family: "inversion", build: () => T3.headstand({ lowers: true }) },
+  { test: /headstand tuck/i, family: "inversion", build: () => T3.headstand({ tuck: true }) },
+  { test: /headstand at the wall/i, family: "inversion", build: () => T3.headstand({ wall: true }) },
+  { test: /freestanding headstand/i, family: "inversion", build: () => T3.headstand() },
+  { test: /bridge pose|pelvic curl/i, family: "gluteBridge", build: () => T.gluteBridge({ singleLeg: false }) },
+  { test: /single-leg bridge/i, family: "gluteBridge", build: () => T.gluteBridge({ singleLeg: true }) },
+  { test: /bridge marches/i, family: "gluteBridge", build: () => T3.bridgeKick({ march: true }) },
+  { test: /shoulder bridge/i, family: "gluteBridge", build: () => T3.bridgeKick() },
+  { test: /locust/i, family: "backbend", build: () => T3.locust() },
+  { test: /camel/i, family: "backbend", build: () => T3.camel() },
+  { test: /wheel prep/i, family: "backbend", build: () => T3.wheelPrep() },
+  { test: /wheel pose/i, family: "bridge", build: () => T.bridge() },
+  { test: /bow pose/i, family: "backbend", build: () => T3.bow() },
+  { test: /low lunge/i, family: "hipFlexor", build: () => T3.lowLunge() },
+  { test: /half split/i, family: "split", build: () => T3.halfSplit() },
+  { test: /lizard/i, family: "split", build: () => T3.lizard() },
+  { test: /supported front split/i, family: "split", build: () => T3.frontSplit({ supported: true }) },
+  { test: /front split/i, family: "split", build: () => T3.frontSplit() },
+  { test: /middle split/i, family: "split", build: () => T3.straddle() },
+  { test: /(standing|wide-legged) forward fold/i, family: "fold", build: () => T3.forwardFold() },
+  { test: /head-to-knee/i, family: "seated", build: () => T3.seatedHeadToKnee() },
+  { test: /plow/i, family: "inversion", build: () => T3.plow() },
+  { test: /figure-four/i, family: "stretch", build: () => T3.figureFour() },
+  { test: /butterfly/i, family: "seated", build: () => T3.butterfly() },
+  { test: /pigeon/i, family: "split", build: () => T3.pigeon() },
+  { test: /happy baby/i, family: "stretch", build: () => T3.happyBaby() },
+  { test: /half lotus/i, family: "seated", build: () => T3.lotus({ half: true }) },
+  { test: /full lotus/i, family: "seated", build: () => T3.lotus() },
+  { test: /supine twist/i, family: "stretch", build: () => T3.supineTwist() },
+  { test: /savasana/i, family: "rest", build: () => T3.savasana() },
+  { test: /chest lift/i, family: "curl", build: () => T3.chestLift() },
+  { test: /hundred \(tabletop/i, family: "curl", build: () => T3.hundred("tabletop") },
+  { test: /hundred \(low/i, family: "curl", build: () => T3.hundred("low") },
+  { test: /^hundred$/i, family: "curl", build: () => T3.hundred("high") },
+  { test: /single-leg stretch/i, family: "curl", build: () => T3.singleLegStretch() },
+  { test: /criss-cross/i, family: "curl", build: () => T3.singleLegStretch({ cross: true }) },
+  { test: /double-leg stretch/i, family: "curl", build: () => T3.doubleLegStretch() },
+  { test: /half roll-back/i, family: "rolling", build: () => T3.rollUp({ half: true }) },
+  { test: /roll-up/i, family: "rolling", build: () => T3.rollUp() },
+  { test: /spine stretch forward/i, family: "seated", build: () => T3.rollUp({ spineStretch: true }) },
+  { test: /roll-over/i, family: "rolling", build: () => T3.rollOver() },
+  { test: /jackknife/i, family: "rolling", build: () => T3.rollOver({ jackknife: true }) },
+  { test: /control balance/i, family: "rolling", build: () => T3.rollOver({ control: true }) },
+  { test: /boomerang/i, family: "rolling", build: () => T3.boomerang() },
+  { test: /rolling like a ball|^seal$/i, family: "rolling", build: () => T3.rolling() },
+  { test: /open-leg rocker/i, family: "rolling", build: () => T3.rolling({ openLeg: true }) },
+  { test: /corkscrew/i, family: "curl", build: () => T3.legCircles({ both: true }) },
+  { test: /single-leg circles/i, family: "curl", build: () => T3.legCircles() },
+  { test: /swimming/i, family: "prone", build: () => T3.swimming() },
+  { test: /single-leg kick/i, family: "prone", build: () => T3.legKick() },
+  { test: /double-leg kick/i, family: "prone", build: () => T3.legKick({ double: true }) },
+  { test: /side-lying leg lifts/i, family: "sideLying", build: () => T3.sideLegLift() },
+  { test: /side kick front and back/i, family: "sideLying", build: () => T3.sideLegLift({ kick: true }) },
+  { test: /clamshell/i, family: "sideLying", build: () => T3.clamshell() },
+  { test: /kneeling side kick/i, family: "sideLying", build: () => T3.kneelingSideKick() },
+  { test: /side bend \(mermaid\)/i, family: "seated", build: () => T3.mermaid() },
+  { test: /leg pull front/i, family: "plank", build: () => T3.legPull() },
+  { test: /leg pull back/i, family: "plank", build: () => T3.legPull({ back: true }) },
+  { test: /breathing with pelvic tilts/i, family: "rest", build: () => T3.breathingTilt() },
+  { test: /spine twist/i, family: "seated", build: () => T3.spineTwist() },
+  { test: /^saw$/i, family: "seated", build: () => T3.spineTwist({ saw: true }) },
+];
+
 const RULES: Rule[] = [
+  ...SPORT_RULES,
   // warm-up, mobility and cool-down first — their names reuse words like "push-up", "hang", "squat"
   { test: /wrist|forearm/i, family: "wrists", build: () => T2.wristRocks() },
   { test: /jumping jacks?/i, family: "jacks", build: () => T2.jumpingJack() },
