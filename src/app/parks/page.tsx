@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Loader2, LocateFixed, MapPin, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Heart, Loader2, LocateFixed, MapPin, Plus, RefreshCw, Search, Star, Users, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import Nav from "@/components/Nav";
@@ -12,9 +12,10 @@ import Modal from "@/components/Modal";
 import PageLoading from "@/components/PageLoading";
 import ParkSheet from "@/components/parks/ParkSheet";
 import type { LatLon } from "@/components/parks/ParksMap";
-import { addUserPark, fetchOsmCells, fetchUserParks, saveOsmCells, saveParkEdit } from "@/lib/store";
+import { addUserPark, fetchOsmCells, fetchParkStats, fetchUserParks, saveOsmCells, saveParkEdit } from "@/lib/store";
+import { setTodayPark } from "@/lib/todayPark";
 import { locate, savedPlace, savePlace } from "@/lib/weather";
-import { REFRESH_MIN_HOURS, cellOf, cellsCovering, distanceM, KIT_LABEL, loadOsmParks, mergeEdits, parkName, placeAt, type LoadResult, type Park, type UserParkDoc } from "@/lib/parks";
+import { REFRESH_MIN_HOURS, cellOf, cellsCovering, distanceM, KIT_LABEL, loadOsmParks, mergeEdits, parkName, placeAt, type LoadResult, type Park, type ParkStats, type UserParkDoc } from "@/lib/parks";
 import { setTodayEquipment } from "@/lib/todayEquipment";
 import type { TrainingEquipment } from "@/lib/types";
 
@@ -79,7 +80,27 @@ export default function ParksPage() {
     if (searchAt) load(searchAt, radius);
   }, [searchAt, radius, load]);
 
-  const parks = useMemo(() => (osm && searchAt ? mergeEdits(osm.parks, docs, searchAt, radius) : []), [osm, docs, searchAt, radius]);
+  const found = useMemo(() => (osm && searchAt ? mergeEdits(osm.parks, docs, searchAt, radius) : []), [osm, docs, searchAt, radius]);
+  // favourites first (even outside this search), then the rest by distance
+  const favs = useMemo(() => userDoc?.favParks ?? [], [userDoc?.favParks]);
+  const parks = useMemo(() => {
+    const favIds = new Set(favs.map((f) => f.id));
+    const favParks: Park[] = favs.map((f) => found.find((p) => p.id === f.id) ?? { id: f.id, name: f.name, lat: f.lat, lon: f.lon, source: f.source, mapKit: [], ...(searchAt ? { distanceM: Math.round(distanceM(searchAt, f)) } : {}) });
+    return [...favParks, ...found.filter((p) => !favIds.has(p.id))];
+  }, [found, favs, searchAt]);
+  // likes and athletes per park, for the list
+  const [stats, setStats] = useState<Record<string, ParkStats>>({});
+  const idsKey = parks.slice(0, 40).map((p) => p.id).join(",");
+  useEffect(() => {
+    if (!idsKey) return;
+    let live = true;
+    fetchParkStats(idsKey.split(","))
+      .then((s) => live && setStats(s))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [idsKey]);
 
   const findMe = async () => {
     setLocating(true);
@@ -110,6 +131,7 @@ export default function ParksPage() {
 
   const trainHere = (park: Park, equipment: TrainingEquipment) => {
     setTodayEquipment({ kind: "park", label: parkName(park, tx("Bar park")), parkId: park.id, equipment });
+    setTodayPark({ id: park.id, name: parkName(park, tx("Bar park")) }); // logged with today's session
     router.push("/dashboard");
   };
 
@@ -309,11 +331,22 @@ export default function ParksPage() {
                           <img src={p.photo} alt="" loading="lazy" className="w-9 h-9 rounded-lg object-cover shrink-0" onError={(e) => (e.currentTarget.style.display = "none")} />
                         )}
                         <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${p.source === "user" ? "bg-purple-400" : p.edit ? "bg-sky-400" : "bg-orange-500"}`} aria-hidden />
+                        {favs.some((f) => f.id === p.id) && <Star size={14} className="fill-amber-300 text-amber-300 shrink-0" aria-label={tx("Favourite")} />}
                         <span className="flex-1 min-w-0 truncate text-sm text-zinc-100">{parkName(p, tx("Bar park"))}</span>
                         {p.distanceM !== undefined && <span className="text-xs text-zinc-400 shrink-0">{km(p.distanceM)}</span>}
                       </span>
-                      <span className="block text-xs text-zinc-400 mt-0.5 pl-[18px] truncate">
-                        {p.mapKit.length ? p.mapKit.map((k) => tx(KIT_LABEL[k])).join(" · ") : tx("Equipment not mapped — tap to see what athletes say")}
+                      <span className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5 pl-[18px]">
+                        <span className="flex-1 min-w-0 truncate">{p.mapKit.length ? p.mapKit.map((k) => tx(KIT_LABEL[k])).join(" · ") : tx("Equipment not mapped — tap to see what athletes say")}</span>
+                        {(stats[p.id]?.likes ?? 0) > 0 && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-rose-300" aria-label={tx("{n} likes", { n: stats[p.id].likes })}>
+                            <Heart size={11} className="fill-rose-400" aria-hidden /> {stats[p.id].likes}
+                          </span>
+                        )}
+                        {(stats[p.id]?.people ?? 0) > 0 && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-sky-300" aria-label={tx("{n} athletes trained here", { n: stats[p.id].people })}>
+                            <Users size={11} aria-hidden /> {stats[p.id].people}
+                          </span>
+                        )}
                       </span>
                     </button>
                   </li>

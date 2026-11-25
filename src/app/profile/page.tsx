@@ -16,6 +16,7 @@ import Nav from "@/components/Nav";
 import { levelProgress } from "@/lib/levelPath";
 import { Locale } from "@/lib/types";
 import ReminderSettings from "@/components/ReminderSettings";
+import AskParkToggle from "@/components/AskParkToggle";
 import ShareActivityToggle from "@/components/ShareActivityToggle";
 import HapticsToggle from "@/components/HapticsToggle";
 import { updateProgress } from "@/lib/store";
@@ -266,6 +267,7 @@ export default function ProfilePage() {
             <div id="preferences" className="space-y-4">
               <HapticsToggle />
               <ShareActivityToggle />
+              <AskParkToggle />
             </div>
 
             <Link href="/about" className="panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors">

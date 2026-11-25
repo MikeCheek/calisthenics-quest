@@ -241,12 +241,23 @@ service cloud.firestore {
         && validSpot(request.resource.data);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
 
-      // likes: one per athlete, counted with an aggregation query
+      // likes: one per athlete (the count is in parkStats)
       match /likes/{uid} {
         allow read: if request.auth != null;
         allow create: if request.auth != null && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['atISO']) && request.resource.data.atISO is string;
         allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // sessions logged here: one doc per athlete, its count only goes up by one
+      match /trained/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['sessions', 'firstISO', 'lastISO'])
+          && request.resource.data.sessions == 1;
+        allow update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sessions', 'lastISO'])
+          && request.resource.data.sessions == resource.data.sessions + 1;
       }
 
       match /reports/{uid} {
@@ -264,6 +275,28 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
     }
+    // public counts per park: likes and athletes who trained there. Each
+    // change is ±1 and must come in the same batch as the like (or the first
+    // visit) it counts — so nobody can inflate them.
+    match /parkStats/{parkId} {
+      function base() { return resource == null ? {} : resource.data; }
+      function stepped(field, by) {
+        return request.resource.data.get(field, 0) == base().get(field, 0) + by;
+      }
+      function likeDoc() { return /databases/$(database)/documents/parks/$(parkId)/likes/$(request.auth.uid); }
+      function visitDoc() { return /databases/$(database)/documents/parks/$(parkId)/trained/$(request.auth.uid); }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['likes', 'people'])
+        && (
+          (request.resource.data.diff(base()).affectedKeys().hasOnly(['likes'])
+            && ((stepped('likes', 1) && !exists(likeDoc()) && existsAfter(likeDoc()))
+              || (stepped('likes', -1) && exists(likeDoc()) && !existsAfter(likeDoc()))))
+          || (request.resource.data.diff(base()).affectedKeys().hasOnly(['people'])
+            && stepped('people', 1) && !exists(visitDoc()) && existsAfter(visitDoc()))
+        );
+    }
+
     // OpenStreetMap parks, cached per 0.1° cell by whoever loads an area
     // first, so everyone else skips the slow Overpass query. A cell can be
     // refreshed at most once a day, and the date is the server's.

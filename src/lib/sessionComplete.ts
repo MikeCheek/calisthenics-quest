@@ -1,4 +1,5 @@
 import { settleWrite } from "./offlineWrites";
+import { readTodayPark } from "./todayPark";
 import { nextStreak } from "./weekStreak";
 import { skillHistoryPatch } from "./skillHistory";
 import { earnedXp } from "./sessionXp";
@@ -9,7 +10,7 @@ import { applyCheckResults, syncClaims } from "./verification";
 import { buildSessionRecord, detectRecords, recordLastTimes } from "./sessionHistory";
 import { addToWeek } from "./leaderboard";
 import { ensureCurrentWeekMissions, bumpMissions } from "./missions";
-import { updateProgress, syncPublicProfile, saveSessionRecord, setGlobalBoardEntry, addFeedItem } from "./store";
+import { updateProgress, syncPublicProfile, saveSessionRecord, setGlobalBoardEntry, addFeedItem, recordParkVisit } from "./store";
 import { feedItemFor, sharesActivity } from "./feed";
 import { levelFromXp } from "./xp";
 
@@ -169,6 +170,12 @@ export async function completeSession(
     paired: opts.isPaired,
     records: newRecords,
   });
+  // where it was done, if you said (todayPark.ts): on the session, and as a visit to the park
+  const park = readTodayPark();
+  if (park && park !== "none") {
+    sessionRecord.park = park;
+    recordParkVisit(park.id, userDoc.uid).catch(() => {});
+  }
   await settleWrite(saveSessionRecord(userDoc.uid, sessionRecord)).catch(() => {});
   report.sessionRecord = sessionRecord; // for the share card
   // friends see it in their feed, unless sharing is off (feed.ts)

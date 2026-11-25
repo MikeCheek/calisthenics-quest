@@ -309,6 +309,7 @@ export interface SessionRecord {
   paired?: boolean;
   exercises: ExerciseRecord[];
   records?: PersonalRecord[];
+  park?: { id: string; name: string }; // where it was done, when you said
 }
 
 // This week's running totals, mirrored to the public profile for the
@@ -441,6 +442,9 @@ export interface UserDoc {
   streakUnit?: "week"; // set once a day-based streak has been converted
   // days you said you'd skip (local yyyy-mm-dd, last two weeks): the week's plan moves (weekShift.ts)
   skippedDays?: string[];
+  // favourite bar parks (parks.ts), and whether to ask which park you're at before training
+  favParks?: import("./parks").FavPark[];
+  askPark?: boolean;
   lastSessionDateISO?: string;
   totalSessionsCompleted: number;
   missions: Mission[];

@@ -1,5 +1,6 @@
 "use client";
 
+import { askParkFirst } from "@/components/parks/ParkPrompt";
 import { shownStreak } from "@/lib/weekStreak";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -111,7 +112,7 @@ export default function TodayPage() {
           inProgress={!!activeSession && !activeCompleted}
           doneToday={doneToday}
           lighterBy={lighterBy}
-          onStart={() => startSession(fitted.session)}
+          onStart={() => askParkFirst(userDoc).then(() => startSession(fitted.session))}
           onResume={expand}
         />
 

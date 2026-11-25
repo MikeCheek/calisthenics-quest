@@ -35,6 +35,22 @@ export interface Park {
 }
 
 export type Reaction = "thanks" | "strong" | "fire";
+
+// public counts per park (parkStats/{id})
+export interface ParkStats {
+  likes: number;
+  people: number; // athletes who logged a session there
+}
+
+// a favourite, kept on your profile so it works anywhere (userDoc.favParks)
+export interface FavPark {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  source: "osm" | "user";
+}
+export const MAX_FAVS = 20;
 export const REACTIONS: Record<Reaction, string> = { thanks: "🙏", strong: "💪", fire: "🔥" };
 
 export interface ParkReport {

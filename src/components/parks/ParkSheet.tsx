@@ -2,14 +2,15 @@
 
 import { nameFor } from "@/lib/anonymize";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, CircleHelp, Crosshair, Heart, MapPin, Navigation, Pencil, ThumbsUp, Trash2, X } from "lucide-react";
+import { Check, CircleHelp, Crosshair, Heart, MapPin, Navigation, Pencil, Star, ThumbsUp, Trash2, Users, X } from "lucide-react";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { deleteParkReport, fetchParkLikes, fetchParkReports, reactToParkReport, saveParkEdit, saveParkReport, setParkLike } from "@/lib/store";
+import { deleteParkReport, fetchMyPark, fetchParkReports, fetchParkStats, reactToParkReport, saveParkEdit, saveParkReport, setParkLike, updateProgress } from "@/lib/store";
 import { settleWrite } from "@/lib/offlineWrites";
 import {
   KIT_LABEL,
+  MAX_FAVS,
   NOTE_MAX,
   cellOf,
   wikidataPhoto,
@@ -54,7 +55,7 @@ export default function ParkSheet({
   onMovePin?: (park: Park) => void; // pick its real spot on the map
   onChanged?: () => void; // the name or position changed
 }) {
-  const { userDoc } = useAuth();
+  const { userDoc, refreshUserDoc } = useAuth();
   const { tx, locale } = useLanguage();
   const [reports, setReports] = useState<ParkReport[] | null>(null);
   const [editing, setEditing] = useState(false);
@@ -64,6 +65,7 @@ export default function ParkSheet({
   const [msg, setMsg] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [likes, setLikes] = useState<{ count: number; mine: boolean } | null>(null);
+  const [visits, setVisits] = useState<{ people: number; mine: number } | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoOk, setPhotoOk] = useState(true);
   const uid = userDoc?.uid;
@@ -71,13 +73,19 @@ export default function ParkSheet({
   // likes and a photo (from the map's tags, or the place's Wikidata item)
   useEffect(() => {
     setLikes(null);
+    setVisits(null);
     setPhoto(park?.photo ?? null);
     setPhotoOk(true);
     if (!park || !uid) return;
     let live = true;
-    fetchParkLikes(park.id, uid)
-      .then((l) => live && setLikes(l))
-      .catch(() => live && setLikes({ count: 0, mine: false }));
+    Promise.all([fetchParkStats([park.id]), fetchMyPark(park.id, uid)])
+      .then(([stats, me]) => {
+        if (!live) return;
+        const st = stats[park.id] ?? { likes: 0, people: 0 };
+        setLikes({ count: Math.max(st.likes, me.liked ? 1 : 0), mine: me.liked });
+        setVisits({ people: Math.max(st.people, me.sessions ? 1 : 0), mine: me.sessions });
+      })
+      .catch(() => live && (setLikes({ count: 0, mine: false }), setVisits({ people: 0, mine: 0 })));
     if (!park.photo && park.wikidata)
       wikidataPhoto(park.wikidata)
         .then((p) => live && p && setPhoto(p))
@@ -138,6 +146,19 @@ export default function ParkSheet({
     setRenaming(null);
     setMsg(tx("Thanks — the park is updated for everyone."));
     onChanged?.();
+  };
+
+  const fav = (userDoc.favParks ?? []).some((f) => f.id === park.id);
+  const toggleFav = async () => {
+    const rest = (userDoc.favParks ?? []).filter((f) => f.id !== park.id);
+    const next = fav ? rest : [{ id: park.id, name: name, lat: park.lat, lon: park.lon, source: park.source }, ...rest].slice(0, MAX_FAVS);
+    try {
+      await updateProgress(userDoc.uid, { favParks: next });
+      await refreshUserDoc();
+      setMsg(fav ? tx("Removed from your favourites.") : tx("Added to your favourites."));
+    } catch {
+      setMsg(tx("Couldn't save — try again."));
+    }
   };
 
   const toggleLike = async () => {
@@ -210,8 +231,23 @@ export default function ParkSheet({
           >
             <Heart size={15} className={likes?.mine ? "fill-rose-400 text-rose-400" : ""} aria-hidden /> {likes ? likes.count : "…"}
           </button>
+          <button
+            onClick={toggleFav}
+            aria-pressed={fav}
+            aria-label={fav ? tx("Remove {name} from favourites", { name }) : tx("Add {name} to favourites", { name })}
+            className={`px-3 py-1.5 rounded-full border text-sm flex items-center gap-1.5 ${fav ? "border-amber-400 bg-amber-400/15 text-amber-100" : "border-zinc-700 text-zinc-200 hover:border-amber-400"}`}
+          >
+            <Star size={15} className={fav ? "fill-amber-300 text-amber-300" : ""} aria-hidden /> {fav ? tx("Favourite") : tx("Save")}
+          </button>
           {park.place && !park.name && <span className="text-xs text-zinc-400 truncate">{tx("In {place}", { place: park.place })}</span>}
         </div>
+        {visits && (
+          <p className="text-xs text-zinc-300 flex items-center gap-1.5 -mt-2">
+            <Users size={13} className="text-sky-300" aria-hidden />
+            {visits.people === 1 ? tx("1 athlete has trained here") : tx("{n} athletes have trained here", { n: visits.people })}
+            {visits.mine > 0 && <span className="text-zinc-400">· {visits.mine === 1 ? tx("you once") : tx("you {n} times", { n: visits.mine })}</span>}
+          </p>
+        )}
         <p className="text-xs text-zinc-400 flex items-center gap-1.5">
           <MapPin size={13} />
           {park.distanceM !== undefined && (park.distanceM < 1000 ? tx("{n} m away", { n: park.distanceM }) : tx("{n} km away", { n: (park.distanceM / 1000).toFixed(1) }))}

@@ -430,3 +430,28 @@ test("desktop: the sidebar lists every feature, with the current one marked", as
   await expectNoA11yViolations(page);
   expect(errors).toEqual([]);
 });
+
+test("bar parks: favourite one, then pick it before training", async ({ page, context }) => {
+  const errors = collectErrors(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation(HERE);
+  await mockMap(page);
+  await page.goto("/parks");
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await page.getByRole("button", { name: /1 park in 5 km/ }).click();
+  await page.getByRole("region", { name: "Bar parks", exact: true }).getByRole("button", { name: /Riverside bars/ }).click();
+  const sheet = page.getByRole("dialog", { name: "Riverside bars" });
+  await expect(sheet.getByText(/athletes? ha(s|ve) trained here/)).toBeVisible();
+  await sheet.getByRole("button", { name: "Add Riverside bars to favourites" }).click();
+  await expect(sheet.getByRole("button", { name: "Remove Riverside bars from favourites" })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByRole("button", { name: "Close" }).click();
+
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: /^Start/ }).first().click();
+  const ask = page.getByRole("dialog", { name: "Where are you training?" });
+  await expect(ask.getByRole("button", { name: /Riverside bars/ })).toBeVisible();
+  await expectNoA11yViolations(page);
+  await ask.getByRole("button", { name: /Riverside bars/ }).click();
+  await expect(page.getByText(/^1 \/ \d+ ·/)).toBeVisible(); // the session is running
+  expect(errors).toEqual([]);
+});
