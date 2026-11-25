@@ -44,7 +44,7 @@ test("the current page (and tab) is marked", () => {
   assert.equal(isCurrent(bodyweight, "/profile", "?tab=settings", "#bodyweight"), false);
   const skills = ALL_FEATURES.find((f) => f.id === "skills")!;
   assert.equal(isCurrent(skills, "/skills", "?tab=tree", "", ALL_FEATURES), true);
-  assert.equal(isCurrent(skills, "/skills", "?tab=tree", "#block", ALL_FEATURES), true); // #block isn't a section of ?tab=tree's link
+  assert.equal(isCurrent(skills, "/skills", "?tab=tree", "#block", ALL_FEATURES), false); // the training block's own link is current then
   assert.equal(isCurrent(ALL_FEATURES.find((f) => f.id === "parks")!, "/parks", ""), true);
 });
 

@@ -219,7 +219,7 @@ you have any health concerns.
   format, straight to the share sheet. Your name only appears if you opt in.
 
 ### Account and privacy
-- English and Italian, daily reminders, streaks that pause on planned rest days.
+- English and Italian, daily reminders, and a **weekly streak**: one session a week keeps it going (rest days never break it), with an amber dot on the app icon when the week is about to end without one.
 - **Your data** — export everything as JSON, or reset in steps up to deleting the
   account, each showing exactly what it removes and keeps.
 - `.tcx` export of any session, for platforms that import workout files (e.g. Strava,
@@ -471,6 +471,25 @@ service cloud.firestore {
         && validSpot(request.resource.data);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
 
+      // likes: one per athlete (the count is in parkStats)
+      match /likes/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['atISO']) && request.resource.data.atISO is string;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // sessions logged here: one doc per athlete, its count only goes up by one
+      match /trained/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['sessions', 'firstISO', 'lastISO'])
+          && request.resource.data.sessions == 1;
+        allow update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sessions', 'lastISO'])
+          && request.resource.data.sessions == resource.data.sessions + 1;
+      }
+
       match /reports/{uid} {
         allow read: if request.auth != null;
         allow create, update: if request.auth != null && request.auth.uid == uid
@@ -486,6 +505,28 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
     }
+    // public counts per park: likes and athletes who trained there. Each
+    // change is ±1 and must come in the same batch as the like (or the first
+    // visit) it counts — so nobody can inflate them.
+    match /parkStats/{parkId} {
+      function base() { return resource == null ? {} : resource.data; }
+      function stepped(field, by) {
+        return request.resource.data.get(field, 0) == base().get(field, 0) + by;
+      }
+      function likeDoc() { return /databases/$(database)/documents/parks/$(parkId)/likes/$(request.auth.uid); }
+      function visitDoc() { return /databases/$(database)/documents/parks/$(parkId)/trained/$(request.auth.uid); }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['likes', 'people'])
+        && (
+          (request.resource.data.diff(base()).affectedKeys().hasOnly(['likes'])
+            && ((stepped('likes', 1) && !exists(likeDoc()) && existsAfter(likeDoc()))
+              || (stepped('likes', -1) && exists(likeDoc()) && !existsAfter(likeDoc()))))
+          || (request.resource.data.diff(base()).affectedKeys().hasOnly(['people'])
+            && stepped('people', 1) && !exists(visitDoc()) && existsAfter(visitDoc()))
+        );
+    }
+
     // OpenStreetMap parks, cached per 0.1° cell by whoever loads an area
     // first, so everyone else skips the slow Overpass query. A cell can be
     // refreshed at most once a day, and the date is the server's.
@@ -625,7 +666,7 @@ docs/
   (smaller for guests) so the OpenRouter key can't be drained by strangers.
 - **Skill Check videos** never leave your device.
 - **Location** (weather and parks) is rounded to about 1 km and kept on the device; only
-  that point goes to Open-Meteo and OpenStreetMap's Overpass API. Park reports (first
+  that point goes to Open-Meteo, and (through the app's own `/api/parks/osm` route, since browsers can't call Overpass reliably) to OpenStreetMap's Overpass API. Park photos load from Wikimedia Commons. Park reports (first
   name, equipment, optional note) are visible to signed-in users; the crew feed only to
   your friends.
 - **Your controls:** export everything, reset progress in steps, or delete the account

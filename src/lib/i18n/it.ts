@@ -23,7 +23,7 @@ const it: TranslationDict = {
     retakeAssessment: "Rifai la valutazione",
     language: "Lingua",
     languageHint: "Scegli la lingua per l'interfaccia dell'app.",
-    daysStreak: "giorni di fila",
+    daysStreak: "settimane di fila",
   },
   exercise: {
     howTo: "Come si esegue",

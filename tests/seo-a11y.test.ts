@@ -72,3 +72,18 @@ test("every landing screenshot exists in both languages", async () => {
   const missing = ids.flatMap((id) => ["en", "it"].map((l) => `public/landing/${l}-${id}.webp`)).filter((f) => !existsSync(join(ROOT, f)));
   assert.deepEqual(missing, []);
 });
+
+test("grids always say how wide a column is (a bare `grid` grows to its widest, unbreakable content and overflows phones)", () => {
+  const bad = walk("src")
+    .filter((f) => f.endsWith(".tsx"))
+    .flatMap((f) =>
+      (read(f).match(/className=[{"`][^"`]*["`]/g) ?? [])
+        .filter((c) => {
+          const t = c.replace(/^className=[{"`]/, "").split(/[\s"`]+/);
+          const responsiveCols = t.some((x) => /^(sm|md|lg|xl|2xl):grid-cols-/.test(x));
+          return t.includes("grid") && responsiveCols && !t.some((x) => /^grid-cols-/.test(x));
+        })
+        .map((c) => `${f}: ${c}`)
+    );
+  assert.deepEqual(bad, []);
+});

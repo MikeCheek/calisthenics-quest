@@ -1,5 +1,6 @@
 "use client";
 
+import { shownStreak } from "@/lib/weekStreak";
 import Link from "next/link";
 import { UserDoc } from "@/lib/types";
 import { levelProgress } from "@/lib/levelPath";
@@ -46,9 +47,9 @@ export default function HeadlineCard({ userDoc }: { userDoc: UserDoc }) {
           <div className="text-xs text-zinc-400">{tx("skills proven")}</div>
         </Link>
       </div>
-      {userDoc.streak > 0 && (
+      {shownStreak(userDoc) > 0 && (
         <div className="relative mt-3 inline-flex items-center gap-1 text-xs text-orange-300 bg-orange-500/10 rounded-full px-2.5 py-1">
-          <Flame size={12} /> {tx(userDoc.streak === 1 ? "1-day streak" : "{n}-day streak", { n: userDoc.streak })}
+          <Flame size={12} /> {tx(shownStreak(userDoc) === 1 ? "1-week streak" : "{n}-week streak", { n: shownStreak(userDoc) })}
         </div>
       )}
     </section>

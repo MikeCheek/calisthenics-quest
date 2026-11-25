@@ -12,7 +12,7 @@ import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 import { pickNudge, renderNudge } from "../nudges";
-import type { CachedPark, OsmCell, ParkReport, Reaction, UserParkDoc } from "../parks";
+import type { CachedPark, OsmCell, ParkReport, ParkStats, Reaction, UserParkDoc } from "../parks";
 import type { FeedItem } from "../feed";
 
 export type { GlobalBoardRow, PairingDoc };
@@ -379,4 +379,25 @@ export async function fetchOsmCells(cells: string[]): Promise<OsmCell[]> {
 }
 export async function saveOsmCells(cells: OsmCell[]): Promise<void> {
   for (const c of cells) demoCells.set(c.cell, { ...clone(c), parks: c.parks.slice(0, 400) as CachedPark[] });
+}
+
+// park likes, visits and counts, for the tab's session
+const demoLikes = sessionMap<string[]>("barquests:demo-park-likes");
+const demoVisits = sessionMap<Record<string, number>>("barquests:demo-park-visits");
+const seedLikes = (id: string) => demoLikes.get(id) ?? ["demo-friend-park"];
+const seedVisits = (id: string) => demoVisits.get(id) ?? { "demo-friend-park": 3 };
+export async function fetchParkStats(ids: string[]): Promise<Record<string, ParkStats>> {
+  return Object.fromEntries(ids.map((id) => [id, { likes: seedLikes(id).length, people: Object.keys(seedVisits(id)).length }]));
+}
+export async function fetchMyPark(parkId: string, uid: string): Promise<{ liked: boolean; sessions: number }> {
+  return { liked: seedLikes(parkId).includes(uid), sessions: seedVisits(parkId)[uid] ?? 0 };
+}
+export async function setParkLike(parkId: string, uid: string, on: boolean): Promise<void> {
+  const who = seedLikes(parkId).filter((u) => u !== uid);
+  demoLikes.set(parkId, on ? [...who, uid] : who);
+}
+export async function recordParkVisit(parkId: string, uid: string): Promise<void> {
+  const v = { ...seedVisits(parkId) };
+  v[uid] = (v[uid] ?? 0) + 1;
+  demoVisits.set(parkId, v);
 }

@@ -127,7 +127,7 @@ export default function Nav() {
       </Modal>
 
       {/* fixed bottom tab bar — primary navigation on phones */}
-      <nav aria-label={tx("Main menu")} className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 safe-bottom">
+      <nav aria-label={tx("Main menu")} className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 safe-bottom">
         <div className="flex">
           {TABS.map((t) => {
             const Icon = t.icon;

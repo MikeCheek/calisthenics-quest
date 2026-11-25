@@ -25,7 +25,8 @@ export interface TimerSetSample {
   endedEarly: boolean; // a hold stopped before its target
   maxPauseMs: number; // longest single pause during the set
   hiddenMs: number; // time the app spent in the background during the set
-  reps?: number; // reps the athlete logged for this set (rep sets, optional)
+  reps?: number; // reps (or laps, attempts…) the athlete logged for this set (count sets, optional)
+  loggedSec?: number; // seconds the athlete says they held (open-ended holds)
   targetReps?: number | null; // lower end of the prescribed range; null = "max reps"
 }
 
@@ -172,7 +173,8 @@ export function cleanSets(log: TimerLog | undefined): SetRecord[] | undefined {
   for (const s of log.sets) {
     if (!sampleTrustworthy(s)) continue;
     if (s.kind === "hold") {
-      if (s.activeSec >= MIN_HOLD_SEC) out.push({ holdSec: Math.round(s.activeSec) });
+      const held = s.loggedSec ?? s.activeSec;
+      if (held >= MIN_HOLD_SEC) out.push({ holdSec: Math.round(held) });
     } else if (s.reps !== undefined && s.activeSec >= MIN_REP_SET_SEC && s.reps <= Math.max((s.targetReps ?? 0) * 4, 100)) {
       out.push({ reps: s.reps });
     }

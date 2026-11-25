@@ -97,7 +97,7 @@ function figure(exerciseName: string | undefined, x: number, y: number, w: numbe
   if (!entry) return "";
   const vb = fittedViewBox(entry.demo, 10);
   // strokes are drawn in viewBox units; thicken them a touch for a poster
-  const shapes = figureShapes(entry.demo.props, keyPose(entry.demo)).map((s) => shapeToSvg(s, 1.25)).join("");
+  const shapes = figureShapes(entry.demo.props, keyPose(entry.demo), entry.demo.view).map((s) => shapeToSvg(s, 1.25)).join("");
   return `<svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${vb.map((n) => n.toFixed(1)).join(" ")}" preserveAspectRatio="xMidYMid meet">${shapes}</svg>`;
 }
 
@@ -260,7 +260,7 @@ export function buildCardSvg(card: ShareCard, ctx: CardContext): string {
   parts.push(text(pad, fy, tx("Level {n}", { n: ctx.level }), story ? 54 : 46, TEXT, { weight: 800 }));
   const right = [
     ctx.verifiedTotal ? tx("{a}/{b} verified", { a: ctx.verified, b: ctx.verifiedTotal }) : null,
-    ctx.streak > 1 ? tx("{n}-day streak", { n: ctx.streak }) : null,
+    ctx.streak > 1 ? tx("{n}-week streak", { n: ctx.streak }) : null,
   ].filter(Boolean).join(" · ");
   if (right) parts.push(text(W - pad, fy, right, 32, SUB, { anchor: "end" }));
   if (ctx.name) parts.push(text(pad, fy + 56, ctx.name, 34, SUB));

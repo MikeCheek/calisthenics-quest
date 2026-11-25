@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { OVERPASS_SERVERS, loadOsmParks, cellsCovering, cellBox, overpassBoxQuery, planLoad, splitByCell, mergeEdits, dedupe, type OsmCell, type UserParkDoc, cellOf, cellsAround, cleanNote, confirmation, distanceM, equipmentAt, groupParks, kitFromTags, parkKit, reactionCounts, type OsmElement, type ParkReport } from "../src/lib/parks";
+import { loadOsmParks, cellsCovering, cellBox, planLoad, placeAround, photoFromTags, placeAt, commonsThumb, parkName, splitByCell, mergeEdits, dedupe, type OsmCell, type UserParkDoc, cellOf, cellsAround, cleanNote, confirmation, distanceM, equipmentAt, groupParks, kitFromTags, parkKit, reactionCounts, type OsmElement, type ParkReport } from "../src/lib/parks";
+import { OVERPASS_SERVERS, askOverpass, parksQuery, validBox } from "../src/lib/server/overpass";
 import { DEFAULT_EQUIPMENT } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
 
@@ -36,10 +37,53 @@ test("stations close together are one park; an area takes the stations in it", (
 });
 
 test("the Overpass query asks for stations and calisthenics areas in the cells' box", () => {
-  const q = overpassBoxQuery(cellBox(["454:91", "455:92"]));
+  const q = parksQuery(cellBox(["454:91", "455:92"]));
   assert.match(q, /leisure"="fitness_station"\]\(45\.4000,9\.1000,45\.6000,9\.3000\)/);
   assert.match(q, /sport"="calisthenics"/);
   assert.match(q, /out tags center/);
+  assert.match(q, /leisure"~"\^\(park\|recreation_ground/); // the parks around, for names
+  assert.match(q, /out tags bb/);
+});
+
+test("the server only searches boxes the app could ask for", () => {
+  assert.deepEqual(validBox({ s: 45.4, w: 9.1, n: 45.6, e: 9.3 }), { s: 45.4, w: 9.1, n: 45.6, e: 9.3 });
+  assert.equal(validBox({ s: 40, w: 0, n: 50, e: 10 }), null); // a whole country
+  assert.equal(validBox({ s: 45.6, w: 9.1, n: 45.4, e: 9.3 }), null);
+  assert.equal(validBox("45,9"), null);
+});
+
+test("an unnamed station takes the name of the park it's in, and a photo from the map", () => {
+  const parks = groupParks([
+    station(1, 0, "horizontal_bar"),
+    { type: "way", id: 50, bounds: { minlat: at.lat - 0.002, minlon: at.lon - 0.002, maxlat: at.lat + 0.002, maxlon: at.lon + 0.002 }, tags: { leisure: "park", name: "Parco Sempione", wikimedia_commons: "File:Parco Sempione.jpg" } },
+    { type: "way", id: 51, bounds: { minlat: at.lat - 0.05, minlon: at.lon - 0.05, maxlat: at.lat + 0.05, maxlon: at.lon + 0.05 }, tags: { leisure: "park", name: "Big outer park" } },
+    station(2, 0.03, "rings", { name: "Own name" }),
+  ]);
+  assert.equal(parks.length, 2); // the parks themselves aren't bar parks
+  const inPark = parks.find((p) => p.id === "osm-n1")!;
+  assert.equal(inPark.name, null);
+  assert.equal(inPark.place, "Parco Sempione"); // the smallest park around it
+  assert.equal(inPark.photo, commonsThumb("File:Parco Sempione.jpg"));
+  assert.equal(parkName(inPark), "Parco Sempione");
+  assert.equal(parks.find((p) => p.id === "osm-n2")!.name, "Own name");
+});
+
+test("photos come only from safe, real image tags", () => {
+  assert.equal(photoFromTags({ image: "https://example.org/bars.jpg" }), "https://example.org/bars.jpg");
+  assert.equal(photoFromTags({ image: "http://example.org/bars.jpg" }), undefined);
+  assert.equal(photoFromTags({ image: "https://example.org/page" }), undefined);
+  assert.equal(photoFromTags({ image: "https://commons.wikimedia.org/wiki/File:Bars%20park.jpg" }), commonsThumb("File:Bars park.jpg"));
+  assert.equal(photoFromTags({ wikimedia_commons: "Category:Parks" }), undefined);
+  assert.equal(placeAround([], at), null);
+});
+
+test("a new park is named after the park around its spot", async () => {
+  const fetcher = (async (url: string, init: RequestInit) => {
+    assert.equal(url, "/api/parks/osm");
+    assert.deepEqual(JSON.parse(String(init.body)), { at: { lat: 45.46, lon: 9.19 } });
+    return new Response(JSON.stringify({ elements: [{ type: "area", id: 1, tags: { leisure: "playground", name: "Playground" } }, { type: "area", id: 2, tags: { leisure: "park", name: "Giardini" } }] }));
+  }) as unknown as typeof fetch;
+  assert.deepEqual(await placeAt(45.46, 9.19, fetcher), { name: "Giardini" });
 });
 
 const now = new Date("2026-11-23T12:00:00Z");
@@ -182,24 +226,29 @@ test("community edits rename and move OpenStreetMap parks; added parks join the 
   assert.equal(out[0].edit?.editedByName, "Sam");
 });
 
-test("a busy Overpass server falls through to the next one", async () => {
+test("the server tries the next Overpass server when one is busy", async () => {
   const hits: string[] = [];
-  const fetcher = (async (url: string) => {
+  const fetcher = (async (url: string, init: RequestInit) => {
     hits.push(new URL(url).host);
-    if (hits.length === 1) return new Response("busy", { status: 504 });
+    assert.match(String((init.headers as Record<string, string>)["User-Agent"]), /BarQuests/);
+    if (hits.length === 1) return new Response("busy", { status: 406 });
     if (hits.length === 2) return new Response(JSON.stringify({ elements: [], remark: "runtime error: Query timed out" }), { status: 200 });
     return new Response(JSON.stringify({ elements: [station(9, 0, "rings")] }), { status: 200 });
   }) as unknown as typeof fetch;
-  const r = await loadOsmParks(at, 2000, { ...memory().io, fetcher }, { now: now2 });
+  const els = await askOverpass("q", { fetcher });
   assert.equal(hits.length, 3);
-  assert.equal(r.parks.length, 1);
-  assert.deepEqual(r.parks[0].mapKit, ["rings"]);
+  assert.equal(els.length, 1);
 });
 
-test("every server down and nothing cached: no parks, marked as failed", async () => {
+test("every Overpass server down: the error names each one", async () => {
   const fetcher = (async () => new Response("no", { status: 429 })) as unknown as typeof fetch;
+  await assert.rejects(askOverpass("q", { fetcher }), /overpass-api\.de: HTTP 429/);
+  assert.ok(OVERPASS_SERVERS.length >= 3);
+});
+
+test("our server down and nothing cached: no parks, marked as failed", async () => {
+  const fetcher = (async () => new Response("no", { status: 502 })) as unknown as typeof fetch;
   const r = await loadOsmParks(at, 2000, { ...memory().io, fetcher }, { now: now2 });
   assert.equal(r.failed, true);
   assert.deepEqual(r.parks, []);
-  assert.ok(OVERPASS_SERVERS.length >= 3);
 });

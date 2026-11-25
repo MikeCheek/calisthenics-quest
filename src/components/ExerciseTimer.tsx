@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Exercise } from "@/lib/types";
-import { parseTiming } from "@/lib/exerciseTiming";
+import { countUnit, isOpenHold, parseTiming, targetCount, type CountUnit } from "@/lib/exerciseTiming";
 import { TimerLog, EMPTY_TIMER_LOG } from "@/lib/timingLearning";
 import { loadTimer, saveTimer, secondsLeftOf } from "@/lib/activeSession";
 
@@ -18,6 +18,12 @@ import { useLanguage } from "@/context/LanguageContext";
 type Phase = "idle" | "countdown" | "work" | "rest" | "done";
 
 const COUNTDOWN_FROM = 3;
+
+// the logger under a set speaks the exercise's own unit
+type LogUnit = CountUnit | "seconds";
+const LOG_LABEL: Record<LogUnit, string> = { reps: "Reps in set {n}", laps: "Laps in set {n}", attempts: "Attempts in set {n}", steps: "Steps in set {n}", seconds: "Seconds held in set {n}" };
+const LESS_LABEL: Record<LogUnit, string> = { reps: "Fewer reps", laps: "Fewer laps", attempts: "Fewer attempts", steps: "Fewer steps", seconds: "5 seconds less" };
+const MORE_LABEL: Record<LogUnit, string> = { reps: "More reps", laps: "More laps", attempts: "More attempts", steps: "More steps", seconds: "5 seconds more" };
 
 export default function ExerciseTimer({
   exercise,
@@ -48,9 +54,10 @@ export default function ExerciseTimer({
 }) {
   const timing = parseTiming(exercise.detail);
   const { tx } = useLanguage();
-  // lower end of a prescribed rep range ("3 x 8-10 reps" -> 8); null = max reps
-  const repMatch = exercise.detail.match(/(\d+)(?:-\d+)?\s*reps?\b/i);
-  const targetReps = repMatch ? parseInt(repMatch[1], 10) : /max/i.test(exercise.detail) ? null : undefined;
+  // lower end of the prescribed count ("3 x 8-10 reps" -> 8, "1-2 laps" -> 1); null = max
+  const targetReps = targetCount(exercise.detail);
+  const unit = countUnit(exercise.detail);
+  const openHold = timing.isTimed && isOpenHold(exercise.detail);
   const [repLog, setRepLog] = useState<(number | undefined)[]>([]);
   const [set, setSet] = useState(1);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -113,13 +120,19 @@ export default function ExerciseTimer({
   // Optional per-set rep logging for rep-based exercises: shown during the
   // rest after a set (and once finished). Untouched = not logged, so a
   // prefilled number never pretends to be data.
-  const repSetIdx = timing.isTimed ? -1 : logRef.current.sets.length - 1;
+  // (open-ended holds log the seconds held instead, in steps of 5)
+  const repSetIdx = timing.isTimed && !openHold ? -1 : logRef.current.sets.length - 1;
   const lastLogged = [...repLog].reverse().find((r) => r !== undefined);
-  const repDefault = lastLogged ?? targetReps ?? 5;
+  const heldNow = Math.round(logRef.current.sets[repSetIdx]?.activeSec ?? 0);
+  const repDefault = openHold ? heldNow || 10 : lastLogged ?? targetReps ?? (unit === "laps" ? 1 : 5);
+  const step = openHold ? 5 : 1;
   const logReps = (v: number) => {
     const sample = logRef.current.sets[repSetIdx];
     if (!sample) return;
-    sample.reps = v;
+    if (openHold) {
+      sample.loggedSec = v;
+      sample.endedEarly = false;
+    } else sample.reps = v;
     setRepLog((prev) => {
       const next = [...prev];
       next[repSetIdx] = v;
@@ -479,22 +492,23 @@ export default function ExerciseTimer({
 
       {repSetIdx >= 0 && (phase === "rest" || phase === "done") && (
         <div className="mt-3 pt-3 border-t border-zinc-700 flex items-center gap-2">
-          <span className="text-sm text-zinc-300 flex-1">{tx("Reps in set {n}", { n: repSetIdx + 1 })}</span>
+          <span className="text-sm text-zinc-300 flex-1">{tx(LOG_LABEL[openHold ? "seconds" : unit], { n: repSetIdx + 1 })}</span>
           <button
             type="button"
-            aria-label={tx("Fewer reps")}
-            onClick={() => logReps(Math.max(0, (repLog[repSetIdx] ?? repDefault) - 1))}
+            aria-label={tx(LESS_LABEL[openHold ? "seconds" : unit])}
+            onClick={() => logReps(Math.max(0, (repLog[repSetIdx] ?? repDefault) - step))}
             className="w-11 h-11 rounded-xl border border-zinc-600 text-zinc-100 text-xl"
           >
             −
           </button>
           <span className={`stat-mono w-10 text-center text-xl ${repLog[repSetIdx] === undefined ? "text-muted" : "text-zinc-100"}`}>
             {repLog[repSetIdx] ?? repDefault}
+            {openHold && <span className="text-sm">s</span>}
           </span>
           <button
             type="button"
-            aria-label={tx("More reps")}
-            onClick={() => logReps((repLog[repSetIdx] ?? repDefault) + 1)}
+            aria-label={tx(MORE_LABEL[openHold ? "seconds" : unit])}
+            onClick={() => logReps((repLog[repSetIdx] ?? repDefault) + step)}
             className="w-11 h-11 rounded-xl border border-zinc-600 text-zinc-100 text-xl"
           >
             +

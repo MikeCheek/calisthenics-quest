@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import ParkPrompt from "@/components/parks/ParkPrompt";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -99,6 +100,7 @@ export default function RootLayout({
                 <StatusIcon />
                 <QuickActions />
                 <ScrollToHash />
+                <ParkPrompt />
                 <TrainingSessionOverlays />
                 <LocaleSync />
               </TrainingSessionProvider>

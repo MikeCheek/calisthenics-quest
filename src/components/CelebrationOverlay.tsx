@@ -76,7 +76,7 @@ function StreakCard({ event, streak }: { event: StreakEvent; streak: number }) {
       <div className="panel px-8 py-7 text-center animate-pop-in border-orange-500/50">
         <Flame size={40} className="text-orange-400 mx-auto mb-2 animate-thaw" />
         <div className="heading text-lg text-zinc-100 mb-1">{tx("Streak unfrozen!")}</div>
-        <div className="text-xs text-zinc-400 mb-2">{tx("Rest days don't break it — welcome back.")}</div>
+        <div className="text-xs text-zinc-400 mb-2">{tx("One session a week keeps it going — welcome back.")}</div>
         <div className="stat-mono text-4xl text-orange-400 flex items-center justify-center gap-1">
           {streak} <Snowflake size={18} className="text-muted" />
         </div>

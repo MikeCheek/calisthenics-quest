@@ -116,7 +116,7 @@ export function AchievementsCard() {
         </h2>
         <span className="text-xs text-zinc-400">{tx("{a} of {b}", { a: earnedCount, b: ACHIEVEMENTS.length })}</span>
       </div>
-      <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+      <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
         {ACHIEVEMENTS.map((a) => {
           const earned = !!userDoc.achievements?.[a.id] || isEarned(a, userDoc);
           return (

@@ -12,11 +12,11 @@ function streakLine(c: Celebration): SummaryLine | null {
     case "started":
       return { text: "Streak started!" };
     case "increased":
-      return { text: "Streak up — {n} days in a row", vars: { n: c.newStreak } };
+      return { text: "Streak up — {n} weeks in a row", vars: { n: c.newStreak } };
     case "unfrozen":
       return { text: "Streak unfrozen — {n} days, rest days don't break it", vars: { n: c.newStreak } };
     case "restarted":
-      return { text: "Fresh start — the streak begins again today" };
+      return { text: "Fresh start — a new streak begins this week" };
     default:
       return null;
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { askParkFirst } from "@/components/parks/ParkPrompt";
 import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -181,7 +182,7 @@ export default function TrainingPage() {
           equipment={userDoc.equipment}
           onComplete={handleComplete}
           completed={completed || globalCompleted}
-          onStartFocusMode={() => startSession(displayedSession)}
+          onStartFocusMode={() => askParkFirst(userDoc).then(() => startSession(displayedSession))}
         />
 
         {!(completed || globalCompleted) && (
@@ -213,7 +214,7 @@ export default function TrainingPage() {
 
       {showFab && !globalSession && (
         <button
-          onClick={() => startSession(displayedSession)}
+          onClick={() => askParkFirst(userDoc).then(() => startSession(displayedSession))}
           className="fixed bottom-20 sm:bottom-6 left-4 z-40 heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 pl-4 pr-5 py-3 rounded-full shadow-lg flex items-center gap-2"
         >
           <Play size={15} /> {tx("Start Training")}

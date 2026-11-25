@@ -1,5 +1,6 @@
 "use client";
 
+import { shownStreak } from "@/lib/weekStreak";
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
@@ -37,7 +38,7 @@ export default function ShareSheet({ card, onClose }: { card: ShareCard | null; 
       level: levelFromXp(userDoc.xp),
       verified: claims.verified,
       verifiedTotal: claims.total,
-      streak: userDoc.streak,
+      streak: shownStreak(userDoc),
       name: showName ? userDoc.displayName?.split(" ")[0] : undefined,
       locale,
       tx,

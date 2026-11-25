@@ -112,9 +112,9 @@ export default function FriendsFeed() {
                         <Trophy size={12} /> {tx("New record: {list}", { list: i.records.join(", ") })}
                       </p>
                     )}
-                    {i.streak >= 3 && (
+                    {i.streak >= 2 && (
                       <p className="text-xs text-orange-300 mt-0.5 flex items-center gap-1">
-                        <Flame size={12} /> {tx("{n}-day streak", { n: i.streak })}
+                        <Flame size={12} /> {tx("{n}-week streak", { n: i.streak })}
                       </p>
                     )}
                   </div>

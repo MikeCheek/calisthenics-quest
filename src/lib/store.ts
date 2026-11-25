@@ -23,8 +23,10 @@ import {
   count,
   deleteField,
   serverTimestamp,
+  documentId,
+  increment,
 } from "firebase/firestore";
-import type { CachedPark, OsmCell, ParkReport, Reaction, UserParkDoc } from "./parks";
+import type { CachedPark, OsmCell, ParkReport, ParkStats, Reaction, UserParkDoc } from "./parks";
 import { FEED_PER_FRIEND, type FeedItem } from "./feed";
 import { boardName, Metric } from "./leaderboard";
 import { db } from "./firebase";
@@ -450,13 +452,60 @@ export async function saveParkEdit(
 ): Promise<void> {
   const ref = doc(db, "parks", park.id);
   const edit = { ...fields, editedBy: editor.uid, editedByName: editor.name, editedAtISO: new Date().toISOString() };
-  try {
-    await updateDoc(ref, edit);
-  } catch (e) {
-    // the first edit of an OpenStreetMap park creates its doc
-    if (park.source !== "osm" || (e as { code?: string }).code !== "not-found") throw e;
-    await setDoc(ref, { ...edit, source: "osm", createdBy: editor.uid, createdAtISO: edit.editedAtISO });
+  // Firestore checks the rules before it knows a doc is missing, so an
+  // update of a doc that isn't there fails as "permission denied", not
+  // "not found": look first, then create or update
+  const exists = (await getDoc(ref)).exists();
+  if (exists) await updateDoc(ref, edit);
+  else if (park.source === "osm") await setDoc(ref, { ...edit, source: "osm", createdBy: editor.uid, createdAtISO: edit.editedAtISO });
+  else throw new Error("park not found");
+}
+
+// ---- park likes, visits and their public counts ----
+// parks/{id}/likes/{uid} and parks/{id}/trained/{uid} are one per athlete;
+// parkStats/{id} holds the counts ({ likes, people }) so lists can show them
+// without counting. A count changes in the same batch as the like or visit,
+// and the rules only allow +1/−1 that matches it.
+
+export async function fetchParkStats(ids: string[]): Promise<Record<string, ParkStats>> {
+  const out: Record<string, ParkStats> = {};
+  const unique = [...new Set(ids)];
+  for (let i = 0; i < unique.length; i += 10) {
+    const snap = await getDocs(query(collection(db, "parkStats"), where(documentId(), "in", unique.slice(i, i + 10)))).catch(() => null);
+    snap?.docs.forEach((d) => (out[d.id] = { likes: Math.max(0, d.data().likes ?? 0), people: Math.max(0, d.data().people ?? 0) }));
   }
+  return out;
+}
+
+// whether you like a park, and how many sessions you've logged there
+export async function fetchMyPark(parkId: string, uid: string): Promise<{ liked: boolean; sessions: number }> {
+  const [like, visit] = await Promise.all([getDoc(doc(db, "parks", parkId, "likes", uid)).catch(() => null), getDoc(doc(db, "parks", parkId, "trained", uid)).catch(() => null)]);
+  return { liked: !!like?.exists(), sessions: visit?.exists() ? visit.data().sessions ?? 0 : 0 };
+}
+
+export async function setParkLike(parkId: string, uid: string, on: boolean): Promise<void> {
+  const ref = doc(db, "parks", parkId, "likes", uid);
+  const had = (await getDoc(ref)).exists();
+  if (had === on) return;
+  const batch = writeBatch(db);
+  if (on) batch.set(ref, { atISO: new Date().toISOString() });
+  else batch.delete(ref);
+  batch.set(doc(db, "parkStats", parkId), { likes: increment(on ? 1 : -1) }, { merge: true });
+  await batch.commit();
+}
+
+// a session logged at a park: one visit per athlete, counted once
+export async function recordParkVisit(parkId: string, uid: string): Promise<void> {
+  const ref = doc(db, "parks", parkId, "trained", uid);
+  const now = new Date().toISOString();
+  const snap = await getDoc(ref);
+  const batch = writeBatch(db);
+  if (snap.exists()) batch.update(ref, { sessions: increment(1), lastISO: now });
+  else {
+    batch.set(ref, { sessions: 1, firstISO: now, lastISO: now });
+    batch.set(doc(db, "parkStats", parkId), { people: increment(1) }, { merge: true });
+  }
+  await batch.commit();
 }
 
 // ---- the shared OpenStreetMap cache (parks.ts: loadOsmParks) ----

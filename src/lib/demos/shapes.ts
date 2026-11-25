@@ -1,4 +1,4 @@
-import { Demo, Pose, Prop, skeleton, SEG, poseAt, demoDuration } from "./figure";
+import { Demo, Pose, Prop, skeleton, SEG, poseAt, demoDuration, type View } from "./figure";
 
 // Plain drawing primitives for a pose + its props, shared by the React
 // component and any static rendering, so both draw exactly the same thing.
@@ -42,9 +42,10 @@ const seg = (a: [number, number], b: [number, number], stroke: string, w: number
   t: "line", x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke, w,
 });
 
-export function figureShapes(props: Prop[], pose: Pose): Shape[] {
-  const s = skeleton(pose);
+export function figureShapes(props: Prop[], pose: Pose, view: View = "side"): Shape[] {
   const out: Shape[] = props.flatMap(propShapes);
+  if (view === "front") return [...out, ...frontFigure(pose)];
+  const s = skeleton(pose);
   // far limbs first so the near side draws on top
   const [arm, arm2] = s.arms;
   const [leg, leg2] = s.legs;
@@ -55,6 +56,19 @@ export function figureShapes(props: Prop[], pose: Pose): Shape[] {
   out.push(seg(s.shoulder, arm.joint, BODY, 3.4), seg(arm.joint, arm.end, BODY, 3.2));
   out.push({ t: "circle", cx: s.head[0], cy: s.head[1], r: SEG.head, fill: BODY });
   out.push({ t: "circle", cx: s.face[0], cy: s.face[1], r: 1.4, fill: KIT });
+  return out;
+}
+
+// facing the viewer: both sides equally near, shoulders and hips apart
+function frontFigure(pose: Pose): Shape[] {
+  const s = skeleton(pose, "front");
+  const out: Shape[] = [];
+  out.push(seg(s.hips[0], s.hips[1], BODY, 3.6));
+  for (let i = 0; i < 2; i++) out.push(seg(s.hips[i], s.legs[i].joint, BODY, 3.6), seg(s.legs[i].joint, s.legs[i].end, BODY, 3.4));
+  out.push(seg(s.hip, s.shoulder, BODY, 4.6));
+  out.push(seg(s.shoulders[0], s.shoulders[1], BODY, 4));
+  for (let i = 0; i < 2; i++) out.push(seg(s.shoulders[i], s.arms[i].joint, BODY, 3.4), seg(s.arms[i].joint, s.arms[i].end, BODY, 3.2));
+  out.push({ t: "circle", cx: s.head[0], cy: s.head[1], r: SEG.head, fill: BODY });
   return out;
 }
 
@@ -81,7 +95,7 @@ export function fittedViewBox(demo: Demo, pad = 8): [number, number, number, num
   };
   const total = demoDuration(demo);
   for (let ms = 0; ms <= total; ms += Math.max(40, total / 60)) {
-    const sk = skeleton(poseAt(demo, ms));
+    const sk = skeleton(poseAt(demo, ms), demo.view);
     for (const p of [sk.hip, sk.shoulder, ...sk.arms.flatMap((a) => [a.joint, a.end]), ...sk.legs.flatMap((l) => [l.joint, l.end])]) take(p[0], p[1]);
     take(sk.head[0] - SEG.head, sk.head[1] - SEG.head);
     take(sk.head[0] + SEG.head, sk.head[1] + SEG.head);

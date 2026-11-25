@@ -274,6 +274,7 @@ function SessionCard({
             {session.paired && <span className="text-xs px-1.5 rounded bg-sky-500/15 text-sky-300">{tx("paired")}</span>}
             {session.records?.length ? <Trophy size={12} className="text-amber-400" /> : null}
           </div>
+          {session.park && <div className="text-xs text-orange-300/90 truncate">{tx("at {park}", { park: session.park.name })}</div>}
           <div className="text-xs text-muted flex items-center gap-2.5 mt-0.5">
             {session.durationMin ? (
               <span className="flex items-center gap-1">

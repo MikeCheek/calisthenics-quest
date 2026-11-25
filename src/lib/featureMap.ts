@@ -46,8 +46,8 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     label: "Progress",
     features: [
       { id: "skills", label: "Skill tree", hint: "Every skill and the stage you're at", href: "/skills?tab=tree", icon: "layers", keywords: "skills stages livelli albero" },
-      { id: "block", label: "Training block", hint: "Aim for a stage in a few weeks", href: "/skills#block", icon: "target", keywords: "goal obiettivo blocco program" },
-      { id: "timeline", label: "Skill timeline", hint: "When your next stages should come", href: "/skills#timeline", icon: "trend", keywords: "eta previsione quando" },
+      { id: "block", label: "Training block", hint: "Aim for a stage in a few weeks", href: "/skills?tab=tree#block", icon: "target", keywords: "goal obiettivo blocco program" },
+      { id: "timeline", label: "Skill timeline", hint: "When your next stages should come", href: "/skills?tab=tree#timeline", icon: "trend", keywords: "eta previsione quando" },
       { id: "proven", label: "Proven skills", hint: "What you've verified in Skill Checks", href: "/skills?tab=proven", icon: "badge", keywords: "verified verificate radar wall" },
       { id: "road", label: "Trophy road", hint: "Milestones level by level", href: "/skills?tab=road", icon: "trophy", keywords: "levels livelli milestone traguardi" },
       { id: "compare", label: "Then vs now", hint: "Two periods side by side", href: "/compare", icon: "compare", keywords: "confronto prima dopo progress" },

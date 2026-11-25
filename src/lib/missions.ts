@@ -25,8 +25,8 @@ export function generateWeeklyMissions(weekKey: string): Mission[] {
     {
       id: `${weekKey}-streak3`,
       label: "Keep the Streak",
-      description: "Train 3 days in a row",
-      targetCount: 3,
+      description: "Train this week and last week",
+      targetCount: 2,
       progress: 0,
       xpReward: 40,
       kind: "streak",
