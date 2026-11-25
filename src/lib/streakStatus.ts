@@ -1,4 +1,5 @@
 import type { UserDoc } from "./types";
+import { shownStreak, trainedThisWeek } from "./weekStreak";
 
 // ---------------------------------------------------------------------------
 // A glanceable status for the app's icon: the badge on an installed app and
@@ -19,14 +20,20 @@ export function streakStatus(
   const now = opts.now ?? new Date();
   const trainedToday = !!u.lastSessionDateISO && localDay(new Date(u.lastSessionDateISO)) === localDay(now);
   if (trainedToday) return "done";
-  const planned = u.body?.trainingDaysOfWeek?.includes(now.getDay()) ?? false;
-  return (u.streak ?? 0) > 0 && planned ? "atRisk" : "idle";
+  // the streak is weekly: it's at risk when it's alive, nothing's been done
+  // this week, and no planned day is left after today (with no plan: from
+  // Saturday)
+  if (shownStreak(u, now) === 0 || trainedThisWeek(u, now)) return "idle";
+  const pos = (d: number) => (d + 6) % 7; // Monday 0 … Sunday 6
+  const days = u.body?.trainingDaysOfWeek ?? [];
+  const lastChance = days.length ? !days.some((d) => pos(d) > pos(now.getDay())) : pos(now.getDay()) >= 5;
+  return lastChance ? "atRisk" : "idle";
 }
 
 export const STATUS_COLOR: Record<StreakStatus, string | null> = {
   session: "#38bdf8", // in progress
   done: "#22c55e", // trained today
-  atRisk: "#f59e0b", // the streak needs today's session
+  atRisk: "#f59e0b", // the weekly streak needs a session soon
   idle: null,
 };
 

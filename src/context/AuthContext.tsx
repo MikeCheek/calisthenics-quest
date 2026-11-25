@@ -21,7 +21,8 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
-import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress } from "@/lib/store";
+import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress, fetchSessionsBetween } from "@/lib/store";
+import { streakFromSessions } from "@/lib/weekStreak";
 import { useToast } from "@/context/ToastContext";
 import { disablePush } from "@/lib/pushClient";
 import { isAnonymized } from "@/lib/anonymize";
@@ -105,6 +106,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       await createUserDoc(doc);
+    }
+    // streaks used to count days: count weeks from the session history, once
+    if (doc.streakUnit !== "week" && doc.totalSessionsCompleted > 0) {
+      try {
+        const now = new Date();
+        const sessions = await fetchSessionsBetween(doc.uid, new Date(now.getTime() - 2 * 365 * 86400000).toISOString(), new Date(now.getTime() + 60000).toISOString());
+        const streak = streakFromSessions([...sessions.map((x) => x.finishedAt), ...(doc.lastSessionDateISO ? [doc.lastSessionDateISO] : [])], now);
+        await updateProgress(doc.uid, { streak, streakUnit: "week" });
+        doc = { ...doc, streak, streakUnit: "week" };
+      } catch {
+        // offline: try again next time
+      }
     }
     // Backfills a friend code + public profile for pre-existing accounts too,
     // and keeps the public profile's level/streak in sync on every load.

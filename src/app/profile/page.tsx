@@ -1,5 +1,6 @@
 "use client";
 
+import { shownStreak } from "@/lib/weekStreak";
 import SectionNav from "@/components/nav/SectionNav";
 import { URL_EVENT } from "@/lib/featureMap";
 import { useEffect, useState } from "react";
@@ -124,7 +125,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="grid grid-cols-4 gap-2 mt-4 relative">
-            <HeroStat icon={<Flame size={14} className="text-orange-400" />} value={userDoc.streak} label={t("profile", "daysStreak")} />
+            <HeroStat icon={<Flame size={14} className="text-orange-400" />} value={shownStreak(userDoc)} label={t("profile", "daysStreak")} />
             <HeroStat icon={<Dumbbell size={14} className="text-sky-400" />} value={userDoc.totalSessionsCompleted} label={tx("sessions")} />
             <HeroStat icon={<Zap size={14} className="text-amber-400" />} value={userDoc.xp} label="XP" />
             <HeroStat icon={<BadgeCheck size={14} className="text-emerald-400" />} value={counts.total ? `${counts.verified}/${counts.total}` : "–"} label={tx("verified")} />

@@ -437,7 +437,8 @@ export interface UserDoc {
   onboarded: boolean;
   xp: number;
   level: number;
-  streak: number;
+  streak: number; // consecutive weeks with a session (weekStreak.ts)
+  streakUnit?: "week"; // set once a day-based streak has been converted
   lastSessionDateISO?: string;
   totalSessionsCompleted: number;
   missions: Mission[];

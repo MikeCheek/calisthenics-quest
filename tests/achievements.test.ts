@@ -21,7 +21,7 @@ test("a brand-new athlete has earned nothing", () => {
 });
 
 test("milestones unlock at their threshold, with progress before", () => {
-  const u = { ...base, totalSessionsCompleted: 12, streak: 7, xp: xpForLevel(10) };
+  const u = { ...base, totalSessionsCompleted: 12, streak: 8, xp: xpForLevel(10) }; // weeks
   assert.ok(isEarned(get("sessions-10"), u));
   assert.ok(!isEarned(get("sessions-25"), u));
   assert.deepEqual(get("sessions-25").progress(u), [12, 25]);

@@ -101,7 +101,8 @@ export function demoUserDoc(): UserDoc {
     onboarded: true,
     xp: XP,
     level: levelFromXp(XP),
-    streak: 9,
+    streak: 6, // weeks in a row
+    streakUnit: "week",
     lastSessionDateISO: iso(1).slice(0, 10),
     totalSessionsCompleted: 47,
     missions,

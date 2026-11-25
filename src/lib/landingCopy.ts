@@ -176,7 +176,7 @@ export const LANDING = {
     items: [
       { icon: "install", title: T("Installs like an app", "Si installa come un'app"), body: T("Add it to your home screen on Android or iPhone.", "Aggiungila alla schermata Home su Android o iPhone.") },
       { icon: "bell", title: T("Reminders and nudges", "Promemoria e spronate"), body: T("Daily reminders, plus your friends' nudges as notifications.", "Promemoria giornalieri e le spronate degli amici come notifiche.") },
-      { icon: "flame", title: T("Streaks that respect rest", "Streak che rispettano il riposo"), body: T("Planned rest days don't break your streak.", "I giorni di riposo pianificati non interrompono la streak.") },
+      { icon: "flame", title: T("Weekly streaks", "Streak settimanali"), body: T("One session a week keeps your streak alive — rest days never break it.", "Una sessione a settimana tiene viva la streak: i giorni di riposo non la interrompono mai.") },
       { icon: "lock", title: T("Lock-screen controls", "Controlli dalla schermata di blocco"), body: T("Current exercise, rest and next, without unlocking.", "Esercizio, recupero e successivo, senza sbloccare.") },
       { icon: "undo", title: T("Take back a mistake", "Correggi un errore"), body: T("Undo a “too hard”, or mark something done afterwards.", "Annulla un “troppo difficile”, o segnalo come fatto dopo.") },
       { icon: "shield", title: T("Your data, your call", "I tuoi dati, decidi tu"), body: T("Export it all, or reset step by step up to deleting the account.", "Esporta tutto, o azzera per gradi fino a eliminare l'account.") },

@@ -47,7 +47,7 @@ export const NUDGES: NudgeDef[] = [
   {
     id: "f-feed-streak",
     mood: "friendly",
-    text: "{name}, your {streak}-day streak looks great. Feed it today?",
+    text: "{name}, your {streak}-week streak looks great. Feed it this week?",
     when: (c) => c.friendStreak >= 2,
     vars: (c) => ({ streak: c.friendStreak }),
   },
@@ -115,7 +115,7 @@ export const NUDGES: NudgeDef[] = [
   {
     id: "h-streak-duel",
     mood: "challenge",
-    text: "Streak duel: {sender} {ss} days vs {name} {rs}. Who blinks first?",
+    text: "Streak duel: {sender} {ss} weeks vs {name} {rs}. Who blinks first?",
     when: (c) => c.senderStreak >= 1 && c.friendStreak >= 1,
     vars: (c) => ({ ss: c.senderStreak, rs: c.friendStreak }),
   },

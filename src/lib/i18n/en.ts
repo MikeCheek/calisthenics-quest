@@ -52,7 +52,7 @@ const en: TranslationDict = {
     retakeAssessment: "Retake assessment",
     language: "Language",
     languageHint: "Choose the language for the app's interface.",
-    daysStreak: "day streak",
+    daysStreak: "week streak",
   },
   exercise: {
     howTo: "How to",

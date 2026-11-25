@@ -16,7 +16,7 @@ export const MAX_CONTEXT_CHARS = 3000;
 export function buildCoachContext(userDoc: UserDoc, recent: SessionRecord[] = []): string {
   const lines: string[] = [];
   const level = levelFromXp(userDoc.xp);
-  lines.push(`Level ${level}; ${userDoc.totalSessionsCompleted} sessions logged; current streak ${userDoc.streak} days.`);
+  lines.push(`Level ${level}; ${userDoc.totalSessionsCompleted} sessions logged; current streak ${userDoc.streak} weeks in a row with at least one session.`);
 
   const rec = userDoc.skills as unknown as Record<string, string>;
   const started = (Object.keys(SKILL_FIELD_LABEL) as StagedSkillKey[])

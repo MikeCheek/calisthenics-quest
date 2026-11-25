@@ -10,9 +10,14 @@ const user = (o: Partial<{ streak: number; lastSessionDateISO: string; days: num
 test("the status: in session, done today, streak at risk, or nothing", () => {
   assert.equal(streakStatus(user({ streak: 5 }), { inSession: true, now: sat }), "session");
   assert.equal(streakStatus(user({ streak: 5, lastSessionDateISO: new Date(2026, 10, 21, 9).toISOString() }), { inSession: false, now: sat }), "done");
-  assert.equal(streakStatus(user({ streak: 5, days: [6] }), { inSession: false, now: sat }), "atRisk");
-  assert.equal(streakStatus(user({ streak: 5, days: [1, 3] }), { inSession: false, now: sat }), "idle"); // a rest day
-  assert.equal(streakStatus(user({ streak: 0, days: [6] }), { inSession: false, now: sat }), "idle"); // nothing to lose
+  const lastWeek = new Date(2026, 10, 12, 9).toISOString(); // Thursday of the week before
+  const earlierThisWeek = new Date(2026, 10, 17, 9).toISOString(); // Tuesday
+  assert.equal(streakStatus(user({ streak: 5, lastSessionDateISO: lastWeek, days: [6] }), { inSession: false, now: sat }), "atRisk"); // Saturday is the week's last planned day
+  assert.equal(streakStatus(user({ streak: 5, lastSessionDateISO: lastWeek, days: [6, 0] }), { inSession: false, now: sat }), "idle"); // Sunday still to come
+  assert.equal(streakStatus(user({ streak: 5, lastSessionDateISO: lastWeek, days: [1, 3] }), { inSession: false, now: sat }), "atRisk"); // planned days gone, week nearly over
+  assert.equal(streakStatus(user({ streak: 5, lastSessionDateISO: earlierThisWeek, days: [6] }), { inSession: false, now: sat }), "idle"); // this week already counts
+  assert.equal(streakStatus(user({ streak: 0, lastSessionDateISO: lastWeek, days: [6] }), { inSession: false, now: sat }), "idle"); // nothing to lose
+  assert.equal(streakStatus(user({ streak: 5, lastSessionDateISO: new Date(2026, 10, 2).toISOString(), days: [6] }), { inSession: false, now: sat }), "idle"); // already lost
 });
 
 test("the badge shows when there's something to do now", () => {

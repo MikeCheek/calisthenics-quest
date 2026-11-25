@@ -260,7 +260,7 @@ export function buildCardSvg(card: ShareCard, ctx: CardContext): string {
   parts.push(text(pad, fy, tx("Level {n}", { n: ctx.level }), story ? 54 : 46, TEXT, { weight: 800 }));
   const right = [
     ctx.verifiedTotal ? tx("{a}/{b} verified", { a: ctx.verified, b: ctx.verifiedTotal }) : null,
-    ctx.streak > 1 ? tx("{n}-day streak", { n: ctx.streak }) : null,
+    ctx.streak > 1 ? tx("{n}-week streak", { n: ctx.streak }) : null,
   ].filter(Boolean).join(" · ");
   if (right) parts.push(text(W - pad, fy, right, 32, SUB, { anchor: "end" }));
   if (ctx.name) parts.push(text(pad, fy + 56, ctx.name, 34, SUB));

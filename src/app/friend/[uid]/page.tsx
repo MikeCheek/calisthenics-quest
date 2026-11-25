@@ -78,7 +78,7 @@ export default function FriendProfilePage() {
             <div className="stat-mono text-xl text-orange-400 flex items-center justify-center gap-1">
               <Flame size={16} /> {profile.streak}
             </div>
-            <div className="text-xs text-muted mt-0.5">{tx("day streak")}</div>
+            <div className="text-xs text-muted mt-0.5">{tx("week streak")}</div>
           </div>
           <div className="panel p-3 text-center">
             <div className="stat-mono text-xl text-orange-400 flex items-center justify-center gap-1">

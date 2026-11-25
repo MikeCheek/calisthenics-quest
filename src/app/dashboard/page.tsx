@@ -1,5 +1,6 @@
 "use client";
 
+import { shownStreak } from "@/lib/weekStreak";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -77,13 +78,13 @@ export default function TodayPage() {
             <p className="text-xs text-muted">{dateLine}</p>
             <h1 className="heading text-2xl text-zinc-100 truncate">{tx("Hi, {name}", { name: firstName })}</h1>
           </div>
-          {userDoc.streak > 0 && (
+          {shownStreak(userDoc) > 0 && (
             <div
               className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-300 text-sm"
-              aria-label={tx("{n}-day streak", { n: userDoc.streak })}
+              aria-label={tx(shownStreak(userDoc) === 1 ? "1-week streak" : "{n}-week streak", { n: shownStreak(userDoc) })}
             >
               <Flame size={15} className="text-orange-400" />
-              <span className="stat-mono">{userDoc.streak}</span>
+              <span className="stat-mono">{shownStreak(userDoc)}</span>
             </div>
           )}
         </header>

@@ -219,7 +219,7 @@ you have any health concerns.
   format, straight to the share sheet. Your name only appears if you opt in.
 
 ### Account and privacy
-- English and Italian, daily reminders, streaks that pause on planned rest days.
+- English and Italian, daily reminders, and a **weekly streak**: one session a week keeps it going (rest days never break it), with an amber dot on the app icon when the week is about to end without one.
 - **Your data** — export everything as JSON, or reset in steps up to deleting the
   account, each showing exactly what it removes and keeps.
 - `.tcx` export of any session, for platforms that import workout files (e.g. Strava,

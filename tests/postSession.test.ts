@@ -11,7 +11,7 @@ const c = (leveledUp: boolean, streakEvent: StreakEvent) => ({ leveledUp, newLev
 test("a level-up leads the summary, with the streak underneath", () => {
   const l = summaryLines(c(true, "increased"), 120);
   assert.deepEqual(l.headline, { text: "Level {n}!", vars: { n: 15 } });
-  assert.deepEqual(l.detail, { text: "Streak up — {n} days in a row", vars: { n: 12 } });
+  assert.deepEqual(l.detail, { text: "Streak up — {n} weeks in a row", vars: { n: 12 } });
   assert.deepEqual(l.xp, { text: "+{n} XP", vars: { n: 120 } });
 });
 

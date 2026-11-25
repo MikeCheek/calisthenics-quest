@@ -66,10 +66,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "sessions-100", title: "Century", description: "Finish 100 sessions.", icon: "trophy", tier: "gold", progress: count(sessions, 100) },
   { id: "sessions-250", title: "Lifer", description: "Finish 250 sessions.", icon: "crown", tier: "gold", progress: count(sessions, 250) },
 
-  { id: "streak-3", title: "On a roll", description: "Train 3 days in a row.", icon: "flame", tier: "bronze", progress: count((u) => u.streak ?? 0, 3) },
-  { id: "streak-7", title: "Full week", description: "Keep a 7-day streak.", icon: "flame", tier: "silver", progress: count((u) => u.streak ?? 0, 7) },
-  { id: "streak-14", title: "Two weeks strong", description: "Keep a 14-day streak.", icon: "flame", tier: "silver", progress: count((u) => u.streak ?? 0, 14) },
-  { id: "streak-30", title: "Unbreakable", description: "Keep a 30-day streak.", icon: "flame", tier: "gold", progress: count((u) => u.streak ?? 0, 30) },
+  // weekly streaks (weekStreak.ts); the ids are older than the weekly count
+  { id: "streak-3", title: "On a roll", description: "Train 3 weeks in a row.", icon: "flame", tier: "bronze", progress: count((u) => u.streak ?? 0, 3) },
+  { id: "streak-7", title: "Two months strong", description: "Keep an 8-week streak.", icon: "flame", tier: "silver", progress: count((u) => u.streak ?? 0, 8) },
+  { id: "streak-14", title: "Half a year", description: "Keep a 26-week streak.", icon: "flame", tier: "silver", progress: count((u) => u.streak ?? 0, 26) },
+  { id: "streak-30", title: "Unbreakable", description: "Keep a 52-week streak — a whole year.", icon: "flame", tier: "gold", progress: count((u) => u.streak ?? 0, 52) },
 
   { id: "level-5", title: "Level 5", description: "Reach level 5.", icon: "star", tier: "bronze", progress: count((u) => levelFromXp(u.xp ?? 0), 5) },
   { id: "level-10", title: "Level 10", description: "Reach level 10.", icon: "star", tier: "silver", progress: count((u) => levelFromXp(u.xp ?? 0), 10) },
