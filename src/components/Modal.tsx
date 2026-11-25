@@ -88,7 +88,7 @@ export default function Modal({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="panel outline-none w-full sm:max-w-md max-h-[85vh] overflow-y-auto rounded-b-none sm:rounded-b-lg animate-slide-up-in"
+        className="panel outline-none w-full sm:max-w-md max-h-[85vh] overflow-y-auto scroll-pt-20 scroll-pb-4 rounded-b-none sm:rounded-b-lg animate-slide-up-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sm:hidden flex justify-center pt-2">
