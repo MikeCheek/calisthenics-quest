@@ -60,8 +60,8 @@ const SHARED_FAQ = [
   {
     q: T("Do I need to do calisthenics too?", "Devo fare anche calisthenics?"),
     a: T(
-      "No. Calisthenics is the main track, so you'll answer a short calisthenics check when you start — then add this sport from the sport button at the top and train only that if you like.",
-      "No. Il calisthenics è il percorso principale, quindi all'inizio rispondi a una breve valutazione di calisthenics — poi aggiungi questo sport dal pulsante in alto e allenati solo con quello, se vuoi.",
+      "No. When you start, you pick the sport you want — this one, if you like. Calisthenics is the main track and is there whenever you want to add it, from the sport button at the top.",
+      "No. Quando inizi scegli lo sport che vuoi — anche solo questo. Il calisthenics è il percorso principale ed è lì quando vuoi aggiungerlo, dal pulsante dello sport in alto."
     ),
   },
   {

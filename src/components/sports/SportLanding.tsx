@@ -16,7 +16,7 @@ import type { Locale } from "@/lib/types";
 
 // A small landing page for one of the sports beyond calisthenics: what it
 // teaches, how a session works, the moves, and a way in. Starting from here
-// remembers the sport, so the app offers to set it up after the first check.
+// remembers the sport, so the first-login sport picker suggests it.
 export default function SportLanding({
   sport,
   locale,

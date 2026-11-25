@@ -449,6 +449,9 @@ export interface UserDoc {
   askPark?: boolean;
   // other sports (sports/): the one Today shows, and your progress in each
   activeSport?: import("./sports/types").SportId;
+  // started with another sport at the first login: calisthenics has no skill
+  // check yet, so the first switch to it goes through onboarding
+  calisthenicsPending?: boolean;
   sports?: Partial<Record<import("./sports/types").ExtraSport, import("./sports/types").SportTrack>>;
   lastSessionDateISO?: string;
   totalSessionsCompleted: number;

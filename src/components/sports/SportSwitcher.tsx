@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import Modal from "@/components/Modal";
+import SportSetupForm from "@/components/sports/SportSetupForm";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { updateProgress } from "@/lib/store";
@@ -21,17 +23,6 @@ import {
   type SportId,
 } from "@/lib/sports";
 
-const EXPERIENCE: { id: Experience; label: string; hint: string }[] = [
-  { id: "new", label: "New to it", hint: "Start from the foundations" },
-  { id: "some", label: "Some practice", hint: "Skip the very first steps" },
-  {
-    id: "experienced",
-    label: "Experienced",
-    hint: "Start further up each skill",
-  },
-];
-const LENGTHS = [15, 25, 40, 60];
-
 // Like switching language on Duolingo: the sports you follow, each with its
 // own level, one tap to switch, and others to start. Nothing is lost.
 export default function SportSwitcher({
@@ -43,10 +34,8 @@ export default function SportSwitcher({
   const { tx } = useLanguage();
   const [open, setOpen] = useState(false);
   const [setup, setSetup] = useState<ExtraSport | null>(null);
-  const [experience, setExperience] = useState<Experience>("new");
-  const [goals, setGoals] = useState<string[]>([]);
-  const [minutes, setMinutes] = useState(25);
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
   // arrived from a sport's landing page: offer its setup (or switch to it)
   const onboarded = !!userDoc?.onboarded;
   useEffect(() => {
@@ -70,6 +59,12 @@ export default function SportSwitcher({
   const meta = SPORT_META[active];
 
   const choose = async (s: SportId) => {
+    // started with another sport: calisthenics' skill check comes first
+    if (s === "calisthenics" && userDoc.calisthenicsPending) {
+      setOpen(false);
+      router.push("/onboarding");
+      return;
+    }
     setBusy(true);
     await updateProgress(userDoc.uid, { activeSport: s }).catch(() => {});
     await refreshUserDoc();
@@ -77,7 +72,7 @@ export default function SportSwitcher({
     setOpen(false);
   };
 
-  const start = async () => {
+  const start = async (experience: Experience, goals: string[], minutes: number) => {
     if (!setup) return;
     setBusy(true);
     const track = newTrack(SPORTS[setup], experience, goals, minutes);
@@ -91,17 +86,7 @@ export default function SportSwitcher({
     setOpen(false);
   };
 
-  const openSetup = (s: ExtraSport) => {
-    setSetup(s);
-    setExperience("new");
-    setGoals([]);
-    setMinutes(
-      userDoc.body?.sessionLengthMinutes &&
-        userDoc.body.sessionLengthMinutes <= 60
-        ? Math.min(60, userDoc.body.sessionLengthMinutes)
-        : 25,
-    );
-  };
+  const openSetup = (s: ExtraSport) => setSetup(s);
 
   return (
     <>
@@ -136,7 +121,9 @@ export default function SportSwitcher({
               {ALL_SPORTS.map((s) => {
                 const m = SPORT_META[s];
                 const started =
-                  s === "calisthenics" || !!userDoc.sports?.[s as ExtraSport];
+                  s === "calisthenics"
+                    ? !userDoc.calisthenicsPending
+                    : !!userDoc.sports?.[s as ExtraSport];
                 const isActive = s === active;
                 return (
                   <li key={s}>
@@ -147,7 +134,9 @@ export default function SportSwitcher({
                           ? isActive
                             ? setOpen(false)
                             : choose(s)
-                          : isExtraSport(s) && openSetup(s)
+                          : isExtraSport(s)
+                            ? openSetup(s)
+                            : choose(s)
                       }
                       className={`w-full text-left rounded-xl border px-3 py-3 flex items-center gap-3 ${isActive ? "border-orange-500 bg-orange-500/10" : "border-zinc-800 hover:border-zinc-600"}`}
                     >
@@ -194,101 +183,13 @@ export default function SportSwitcher({
             </ul>
           </div>
         ) : (
-          <div className="space-y-4">
-            <section>
-              <h3 className="text-sm text-zinc-100 mb-2">
-                {tx("How much {name} have you done?", {
-                  name: tx(SPORT_META[setup].name),
-                })}
-              </h3>
-              <div
-                className="grid grid-cols-1 gap-1.5"
-                role="radiogroup"
-                aria-label={tx("Experience")}
-              >
-                {EXPERIENCE.map((e) => (
-                  <button
-                    key={e.id}
-                    role="radio"
-                    aria-checked={experience === e.id}
-                    onClick={() => setExperience(e.id)}
-                    className={`text-left rounded-xl border px-3 py-2 ${experience === e.id ? "border-orange-500 bg-orange-500/10" : "border-zinc-800"}`}
-                  >
-                    <span className="block text-sm text-zinc-100">
-                      {tx(e.label)}
-                    </span>
-                    <span className="block text-xs text-zinc-400">
-                      {tx(e.hint)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-            <section>
-              <h3 className="text-sm text-zinc-100 mb-1">
-                {tx("What do you want most? (up to 3)")}
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {SPORTS[setup].skills.map((sk) => {
-                  const on = goals.includes(sk.key);
-                  return (
-                    <button
-                      key={sk.key}
-                      aria-pressed={on}
-                      onClick={() =>
-                        setGoals((g) =>
-                          on
-                            ? g.filter((x) => x !== sk.key)
-                            : g.length < 3
-                              ? [...g, sk.key]
-                              : g,
-                        )
-                      }
-                      className={`px-3 py-1.5 rounded-full text-xs border ${on ? "border-orange-500 bg-orange-500/15 text-orange-100" : "border-zinc-700 text-zinc-300"}`}
-                    >
-                      {sk.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-            <section>
-              <h3 className="text-sm text-zinc-100 mb-1">
-                {tx("Session length")}
-              </h3>
-              <div
-                className="flex gap-1.5"
-                role="group"
-                aria-label={tx("Session length")}
-              >
-                {LENGTHS.map((m) => (
-                  <button
-                    key={m}
-                    aria-pressed={minutes === m}
-                    onClick={() => setMinutes(m)}
-                    className={`px-3 py-1.5 rounded-full text-xs border ${minutes === m ? "border-orange-500 bg-orange-500/15 text-orange-100" : "border-zinc-700 text-zinc-300"}`}
-                  >
-                    {tx("{n} min", { n: m })}
-                  </button>
-                ))}
-              </div>
-            </section>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setSetup(null)}
-                className="py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-200"
-              >
-                {tx("Back")}
-              </button>
-              <button
-                onClick={start}
-                disabled={busy}
-                className="py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-sm font-medium disabled:opacity-60"
-              >
-                {tx("Start {name}", { name: tx(SPORT_META[setup].name) })}
-              </button>
-            </div>
-          </div>
+          <SportSetupForm
+            sport={setup}
+            initialMinutes={userDoc.body?.sessionLengthMinutes ?? 25}
+            busy={busy}
+            onBack={() => setSetup(null)}
+            onStart={start}
+          />
         )}
       </Modal>
     </>

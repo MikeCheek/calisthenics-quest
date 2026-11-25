@@ -517,3 +517,48 @@ test("sports: starting from the yoga page opens yoga's setup in the app", async 
   await expect(page.getByRole("banner").getByRole("button", { name: /Sport: Yoga/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test.describe("first login: pick a sport", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem("barquests:demo-fresh", "1"));
+  });
+
+  test("start with yoga: its three questions, then Today is yoga; calisthenics asks for its check when added", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/onboarding");
+    await expect(page.getByRole("heading", { name: "What do you want to train?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Main track.*Calisthenics/ })).toBeVisible();
+    await expectNoA11yViolations(page);
+    await page.getByRole("button", { name: /Yoga/ }).click();
+    await expect(page.getByRole("heading", { name: "Start Yoga" })).toBeVisible();
+    await page.getByRole("button", { name: "Crow" }).click();
+    await page.getByRole("button", { name: "Start Yoga" }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByRole("heading", { name: /Up next in Yoga/ })).toBeVisible();
+
+    // calisthenics was never set up: adding it goes through its check
+    await page.getByRole("banner").getByRole("button", { name: /Sport: Yoga/ }).click();
+    const cali = page.getByRole("dialog", { name: "Your sports" }).getByRole("button", { name: /Calisthenics/ });
+    await expect(cali).toContainText("Start");
+    await cali.click();
+    await expect(page).toHaveURL(/\/onboarding/);
+    await expect(page.getByText("Step 1 of 4")).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("start with calisthenics: the usual setup, with a way back to the sports", async ({ page }) => {
+    await page.goto("/onboarding");
+    await page.getByRole("button", { name: /Main track.*Calisthenics/ }).click();
+    await expect(page.getByText("Step 1 of 4")).toBeVisible();
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(page.getByRole("heading", { name: "What do you want to train?" })).toBeVisible();
+  });
+
+  test("arriving from the Pilates page: Pilates is suggested", async ({ page }) => {
+    await page.goto("/pilates");
+    await page.getByRole("button", { name: "Start Pilates free" }).first().click();
+    await expect(page).toHaveURL(/\/onboarding/);
+    await expect(page.getByRole("button", { name: /Pilates/ })).toHaveClass(/ring-1/);
+    await expect(page.getByRole("button", { name: /Main track.*Calisthenics/ })).not.toHaveClass(/ring-1/);
+  });
+});

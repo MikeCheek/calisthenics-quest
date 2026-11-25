@@ -20,12 +20,23 @@ export type { GlobalBoardRow, PairingDoc };
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const pause = () => new Promise((r) => setTimeout(r, 120)); // feel like a network
 
+// sessionStorage "barquests:demo-fresh" = "1": start as a brand-new user
+// (not onboarded, nothing logged), to try the first login
+const fresh = (() => {
+  try {
+    return typeof window !== "undefined" && sessionStorage.getItem("barquests:demo-fresh") === "1";
+  } catch {
+    return false;
+  }
+})();
+const firstUser = (): UserDoc => (fresh ? { ...demoUserDoc(), onboarded: false, totalSessionsCompleted: 0, xp: 0, streak: 0, xpHistory: [] } : demoUserDoc());
+
 const state = {
-  users: new Map<string, UserDoc>([[DEMO_UID, demoUserDoc()]]),
+  users: new Map<string, UserDoc>([[DEMO_UID, firstUser()]]),
   profiles: new Map<string, PublicProfile>(DEMO_FRIEND_PROFILES.map((p) => [p.uid, p])),
   friends: [...DEMO_FRIENDS] as Friend[],
   pings: [] as Ping[],
-  sessions: demoSessions(),
+  sessions: fresh ? [] : demoSessions(),
   pairings: new Map<string, PairingDoc>(),
   // uid -> this week's totals, for players on the global board
   global: new Map<string, GlobalBoardRow>(DEMO_GLOBAL_BOARD.map((r) => [r.uid, r])),
