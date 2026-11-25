@@ -36,7 +36,7 @@ export const SITE_KEYWORDS = [
 
 // Pages people can find from a search engine; everything else is the
 // signed-in app and is kept out of the index.
-export const PUBLIC_PATHS = ["/", "/it", "/about"];
+export const PUBLIC_PATHS = ["/", "/it", "/about", "/yoga", "/it/yoga", "/pilates", "/it/pilates"];
 
 // The landing page in each language, for hreflang links
 export const LANDING_LANGUAGES = { en: "/", it: "/it", "x-default": "/" } as const;

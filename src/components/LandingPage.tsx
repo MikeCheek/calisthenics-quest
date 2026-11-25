@@ -21,6 +21,9 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { LANDING, pick } from "@/lib/landingCopy";
+import { SPORTS_SECTION, SPORT_COPY } from "@/lib/sportLandingCopy";
+import { EXTRA_SPORTS, SPORT_META } from "@/lib/sports";
+import ExerciseDemo from "@/components/ExerciseDemo";
 import type { Locale } from "@/lib/types";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -224,6 +227,34 @@ export default function LandingPage({ locale }: { locale: Locale }) {
             </section>
           ))}
         </div>
+
+        {/* the other sports: a short word, then their own pages */}
+        <section className="max-w-5xl mx-auto mb-20" aria-labelledby="other-sports">
+          <p className="text-xs uppercase tracking-widest text-orange-400 mb-2">{p(SPORTS_SECTION.eyebrow)}</p>
+          <h2 id="other-sports" className="heading text-3xl text-zinc-100 mb-3">
+            {p(SPORTS_SECTION.title)}
+          </h2>
+          <p className="text-zinc-300 leading-relaxed max-w-2xl mb-6">{p(SPORTS_SECTION.body)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {EXTRA_SPORTS.map((s) => {
+              const c = SPORT_COPY[s];
+              return (
+                <Link key={s} href={locale === "it" ? `/it${c.path}` : c.path} className="panel p-4 flex items-center gap-4 hover:border-orange-500/60 group">
+                  <div className="w-24 shrink-0">
+                    <ExerciseDemo exerciseName={c.demo} width={96} decorative />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="heading text-xl text-zinc-100 flex items-center gap-2">
+                      <span aria-hidden="true">{SPORT_META[s].emoji}</span> {c.name}
+                    </h3>
+                    <p className="text-sm text-zinc-400 mb-1">{p(c.card)}</p>
+                    <span className="text-sm text-orange-400 group-hover:underline underline-offset-2">{p(SPORTS_SECTION.more).replace("{sport}", c.name)} →</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
 
         {/* everything else */}
         <section className="max-w-5xl mx-auto mb-20">

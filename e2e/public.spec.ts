@@ -53,6 +53,34 @@ test("About is accessible", async ({ page }) => {
 test("robots.txt and the sitemap list the public pages", async ({ request }) => {
   expect(await (await request.get("/robots.txt")).text()).toContain("Disallow: /api/");
   const sitemap = await (await request.get("/sitemap.xml")).text();
-  for (const p of ["/it", "/about"]) expect(sitemap).toContain(p);
+  for (const p of ["/it", "/about", "/yoga", "/it/pilates"]) expect(sitemap).toContain(p);
   expect(sitemap).toContain('hreflang="it"');
 });
+
+test("landing page: a short word on yoga and Pilates, linking to their pages", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Rainy day? Train yoga or Pilates" })).toBeVisible();
+  await page.getByRole("link", { name: /Yoga.*Discover Yoga/ }).click();
+  await expect(page).toHaveURL(/\/yoga$/);
+  await expect(page.getByRole("heading", { level: 1, name: /Yoga/ })).toBeVisible();
+});
+
+for (const [path, title, h, start] of [
+  ["/yoga", "Yoga on BarQuests — skills, stage by stage", "What you'll learn", "Start Yoga free"],
+  ["/pilates", "Pilates on BarQuests — mat work, stage by stage", "What you'll learn", "Start Pilates free"],
+  ["/it/yoga", "Yoga su BarQuests — skill, livello dopo livello", "Cosa imparerai", "Inizia Yoga gratis"],
+  ["/it/pilates", "Pilates su BarQuests — a corpo libero, livello per livello", "Cosa imparerai", "Inizia Pilates gratis"],
+] as const) {
+  test(`${path}: its own page, both languages linked, accessible`, async ({ page }) => {
+    const errors = collectErrors(page, FIREBASE_PLACEHOLDER);
+    await page.goto(path);
+    await expect(page).toHaveTitle(title);
+    await expect(page.getByRole("heading", { name: h })).toBeVisible();
+    await expect(page.getByRole("button", { name: start }).first()).toBeVisible();
+    const alternates = await page.locator('link[rel="alternate"][hreflang]').evaluateAll((ls) => ls.map((l) => `${l.getAttribute("hreflang")} ${new URL(l.getAttribute("href")!).pathname}`));
+    const s = path.replace("/it", "");
+    expect(alternates).toEqual(expect.arrayContaining([`en ${s}`, `it /it${s}`]));
+    await expectNoA11yViolations(page);
+    expect(errors).toEqual([]);
+  });
+}

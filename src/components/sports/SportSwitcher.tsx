@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { updateProgress } from "@/lib/store";
+import { takeSportIntent } from "@/lib/sports/intent";
 import { levelFromXp } from "@/lib/xp";
 import {
   ALL_SPORTS,
@@ -46,6 +47,24 @@ export default function SportSwitcher({
   const [goals, setGoals] = useState<string[]>([]);
   const [minutes, setMinutes] = useState(25);
   const [busy, setBusy] = useState(false);
+  // arrived from a sport's landing page: offer its setup (or switch to it)
+  const onboarded = !!userDoc?.onboarded;
+  useEffect(() => {
+    if (!onboarded || !compact) return; // the header one (always mounted) takes it; its dialog is a portal
+    const want = takeSportIntent();
+    if (!want) return;
+    if (userDoc?.sports?.[want]) {
+      if (userDoc.activeSport !== want)
+        void updateProgress(userDoc.uid, { activeSport: want }).then(
+          refreshUserDoc,
+        );
+      return;
+    }
+    setOpen(true);
+    openSetup(want);
+    // once, when the app is first ready
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboarded]);
   if (!userDoc?.onboarded) return null;
   const active = activeSportOf(userDoc);
   const meta = SPORT_META[active];

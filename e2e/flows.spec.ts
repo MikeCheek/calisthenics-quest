@@ -505,3 +505,15 @@ test("sports: start yoga, train it, switch back to calisthenics with nothing los
   await expect(page.getByRole("tab", { name: "Proven" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("sports: starting from the yoga page opens yoga's setup in the app", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/yoga");
+  await page.getByRole("button", { name: "Start Yoga free" }).first().click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  const setup = page.getByRole("dialog", { name: "Start Yoga" });
+  await expect(setup.getByRole("radio", { name: /New to it/ })).toBeVisible();
+  await setup.getByRole("button", { name: "Start Yoga" }).click();
+  await expect(page.getByRole("banner").getByRole("button", { name: /Sport: Yoga/ })).toBeVisible();
+  expect(errors).toEqual([]);
+});
