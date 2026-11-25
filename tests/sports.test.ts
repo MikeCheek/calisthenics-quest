@@ -150,3 +150,14 @@ test("every yoga and Pilates exercise has a demo that's drawn right", async () =
     }
   assert.deepEqual(problems, []);
 });
+
+test("the coach knows the other sports: stages, goals, the active one, and which sport each session was", async () => {
+  const { buildCoachContext } = await import("../src/lib/coachContext");
+  const { DEFAULT_SKILLS, DEFAULT_EQUIPMENT } = await import("../src/lib/types");
+  const yoga = newTrack(SPORTS.yoga, "some", ["crow"]);
+  const u = { xp: 500, totalSessionsCompleted: 3, streak: 1, skills: DEFAULT_SKILLS, equipment: DEFAULT_EQUIPMENT, sports: { yoga }, activeSport: "yoga" } as never;
+  const ctx = buildCoachContext(u, [{ finishedAt: "2026-11-20T10:00:00Z", focusLabel: "Balance", sport: "yoga", exercises: [] } as never]);
+  assert.match(ctx, /Also follows Yoga \(0 sessions, goals: Crow\): Sun Salutation: Sun A; /);
+  assert.match(ctx, /Currently training Yoga/);
+  assert.match(ctx, /Session 2026-11-20 \(Yoga: Balance/);
+});

@@ -9,6 +9,10 @@ import { useLanguage } from "@/context/LanguageContext";
 // Looping stick-figure demonstration of an exercise (see lib/demos). Renders
 // nothing for exercises without a demo. Honors prefers-reduced-motion by
 // showing the key position instead, and stops animating in background tabs.
+// two decimals: server and browser maths can differ in the last digit, which
+// would otherwise break hydration
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 export default function ExerciseDemo({
   exerciseName,
   width = 200,
@@ -22,7 +26,10 @@ export default function ExerciseDemo({
 }) {
   const { tx } = useLanguage();
   const entry = useMemo(() => demoFor(exerciseName), [exerciseName]);
-  const viewBox = useMemo(() => (entry ? fittedViewBox(entry.demo) : null), [entry]);
+  const viewBox = useMemo(
+    () => (entry ? fittedViewBox(entry.demo) : null),
+    [entry],
+  );
   const [ms, setMs] = useState(0);
   const [reduced, setReduced] = useState(false);
 
@@ -57,26 +64,51 @@ export default function ExerciseDemo({
   return (
     <figure className={`flex flex-col items-center ${className}`}>
       <svg
-        viewBox={viewBox.join(" ")}
+        viewBox={viewBox.map(r2).join(" ")}
         width={width}
         height={height}
         preserveAspectRatio="xMidYMid meet"
         role={decorative ? undefined : "img"}
         aria-hidden={decorative || undefined}
-        aria-label={decorative ? undefined : `${tx("Demonstration")}: ${exerciseName}`}
-        className={decorative ? "" : "rounded-xl bg-zinc-950/60 border border-zinc-800"}
+        aria-label={
+          decorative ? undefined : `${tx("Demonstration")}: ${exerciseName}`
+        }
+        className={
+          decorative ? "" : "rounded-xl bg-zinc-950/60 border border-zinc-800"
+        }
       >
         {shapes.map((s, i) =>
           s.t === "line" ? (
-            <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.stroke} strokeWidth={s.w} strokeLinecap="round" />
+            <line
+              key={i}
+              x1={r2(s.x1)}
+              y1={r2(s.y1)}
+              x2={r2(s.x2)}
+              y2={r2(s.y2)}
+              stroke={s.stroke}
+              strokeWidth={s.w}
+              strokeLinecap="round"
+            />
           ) : s.t === "circle" ? (
-            <circle key={i} cx={s.cx} cy={s.cy} r={s.r} fill={s.fill} />
+            <circle key={i} cx={r2(s.cx)} cy={r2(s.cy)} r={s.r} fill={s.fill} />
           ) : (
-            <rect key={i} x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx ?? 0} fill={s.fill} />
-          )
+            <rect
+              key={i}
+              x={s.x}
+              y={s.y}
+              width={s.w}
+              height={s.h}
+              rx={s.rx ?? 0}
+              fill={s.fill}
+            />
+          ),
         )}
       </svg>
-      {reduced && !decorative && <figcaption className="text-xs text-muted mt-1">{tx("Animation paused (reduced motion)")}</figcaption>}
+      {reduced && !decorative && (
+        <figcaption className="text-xs text-muted mt-1">
+          {tx("Animation paused (reduced motion)")}
+        </figcaption>
+      )}
     </figure>
   );
 }

@@ -1965,6 +1965,7 @@ const IT_PHRASES: [string, string][] = [
   ["Make {name} a goal", "Rendi {name} un obiettivo"],
   ["Remove {name} from goals", "Togli {name} dagli obiettivi"],
   ["New stages", "Nuovi livelli"],
+  ["This plan is for calisthenics. Your {sport} sessions come from Today.", "Questo piano è per il calisthenics. Le sessioni di {sport} arrivano da Oggi."],
   ["Session length", "Durata della sessione"],
   ["{skill}: next stage unlocked", "{skill}: livello successivo sbloccato"],
   // common mistakes: yoga and Pilates
