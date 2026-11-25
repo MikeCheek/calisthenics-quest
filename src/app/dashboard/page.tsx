@@ -25,6 +25,8 @@ import CoolDownCard, { RestDayCard } from "@/components/CoolDown";
 import ExtrasLinks from "@/components/ExtrasLinks";
 import TrainingBlockCard from "@/components/TrainingBlockCard";
 import WeatherCard from "@/components/today/WeatherCard";
+import WeekShiftCard from "@/components/today/WeekShiftCard";
+import { weekPlan } from "@/lib/weekShift";
 import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
 import { SessionRecord } from "@/lib/types";
 import { Flame } from "lucide-react";
@@ -62,8 +64,12 @@ export default function TodayPage() {
 
   const level = levelProgress(userDoc.xp).level;
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
-  const days = weekStrip(now, weekSessions, userDoc.body?.trainingDaysOfWeek ?? []);
+  // the week's plan, moved if a training day was skipped (weekShift.ts)
+  const baseDays = userDoc.body?.trainingDaysOfWeek ?? [];
+  const plan = weekPlan(baseDays, weekSessions, now, userDoc.skippedDays);
+  const days = weekStrip(now, weekSessions, plan.days);
   const doneToday = trainedToday(now, weekSessions);
+  const inSession = !!activeSession && !activeCompleted;
   const plannedCount = userDoc.body?.trainingDaysOfWeek?.length ?? 0;
   const firstName = userDoc.displayName?.split(" ")[0] ?? "Athlete";
   const rawDate = now.toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long", day: "numeric", month: "long" });
@@ -108,6 +114,8 @@ export default function TodayPage() {
           onStart={() => startSession(fitted.session)}
           onResume={expand}
         />
+
+        {baseDays.length > 0 && !doneToday && !inSession && <WeekShiftCard plan={plan} canSkipToday={plan.todayPlanned} />}
 
         <TrainingBlockCard />
 

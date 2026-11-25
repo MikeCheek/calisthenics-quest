@@ -439,6 +439,8 @@ export interface UserDoc {
   level: number;
   streak: number; // consecutive weeks with a session (weekStreak.ts)
   streakUnit?: "week"; // set once a day-based streak has been converted
+  // days you said you'd skip (local yyyy-mm-dd, last two weeks): the week's plan moves (weekShift.ts)
+  skippedDays?: string[];
   lastSessionDateISO?: string;
   totalSessionsCompleted: number;
   missions: Mission[];

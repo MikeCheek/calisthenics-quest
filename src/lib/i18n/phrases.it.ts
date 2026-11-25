@@ -1730,6 +1730,13 @@ const IT_PHRASES: [string, string][] = [
   ["Keep a 26-week streak.", "Tieni una streak di 26 settimane."],
   ["Keep a 52-week streak — a whole year.", "Tieni una streak di 52 settimane: un anno intero."],
   ["Trained this week — streak safe", "Allenamento fatto questa settimana: streak al sicuro"],
+  // ---- week shift ----
+  ["One session skipped this week — the rest are back on your usual days: {days}", "Una sessione saltata questa settimana: le altre tornano ai tuoi giorni soliti: {days}"],
+  ["{n} sessions skipped this week — the rest are back on your usual days: {days}", "{n} sessioni saltate questa settimana: le altre tornano ai tuoi giorni soliti: {days}"],
+  ["You missed a training day, so the rest of the week moved by a day: {days}", "Hai saltato un giorno di allenamento, quindi il resto della settimana si sposta di un giorno: {days}"],
+  ["This week's plan", "Il piano di questa settimana"],
+  ["Can't today either? Skip this session", "Neanche oggi? Salta questa sessione"],
+  ["Can't train today? Move it to tomorrow", "Oggi non riesci? Spostala a domani"],
   // ---- account / danger zone ----
   ["Your data", "I tuoi dati"],
   ["Everything BarQuests stores about you, yours to take.", "Tutto ciò che BarQuests conserva su di te, a tua disposizione."],
