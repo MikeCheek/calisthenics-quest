@@ -677,3 +677,17 @@ test.describe("as a guest", () => {
     await expect(page.getByText(/You've been invited to train together/)).toBeVisible();
   });
 });
+
+test("an open skill card shows its stages and the move, with its buttons in reach", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/skills");
+  // not-started skills are folded away until asked for
+  await page.getByRole("button", { name: /^Show \d+ not started$/ }).first().click();
+  const card = page.locator("#skill-invertedCross");
+  await card.getByRole("button", { expanded: false }).click();
+  await expect(card.getByRole("img", { name: /Demonstration/ })).toBeVisible();
+  // the details sit inside the card, not cut off below it
+  await card.getByRole("button", { name: "About this skill" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(errors).toEqual([]);
+});

@@ -1,5 +1,7 @@
 "use client";
 
+import ExerciseDemo from "@/components/ExerciseDemo";
+import { skillDemoName } from "@/lib/demos/skillDemo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserDoc, StagedSkillKey, SKILL_FIELD_LABEL, MASTERY_LABEL, SkillMastery, DEFAULT_MASTERY } from "@/lib/types";
@@ -160,10 +162,13 @@ function SkillNode({
   const { tx } = useLanguage();
   const states = stageStates(skill, stage);
   const started = stage !== "none";
+  const demoName = open ? skillDemoName(skill, stage) : null;
 
   return (
-    <div id={`skill-${skill}`} className={`panel overflow-hidden ${open ? "border-zinc-600 col-span-full" : ""}`}>
-      <button onClick={onToggle} aria-expanded={open} className="w-full h-full text-left px-3 py-2.5 flex flex-col">
+    <div id={`skill-${skill}`} className={`panel overflow-hidden flex flex-col ${open ? "border-zinc-600 col-span-full" : ""}`}>
+      {/* the header grows to fill a closed card (pips at the bottom, even
+          rows) — but only into spare room, never over an open card's details */}
+      <button onClick={onToggle} aria-expanded={open} className="w-full flex-1 text-left px-3 py-2.5 flex flex-col">
         <div className="flex items-center gap-1.5 w-full">
           <span className={`text-sm truncate ${started ? "text-zinc-100" : "text-zinc-400"}`}>{SKILL_FIELD_LABEL[skill]}</span>
           {verified && <BadgeCheck size={13} className="text-emerald-400 shrink-0" aria-label={tx("verified")} />}
@@ -193,6 +198,12 @@ function SkillNode({
 
       {open && (
         <div className="border-t border-zinc-800 px-3 py-3 space-y-3">
+          {/* the stage you're on (or the first), moving */}
+          {demoName && (
+            <div className="aspect-[4/3] max-w-[260px] mx-auto w-full">
+              <ExerciseDemo exerciseName={demoName} width={260} className="h-full w-full [&_svg]:h-full [&_svg]:w-full" />
+            </div>
+          )}
           <ol className="relative pl-5 space-y-2.5">
             <span className="absolute left-[7px] top-1 bottom-1 w-0.5 bg-zinc-800" aria-hidden />
             {states.map((s) => (
