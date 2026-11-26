@@ -231,11 +231,56 @@ export function checkExercise(spec: CheckSpec): Exercise {
 
 // Puts at most one Skill Check right after the warm-up, while fresh.
 export function addSkillCheck(session: TrainingSession, spec: CheckSpec | null): TrainingSession {
-  if (!spec) return session;
+  return addSkillChecks(session, spec ? [spec] : []);
+}
+
+// Checks go right after the warm-up, while fresh — one set each.
+export function addSkillChecks(session: TrainingSession, specs: CheckSpec[]): TrainingSession {
+  if (!specs.length) return session;
   const sets = [...session.sets];
   const at = sets[0]?.track === "warmup" ? 1 : 0;
-  sets.splice(at, 0, { track: "skillCheck", title: "Skill Check", exercises: [checkExercise(spec)] });
-  return { ...session, sets, estXp: session.estXp + 10 };
+  sets.splice(at, 0, { track: "skillCheck", title: "Skill Check", exercises: specs.map(checkExercise) });
+  return { ...session, sets, estXp: session.estXp + 10 * specs.length };
+}
+
+// While lots of what you claimed is still unchecked, two checks a session
+// (each is a single set) so your level is confirmed in weeks, not months.
+export const MANY_UNVERIFIED = 6;
+export function checksPerSession(claims: Partial<Record<ClaimKey, SkillClaim>> | undefined): number {
+  const open = Object.values(claims ?? {}).filter((c) => c && c.status !== "verified").length;
+  return open >= MANY_UNVERIFIED ? 2 : 1;
+}
+
+export function pickSkillChecks(
+  claims: Partial<Record<ClaimKey, SkillClaim>>,
+  equipment: TrainingEquipment,
+  focus: SkillTrack,
+  max: number,
+  now: Date = new Date()
+): CheckSpec[] {
+  const out: CheckSpec[] = [];
+  const left = { ...claims };
+  while (out.length < max) {
+    const spec = pickSkillCheck(left, equipment, focus, now);
+    if (!spec) break;
+    out.push(spec);
+    delete left[spec.key];
+  }
+  return out;
+}
+
+// A claim that failed its check: train one stage below it until a check
+// confirms it, instead of prescribing what didn't hold up.
+export function skillsForTraining(skills: SkillProfile, claims: Partial<Record<ClaimKey, SkillClaim>> | undefined): SkillProfile {
+  const out = { ...skills } as unknown as Record<string, unknown>;
+  for (const [key, c] of Object.entries(claims ?? {})) {
+    if (c?.status !== "unconfirmed") continue;
+    const order = STAGE_ORDER[key as StagedSkillKey];
+    if (!order) continue;
+    const i = order.indexOf(String(out[key]));
+    if (i > 0) out[key] = order[i - 1];
+  }
+  return out as unknown as SkillProfile;
 }
 
 // ---- validating results ----

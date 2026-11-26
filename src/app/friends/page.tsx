@@ -184,6 +184,7 @@ function PairContent() {
           rawMySession,
           userDoc.exerciseStats,
           pairing!.hostEquipment,
+          userDoc.skills,
         ),
         pairMinutes,
       ).session

@@ -26,6 +26,7 @@ import { pickWarmup, pickWarmupFor, pickFinisher } from "./warmupFinisher";
 import { bandAssistanceBonus } from "./bandBonus";
 import { advancedSkillBonusSet } from "./advancedSkills";
 import { STAGE_ORDER } from "./stageOrder";
+import { aboveYourStage, stageExercises } from "./exerciseHierarchy";
 
 const FOCUS_ORDER: SkillTrack[] = [
   "frontLever",
@@ -153,9 +154,20 @@ export function pickFocus(
   return list[idx];
 }
 
-function accessoryTrackFor(focus: SkillTrack, equipment: TrainingEquipment): SkillTrack {
+// The accessory balances the day: a pulling skill gets push strength, a
+// pushing one pull strength; leg and core days alternate. (It used to
+// always prefer pulling, so most sessions carried a pull block.)
+const PULLING: SkillTrack[] = ["frontLever", "backLever", "muscleUp", "pullStrength", "humanFlag"];
+function accessoryTrackFor(focus: SkillTrack, equipment: TrainingEquipment, dateISO = ""): SkillTrack {
   const available = availableFocuses(equipment).filter((t) => t !== focus);
-  const preferred: SkillTrack[] = ["pullStrength", "pushStrength", "core", "legs"];
+  const odd = parseInt(dateISO.slice(8, 10) || "0", 10) % 2 === 1;
+  const preferred: SkillTrack[] = PULLING.includes(focus)
+    ? ["pushStrength", "core", "legs", "pullStrength"]
+    : focus === "legs" || focus === "core"
+      ? odd
+        ? ["pullStrength", "pushStrength", "core", "legs"]
+        : ["pushStrength", "pullStrength", "core", "legs"]
+      : ["pullStrength", "pushStrength", "core", "legs"];
   return preferred.find((t) => available.includes(t)) ?? available[0] ?? focus;
 }
 
@@ -163,6 +175,27 @@ function accessoryTrackFor(focus: SkillTrack, equipment: TrainingEquipment): Ski
 // from foundational/propedeutic drills up through the harder work for that
 // stage, since the exercise tables are already ordered that way) ->
 // accessory strength work -> a short finisher.
+// Swaps anything above the athlete's stage in its skill for that stage's
+// own work (or drops it), so a session never prescribes what they can't do.
+function keepToYourStages(sets: TrainingSet[], skills: SkillProfile, equipment: TrainingEquipment): TrainingSet[] {
+  const mine = skills as unknown as Record<string, unknown>;
+  const taken = new Set(sets.flatMap((st) => st.exercises.map((e) => e.name)));
+  return sets
+    .map((set) => {
+      if (set.track === "warmup" || set.track === "finisher") return set;
+      const exercises = set.exercises.flatMap((ex) => {
+        const above = aboveYourStage(ex.name, mine);
+        if (!above) return [ex];
+        const own = stageExercises(above.skill, above.stage, equipment).find((e) => !taken.has(e.name) && !aboveYourStage(e.name, mine));
+        if (!own) return [];
+        taken.add(own.name);
+        return [own];
+      });
+      return { ...set, exercises };
+    })
+    .filter((set) => set.exercises.length > 0);
+}
+
 function buildSets(
   skills: SkillProfile,
   equipment: TrainingEquipment,
@@ -188,7 +221,7 @@ function buildSets(
 
   const sets: TrainingSet[] = [warmup, primary];
 
-  const accessory = accessoryTrackFor(focus, equipment);
+  const accessory = accessoryTrackFor(focus, equipment, dateISO);
   if (accessory !== focus) {
     sets.push({
       track: accessory,
@@ -215,6 +248,11 @@ function buildSets(
     title: "Final Hits",
     exercises: [pickFinisher(dateISO, equipment)],
   });
+
+  // a block can borrow from another skill (planche push-ups in push
+  // strength, HSPU in handstand work): never above where you are in it
+  const kept = keepToYourStages(sets, skills, equipment);
+  sets.splice(0, sets.length, ...kept);
 
   // now the whole session is known: warm up for what it will actually load
   const matched = pickWarmupFor(

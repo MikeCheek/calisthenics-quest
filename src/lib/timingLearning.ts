@@ -113,7 +113,13 @@ export function summarizeTimerLog(log: TimerLog | undefined): TimingSummary | un
       ignored++;
       continue;
     }
-    restRatios.push(Math.max(0.25, Math.min(3, r.takenSec / r.plannedSec)));
+    // a rest cut to under 40% of the plan is a tap on "Skip rest", not how
+    // long you need: it says nothing about the right rest, so it's not learned
+    if (r.takenSec / r.plannedSec < 0.4) {
+      ignored++;
+      continue;
+    }
+    restRatios.push(Math.min(3, r.takenSec / r.plannedSec));
   }
 
   // logged reps: only from trustworthy sets, and only plausible counts

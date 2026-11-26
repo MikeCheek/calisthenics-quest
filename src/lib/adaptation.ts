@@ -13,6 +13,8 @@ import {
   SKILL_FIELD_LABEL,
 } from "./types";
 import {
+  aboveYourStage,
+  stageExercises,
   exerciseStage,
   findEasierExercise,
   findHarderExercise,
@@ -64,12 +66,41 @@ export function gentlerFor(
   name: string,
   equipment: TrainingEquipment,
   stats: Record<string, ExerciseStat> | undefined,
-  nowISO: string = new Date().toISOString()
+  nowISO: string = new Date().toISOString(),
+  opts: { skills?: SkillProfile; taken?: Set<string> } = {}
 ): Exercise | null {
+  return easierForAthlete(name, equipment, { ...opts, stats, nowISO });
+}
+
+// What to do instead of an exercise that's too much. Above your stage in
+// its skill (a full-planche push-up for a tuck planche): straight to your
+// own stage's work, not one rung at a time. Otherwise one rung down the
+// same movement. Either way: never something already in the session, nor
+// a rung that hurt recently (or, with `avoidStruggles`, one you've also
+// been struggling with).
+export function easierForAthlete(
+  name: string,
+  equipment: TrainingEquipment,
+  opts: { skills?: SkillProfile; taken?: Set<string>; stats?: Record<string, ExerciseStat>; nowISO?: string; avoidStruggles?: boolean } = {}
+): Exercise | null {
+  const nowISO = opts.nowISO ?? new Date().toISOString();
+  const skills = opts.skills as unknown as Record<string, unknown> | undefined;
+  const ok = (e: Exercise) => {
+    if (e.name === name || opts.taken?.has(e.name)) return false;
+    if (skills && aboveYourStage(e.name, skills)) return false;
+    const st = statFor(opts.stats ?? {}, e.name);
+    if (st?.hurt && daysBetween(st.hurt, nowISO) < HURT_REST_DAYS) return false;
+    if (opts.avoidStruggles && (st?.p ?? 0) >= EASE_AT) return false;
+    return true;
+  };
+  const above = skills ? aboveYourStage(name, skills) : null;
+  if (above) {
+    const own = stageExercises(above.skill, above.stage, equipment).find(ok);
+    if (own) return own;
+  }
   let r = findEasierExercise(name, equipment);
-  for (let i = 0; r && i < 3; i++) {
-    const h = statFor(stats ?? {}, r.name)?.hurt;
-    if (!h || daysBetween(h, nowISO) >= HURT_REST_DAYS) return r;
+  for (let i = 0; r && i < 8; i++) {
+    if (ok(r)) return r;
     r = findEasierExercise(r.name, equipment);
   }
   return null;
@@ -220,7 +251,8 @@ function adaptOne(
   stats: Record<string, ExerciseStat>,
   equipment: TrainingEquipment,
   taken: Set<string>,
-  nowISO: string
+  nowISO: string,
+  skills?: SkillProfile
 ): Exercise {
   const s = statFor(stats, ex.name);
   if (!s) return ex;
@@ -251,16 +283,9 @@ function adaptOne(
   // Too hard / skipped lately → step down, up to two rungs if the easier one
   // has been a struggle as well.
   if (s.p >= EASE_AT) {
-    let replacement: Exercise | null = findEasierExercise(ex.name, equipment);
-    let steps = 1;
-    while (replacement && steps < 2 && (statFor(stats, replacement.name)?.p ?? 0) >= EASE_AT) {
-      const further = findEasierExercise(replacement.name, equipment);
-      if (!further) break;
-      replacement = further;
-      steps++;
-    }
+    const replacement = easierForAthlete(ex.name, equipment, { taken, stats, nowISO, avoidStruggles: true, skills });
     const why = s.tooHard >= s.skipped ? "marked it too hard" : "skipped it";
-    if (replacement && !taken.has(replacement.name)) {
+    if (replacement) {
       const rs = statFor(stats, replacement.name);
       return {
         ...replacement,
@@ -308,18 +333,20 @@ function adaptOne(
 export function adaptSession(
   session: TrainingSession,
   stats: Record<string, ExerciseStat> | undefined,
-  equipment: TrainingEquipment
+  equipment: TrainingEquipment,
+  skills?: SkillProfile
 ): TrainingSession {
   if (!stats || Object.keys(stats).length === 0) return session;
   const now = `${session.dateISO}T12:00:00.000Z`; // the session's own day: same input, same result
+  // a swap never lands on something already anywhere in the session
+  const taken = new Set(session.sets.flatMap((st) => st.exercises.map((e) => e.name)));
   return {
     ...session,
     sets: session.sets.map((set) => {
       if (HIERARCHY_EXEMPT_SETS.has(set.title)) return set;
-      const taken = new Set(set.exercises.map((e) => e.name));
       const exercises = set.exercises.map((ex) => {
         if (ex.check) return ex;
-        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now), stats);
+        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now, skills), stats);
         taken.add(adapted.name);
         return adapted;
       });
@@ -373,7 +400,7 @@ export function applySkillFeedback(
   const delta: Partial<Record<StagedSkillKey, number>> = {};
 
   for (const fb of feedback) {
-    if (HIERARCHY_EXEMPT_SETS.has(fb.setTitle) || fb.check) continue;
+    if (HIERARCHY_EXEMPT_SETS.has(fb.setTitle) || fb.check || fb.hurt) continue;
     const loc = exerciseStage(fb.name);
     if (!loc) continue;
     const userStage = (skills as unknown as Record<string, string>)[loc.skill] ?? "none";
@@ -382,7 +409,8 @@ export function applySkillFeedback(
     const w = feedbackWeight(fb.fatigue);
     if (fb.outcome === "done" && fb.setsDone !== undefined) d = 0; // stopped early: neither credit nor blame
     else if (fb.outcome === "done") d = fb.timing?.struggled ? 0 : rel >= 1 ? 2 : rel === 0 ? 1 : 0;
-    else if (fb.outcome === "tooHard") d = (rel >= 1 ? -1 : -2) * w; // struggling above your stage is expected
+    // struggling above your stage is expected: it says nothing against your level
+    else if (fb.outcome === "tooHard") d = (rel >= 1 ? 0 : -2) * w;
     else d = (rel >= 0 ? -0.5 : 0) * w;
     delta[loc.skill] = (delta[loc.skill] ?? 0) + d;
   }

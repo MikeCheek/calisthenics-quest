@@ -84,7 +84,7 @@ function pullStrengthHierarchy(equipment: TrainingEquipment): Exercise[] {
     list.push({ name: "Weighted pull-ups", detail: "4 x 4-5 reps (+15-20% bodyweight)", restSeconds: 180, description: "Attach extra weight via a dip belt, weighted vest, or held dumbbell, then perform standard pull-ups through a full range of motion." });
   }
   list.push(
-    { name: "One-arm chin negatives (assisted)", detail: "4 x 2-3 reps per side", restSeconds: 150, description: "Starting at the top of a chin-up using mostly one arm (the other lightly assisting on a towel or the wrist), lower yourself down as slowly as possible under control." },
+    { name: "One-arm chin negatives", detail: "4 x 2-3 reps per side (assisted)", restSeconds: 150, description: "Starting at the top of a chin-up using mostly one arm (the other lightly assisting on a towel or the wrist), lower yourself down as slowly as possible under control." },
     { name: "Front lever pulls", detail: "3 x 4-5 reps", restSeconds: 150, description: "From a hanging front lever position (or the closest tuck/straddle variation you can hold), pull your chest toward the bar while keeping your body horizontal, then lower back to the hang." }
   );
   if (equipment.monkeyBars) {
@@ -239,6 +239,69 @@ export function exerciseStage(name: string): { skill: StagedSkillKey; stage: str
     stageIndexMap = map;
   }
   return stageIndexMap.get(name) ?? null;
+}
+
+// ---- is an exercise above the athlete's stage? ----
+// An exercise can sit in several skills' tables (handstand push-ups on
+// parallettes are a handstand drill and a stage of the HSPU skill). Its
+// earliest stage in each skill is what it takes; if that's above where the
+// athlete is in that skill, it's too advanced for them — whichever track
+// put it in the session.
+let occurrences: Map<string, Map<StagedSkillKey, number>> | null = null;
+function stageOccurrences(name: string): Map<StagedSkillKey, number> | undefined {
+  if (!occurrences) {
+    const map = new Map<string, Map<StagedSkillKey, number>>();
+    for (const skill of [...CORE_SKILLS, ...ADVANCED_SKILLS]) {
+      const order = STAGE_ORDER[skill] ?? [];
+      for (const preset of [ALL_EQUIPMENT, NO_EQUIPMENT]) {
+        const table = tableForSkill(skill, preset);
+        order.forEach((stage, i) => {
+          for (const ex of table[stage] ?? []) {
+            const m = map.get(ex.name) ?? new Map<StagedSkillKey, number>();
+            if (!m.has(skill) || i < m.get(skill)!) m.set(skill, i);
+            map.set(ex.name, m);
+          }
+        });
+      }
+    }
+    // drills named differently from the skill stage they demand
+    for (const [ex, skill, stage] of SAME_DEMAND) {
+      const i = (STAGE_ORDER[skill] ?? []).indexOf(stage);
+      const m = map.get(ex) ?? new Map<StagedSkillKey, number>();
+      if (i >= 0 && (!m.has(skill) || i < m.get(skill)!)) m.set(skill, i);
+      map.set(ex, m);
+    }
+    occurrences = map;
+  }
+  return occurrences.get(name);
+}
+
+const SAME_DEMAND: [string, StagedSkillKey, string][] = [
+  ["Handstand push-ups (parallettes)", "handstandPushUp", "wallFull"],
+  ["Handstand push-up negatives", "handstandPushUp", "negative"],
+  ["Handstand press or straddle-to-HS", "pikePress", "full"],
+];
+
+const ADVANCED_SET = new Set<string>(ADVANCED_SKILLS);
+
+/** the skill (and the athlete's stage in it) that makes this exercise too
+ * advanced for them, or null. Advanced skills they haven't set are unknown,
+ * not "not started", so they don't count. */
+export function aboveYourStage(name: string, skills: Partial<Record<string, unknown>>): { skill: StagedSkillKey; stage: string } | null {
+  const occ = stageOccurrences(name);
+  if (!occ) return null;
+  for (const [skill, idx] of occ) {
+    const mine = skills[skill];
+    if (ADVANCED_SET.has(skill) && (mine === undefined || mine === "none")) continue;
+    const myIdx = (STAGE_ORDER[skill] ?? []).indexOf(String(mine ?? "none"));
+    if (myIdx >= 0 && idx > myIdx) return { skill, stage: String(mine ?? "none") };
+  }
+  return null;
+}
+
+/** the exercises of a skill's stage, for the equipment at hand */
+export function stageExercises(skill: StagedSkillKey, stage: string, equipment: TrainingEquipment): Exercise[] {
+  return tableForSkill(skill, equipment)[stage] ?? [];
 }
 
 // Exercise names authored under a skill's stage (any equipment) — e.g. to
