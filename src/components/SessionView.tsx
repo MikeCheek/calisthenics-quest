@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TrainingSession, TrainingEquipment, Exercise, ExerciseFeedback } from "@/lib/types";
 import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
+import { gentlerFor } from "@/lib/adaptation";
 import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
 import { TimerLog, summarizeTimerLog, bestHoldFromLog, cleanSets } from "@/lib/timingLearning";
@@ -150,6 +151,20 @@ export default function SessionView({
     resetAdjust(key);
   };
 
+  // This hurts: rest it for two weeks with a gentler rung, from now
+  const swapForHurt = (key: string, currentExercise: Exercise, setTitle: string) => {
+    setTooHard((prev) => [...prev, { name: currentExercise.name, outcome: "skipped", hurt: true, setTitle }]);
+    const gentler = gentlerFor(currentExercise.name, eq, userDoc?.exerciseStats);
+    if (!gentler) {
+      setSkipped((prev) => new Set(prev).add(key));
+      toast.info(`${currentExercise.name} rests for two weeks — skipped for today. If the pain is sharp or doesn't go away, stop and get it checked.`);
+      return;
+    }
+    setIndividualOverrides((prev) => ({ ...prev, [key]: { ...gentler, adaptedFrom: currentExercise.name, adaptDir: "easier", adaptNote: undefined } }));
+    toast.success(`Swapped in ${gentler.name}. ${currentExercise.name} rests for two weeks — if the pain is sharp or doesn't go away, stop and get it checked.`);
+    resetAdjust(key);
+  };
+
   // "Too hard" pressed by mistake: the original exercise comes back and the
   // "too hard" is forgotten
   const undoSwap = (key: string, originalEx: Exercise, setTitle: string) => {
@@ -162,7 +177,7 @@ export default function SessionView({
       const at = prev.map((t) => t.name === originalEx.name && t.setTitle === setTitle).lastIndexOf(true);
       return at === -1 ? prev : [...prev.slice(0, at), ...prev.slice(at + 1)];
     });
-    toast.info(`Back to ${originalEx.name} — the "too hard" is forgotten.`);
+    toast.info(`Back to ${originalEx.name} — that's forgotten.`);
   };
 
   // the exercise actually shown in a row: a "too hard" swap wins, else the
@@ -309,6 +324,7 @@ export default function SessionView({
                         onBump={(delta) => bump(key, delta)}
                         onResetAdjust={() => resetAdjust(key)}
                         onCantDo={exempt || effectiveExercise.check ? undefined : () => swapForEasier(key, effectiveExercise, set.title)}
+                        onHurts={exempt || effectiveExercise.check ? undefined : () => swapForHurt(key, effectiveExercise, set.title)}
                         timerLog={timerLogs[key]}
                         onTimerLog={(log) => {
                           markStarted();

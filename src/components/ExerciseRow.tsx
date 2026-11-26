@@ -6,7 +6,7 @@ import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
 import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
-import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles, History } from "lucide-react";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles, History, HeartCrack } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizeDetail } from "@/lib/i18n/detail";
 
@@ -27,6 +27,7 @@ export default function ExerciseRow({
   onBump,
   onResetAdjust,
   onCantDo,
+  onHurts,
   onSkip,
   onStopEarly,
   onUndoSwap,
@@ -51,6 +52,7 @@ export default function ExerciseRow({
   onBump: (delta: number) => void;
   onResetAdjust: () => void;
   onCantDo?: () => void;
+  onHurts?: () => void; // "This hurts": a gentler version, and it rests for two weeks
   onSkip?: () => void;
   onStopEarly?: (setsDone: number) => void;
   onUndoSwap?: () => void;
@@ -230,6 +232,15 @@ export default function ExerciseRow({
                   className="text-xs px-2 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-orange-400 flex items-center gap-1 whitespace-nowrap"
                 >
                   <ArrowDownCircle size={11} /> {tx("Too hard")}
+                </button>
+              )}
+              {onHurts && !isDone && (
+                <button
+                  onClick={onHurts}
+                  title={tx("A gentler version now; it rests for two weeks.")}
+                  className="text-xs px-2 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-rose-300 flex items-center gap-1 whitespace-nowrap"
+                >
+                  <HeartCrack size={11} /> {tx("Hurts")}
                 </button>
               )}
               <div className="flex items-center ml-auto shrink-0 rounded-lg border border-zinc-700 overflow-hidden" title={tx("Sets — or swipe the card")}>

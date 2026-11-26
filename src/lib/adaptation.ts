@@ -52,6 +52,29 @@ const STEP_UP_AT = -6; // pressure at/below which a harder rung is tried
 const STEP_UP_MIN_DONE = 6;
 const REP_DELTA_LIMIT = 3;
 
+// "This hurts": the exercise rests this long (a gentler rung of the same
+// movement takes its place), then comes back with a "go gently" note
+export const HURT_REST_DAYS = 14;
+export const HURT_WATCH_DAYS = 42;
+const daysBetween = (fromISO: string, toISO: string) => (Date.parse(toISO) - Date.parse(fromISO)) / 86400000;
+
+// The gentler rung to do instead of one that hurts: one step down the same
+// movement, skipping rungs that have hurt recently too.
+export function gentlerFor(
+  name: string,
+  equipment: TrainingEquipment,
+  stats: Record<string, ExerciseStat> | undefined,
+  nowISO: string = new Date().toISOString()
+): Exercise | null {
+  let r = findEasierExercise(name, equipment);
+  for (let i = 0; r && i < 3; i++) {
+    const h = statFor(stats ?? {}, r.name)?.hurt;
+    if (!h || daysBetween(h, nowISO) >= HURT_REST_DAYS) return r;
+    r = findEasierExercise(r.name, equipment);
+  }
+  return null;
+}
+
 // timing (see timingLearning.ts for the per-sample and per-session cleaning)
 const TIMING_HISTORY = 5; // sessions remembered per exercise
 const REST_MIN_SESSIONS = 3; // rest only changes after this many clean sessions agree
@@ -93,6 +116,15 @@ export function applyExerciseFeedback(
     if (fb.check) continue; // skill checks are handled by verification.ts
     const s = get(fb.name);
     s.last = nowISO;
+
+    // "This hurts": rest it for a while — pain isn't difficulty, so it
+    // doesn't push it toward easier rungs or count as a skip
+    if (fb.hurt) {
+      s.hurt = nowISO;
+      continue;
+    }
+    // done again, cleanly, after its break: it's fine now
+    if (fb.outcome === "done" && s.hurt && daysBetween(s.hurt, nowISO) >= HURT_REST_DAYS && !fb.timing?.struggled) delete s.hurt;
 
     // one cleaned value per session (already a median of that session's sets)
     const t = fb.timing;
@@ -149,6 +181,7 @@ function statFor(stats: Record<string, ExerciseStat> | undefined, name: string):
 function applyTiming(ex: Exercise, stats: Record<string, ExerciseStat>): Exercise {
   const s = statFor(stats, ex.name);
   if (!s) return ex;
+
   const notes: string[] = [];
   let out = ex;
 
@@ -186,10 +219,34 @@ function adaptOne(
   ex: Exercise,
   stats: Record<string, ExerciseStat>,
   equipment: TrainingEquipment,
-  taken: Set<string>
+  taken: Set<string>,
+  nowISO: string
 ): Exercise {
   const s = statFor(stats, ex.name);
   if (!s) return ex;
+  // it hurt recently: a gentler rung while it rests, then a careful return
+  if (s.hurt) {
+    const days = daysBetween(s.hurt, nowISO);
+    if (days < HURT_REST_DAYS) {
+      const g = gentlerFor(ex.name, equipment, stats, nowISO);
+      if (g && !taken.has(g.name))
+        return { ...g, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: `Swapped from ${ex.name} — it hurt recently, so it rests for two weeks` };
+      return { ...ex, detail: adjustDetail(ex.detail, -1), adaptNote: "It hurt recently — go gently, or skip it today" };
+    }
+    if (days < HURT_WATCH_DAYS) return { ...ex, adaptNote: "Back after a break — it hurt before. Go gently, and tap “This hurts” if it still does" };
+  }
+
+  // it hurt recently: a gentler rung while it rests, then a careful return
+  if (s.hurt) {
+    const days = daysBetween(s.hurt, nowISO);
+    if (days < HURT_REST_DAYS) {
+      const g = gentlerFor(ex.name, equipment, stats, nowISO);
+      if (g && !taken.has(g.name))
+        return { ...g, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: `Swapped from ${ex.name} — it hurt recently, so it rests for two weeks` };
+      return { ...ex, detail: adjustDetail(ex.detail, -1), adaptNote: "It hurt recently — go gently, or skip it today" };
+    }
+    if (days < HURT_WATCH_DAYS) return { ...ex, adaptNote: "Back after a break — it hurt before. Go gently, and tap “This hurts” if it still does" };
+  }
 
   // Too hard / skipped lately → step down, up to two rungs if the easier one
   // has been a struggle as well.
@@ -254,6 +311,7 @@ export function adaptSession(
   equipment: TrainingEquipment
 ): TrainingSession {
   if (!stats || Object.keys(stats).length === 0) return session;
+  const now = `${session.dateISO}T12:00:00.000Z`; // the session's own day: same input, same result
   return {
     ...session,
     sets: session.sets.map((set) => {
@@ -261,7 +319,7 @@ export function adaptSession(
       const taken = new Set(set.exercises.map((e) => e.name));
       const exercises = set.exercises.map((ex) => {
         if (ex.check) return ex;
-        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken), stats);
+        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now), stats);
         taken.add(adapted.name);
         return adapted;
       });

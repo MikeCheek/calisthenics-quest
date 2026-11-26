@@ -11,6 +11,7 @@ import { YOGA4 } from "./en/yoga4";
 import { PILATES } from "./en/pilates";
 import { PILATES2 } from "./en/pilates2";
 import { PILATES3 } from "./en/pilates3";
+import { HOME } from "./en/home";
 
 // English form guides (see index.ts). Loaded on demand.
-export const GUIDES: GuideTable = { ...PULL, ...PUSH, ...CORE, ...LEGS, ...MOVE, ...YOGA, ...YOGA2, ...YOGA3, ...YOGA4, ...PILATES, ...PILATES2, ...PILATES3 };
+export const GUIDES: GuideTable = { ...PULL, ...PUSH, ...CORE, ...LEGS, ...MOVE, ...HOME, ...YOGA, ...YOGA2, ...YOGA3, ...YOGA4, ...PILATES, ...PILATES2, ...PILATES3 };

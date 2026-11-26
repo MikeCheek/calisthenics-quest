@@ -7,6 +7,7 @@ import { MOVE } from "./it/move";
 import { YOGA } from "./it/yoga";
 import { YOGA2 } from "./it/yoga2";
 import { PILATES } from "./it/pilates";
+import { HOME } from "./it/home";
 
 // Guide in italiano (vedi index.ts), riga per riga come quelle inglesi. Caricate su richiesta.
-export const GUIDES: GuideTable = { ...PULL, ...PUSH, ...CORE, ...LEGS, ...MOVE, ...YOGA, ...YOGA2, ...PILATES };
+export const GUIDES: GuideTable = { ...PULL, ...PUSH, ...CORE, ...LEGS, ...MOVE, ...HOME, ...YOGA, ...YOGA2, ...PILATES };

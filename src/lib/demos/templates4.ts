@@ -63,6 +63,30 @@ export function poleLean(): Demo {
   return front([kf(p(0), 1400, 900), kf(p(1.5), 400, 900)], [{ kind: "pole", x: POLE, y1: 0, y2: FLOOR }, floor]);
 }
 
+// Door frame / towel / single-arm rows at home (side): feet at the frame,
+// body straight and leaning back on straight arms, then rowed in to it.
+export function doorRow(): Demo {
+  const P = 100; // the door frame
+  const feet: Pt = [P - 2, FLOOR];
+  const at = (lean: number): Pose => {
+    const r = (lean * Math.PI) / 180;
+    const hip: Pt = [feet[0] - LEG * Math.sin(r), FLOOR - LEG * Math.cos(r)];
+    return { hip, torso: -90 - lean, arm: pin([P, 62], 1), leg: pin(feet, 1) };
+  };
+  return side([kf(at(28), 400, 1000), kf(at(12), 300, 1300)], [{ kind: "pole", x: P, y1: 0, y2: FLOOR }, floor]);
+}
+
+// Chair (bench) dips: hands on the edge of a seat behind you, legs out in
+// front; the hips drop beside the seat and press back up.
+export function chairDip(): Demo {
+  const SEAT = 84;
+  const hand: Pt = [62, SEAT];
+  const feet: Pt = [88, FLOOR];
+  const top: Pose = { hip: [66, SEAT], torso: -90, arm: pin(hand, 1), leg: pin(feet, -1) };
+  const low: Pose = { hip: [67, SEAT + 14], torso: -94, arm: pin(hand, 1), leg: pin(feet, -1) };
+  return side([kf(top, 400, 1100), kf(low, 200, 1100)], [{ kind: "box", x: 36, y: SEAT, w: 26, h: FLOOR - SEAT }, floor]);
+}
+
 // Side plank, from the front: a straight diagonal from the stacked feet to
 // the shoulder over the elbow, the top arm up. Variants: hip dips, the top
 // leg raised, the Copenhagen (top foot on a bench, bottom leg free).

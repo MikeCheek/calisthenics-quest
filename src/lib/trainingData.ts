@@ -288,6 +288,36 @@ export const CORE_TABLE: Record<LSitStage, Exercise[]> = {
 };
 
 // ---- Pull strength (bar-gated: unilateral / weighted pulling) ----
+// ---- Pulling at home: no bar, no rings ----
+// A door frame, a towel round a closed door's handles, a sturdy table: easiest
+// first. Without these, home days would have no pulling at all.
+export const CHAIR_DIPS: Exercise = {
+  name: "Chair dips",
+  detail: "3 x 8-12 reps",
+  restSeconds: 75,
+  description: "Hands on the front edge of a sturdy chair or bench behind you, fingers forward, legs out in front; bend your elbows to lower your hips until your upper arms are about level with the seat, then press back up.",
+};
+
+export const HOME_PULL_LADDER: Exercise[] = [
+  { name: "Door frame rows", detail: "3 x 10-12 reps", restSeconds: 60, description: "Stand in an open doorway and grip both sides of the frame at chest height, feet close to the threshold. Lean back with straight arms and body, then row your chest to the frame and lower with control." },
+  { name: "Towel door rows", detail: "3 x 8-12 reps", restSeconds: 75, description: "Loop a towel around both handles of a closed door, standing on the side it opens away from so pulling shuts it tighter. Hold the ends, walk your feet in, lean back with straight arms, then row your chest to the door." },
+  { name: "Table rows", detail: "3 x 8-10 reps", restSeconds: 90, description: "Lie under a sturdy table and grip its edge shoulder-width apart. With heels on the floor and your body straight, pull your chest up to the edge, then lower with control." },
+  { name: "Table rows (feet elevated)", detail: "3 x 8-10 reps", restSeconds: 90, description: "Table rows with your heels raised on a chair so your body is horizontal: the hardest home row. Pull your chest to the table edge and lower slowly." },
+  { name: "Single-arm door frame rows", detail: "3 x 8 reps per side", restSeconds: 75, description: "Grip one side of a door frame with one hand, feet close to it, and lean back with your body straight. Row yourself in with that arm, keeping hips and shoulders square, then lower slowly." },
+];
+
+export function homePullTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
+  const n = skills.pullUpMaxReps;
+  const [frame, towel, table, tableHigh, oneArm] = HOME_PULL_LADDER;
+  const list = n < 4 ? [frame, towel] : n < 10 ? [towel, table] : [tableHigh, oneArm];
+  list.push(
+    equipment.resistanceBands
+      ? { name: "Band pull-aparts (or arm swings)", detail: "3 x 15 reps", restSeconds: 45, description: "Hold a band at shoulder height with straight arms and pull it apart until it touches your chest, squeezing your shoulder blades together, then return slowly." }
+      : { name: "Prone Y-T-W raises", detail: "3 x 6 per letter", restSeconds: 45, description: "Lie face down and lift your arms in a Y, then a T, then a W shape, squeezing your shoulder blades together for 2 seconds in each." }
+  );
+  return list;
+}
+
 export function pullStrengthTrack(skills: SkillProfile, equipment: TrainingEquipment): Exercise[] {
   const { pullUpMaxReps, archerPullUp } = skills;
   let list: Exercise[];
@@ -362,6 +392,7 @@ export function pushStrengthTrack(skills: SkillProfile, equipment: TrainingEquip
       { name: "Push-ups", detail: "4 x max reps", restSeconds: 90, description: "Starting in a plank with hands under your shoulders, lower your chest toward the ground by bending your elbows, keeping your body in a straight line, then press back up." },
       { name: "Decline push-ups", detail: "3 x 8-10 reps", restSeconds: 90, description: "With your feet elevated on a step or bench, perform a push-up by bending your elbows to lower your chest toward the ground and pressing back up." },
       { name: "Pike push-ups", detail: "3 x 8-10 reps", restSeconds: 75, description: "Start in a pike position with hips high and hands on the ground, then bend your elbows to lower your head toward the floor, and press back up." },
+      CHAIR_DIPS,
     ];
   }
   return [

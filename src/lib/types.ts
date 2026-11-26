@@ -271,6 +271,7 @@ export interface ExerciseFeedback {
   name: string;
   outcome: ExerciseOutcome;
   setTitle: string;
+  hurt?: boolean; // "This hurts": rested for a while, not counted as too hard
   repDelta?: number; // the athlete's own in-session +/- adjustment
   adaptedFrom?: string;
   adaptDir?: "easier" | "harder";
@@ -356,6 +357,7 @@ export interface ExerciseStat {
   lastSets?: string; // "12·11·10 reps" / "8s·7s" / the prescribed detail, from the last time it was done
   lastAt?: string;
   last: string;
+  hurt?: string; // when it last hurt (ISO): rested for two weeks, then watched
 }
 
 // Rolling per-skill signal from every exercise belonging to that skill —

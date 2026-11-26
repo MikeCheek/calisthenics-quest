@@ -15,7 +15,8 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle, Vibrate } from "lucide-react";
+import { gentlerFor } from "@/lib/adaptation";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle, Vibrate, HeartCrack } from "lucide-react";
 import Modal from "@/components/Modal";
 import CancelSessionDialog from "@/components/CancelSessionDialog";
 import { useHaptics } from "@/components/HapticsToggle";
@@ -490,6 +491,23 @@ export default function FocusTrainingMode() {
     }
   };
 
+  // This hurts: not "too hard" — rest it for two weeks with a gentler rung of
+  // the same movement, starting now. Sharp or lasting pain: stop.
+  const handleHurt = () => {
+    const ex = current.exercise;
+    setTooHard((prev) => [...prev, { name: ex.name, outcome: "skipped", hurt: true, setTitle: current.setTitle }]);
+    const gentler = gentlerFor(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT, userDoc?.exerciseStats);
+    if (gentler) {
+      setOverrides((prev) => ({ ...prev, [index]: { ...gentler, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
+      toast.success(`Swapped in ${gentler.name}. ${ex.name} rests for two weeks — if the pain is sharp or doesn't go away, stop and get it checked.`);
+      say("Swapped in {ex}", { ex: speakableName(gentler.name) }, true);
+    } else {
+      toast.info(`${ex.name} rests for two weeks — skipping ahead. If the pain is sharp or doesn't go away, stop and get it checked.`);
+      if (isLastStep) setAllDoneScreen(true);
+      else setIndex((i) => i + 1);
+    }
+  };
+
   // Pressed "too hard" (or eased) by mistake: put the original back and
   // forget the "too hard", as if it never happened.
   const undoSwap = () => {
@@ -505,7 +523,7 @@ export default function FocusTrainingMode() {
       const at = prev.map((t) => t.name === original.name && t.setTitle === current.setTitle).lastIndexOf(true);
       return at === -1 ? prev : [...prev.slice(0, at), ...prev.slice(at + 1)];
     });
-    toast.info(`Back to ${original.name} — the "too hard" is forgotten.`);
+    toast.info(`Back to ${original.name} — that's forgotten.`);
   };
 
   const collectFeedback = (): ExerciseFeedback[] => {
@@ -772,7 +790,10 @@ export default function FocusTrainingMode() {
             <>
               <MenuRow icon={SkipForward} label={tx("Skip this exercise")} hint={tx("Your next sessions adapt to what you skip.")} onClick={() => { setMenuOpen(false); handleSkip(); }} />
               {!current.exercise.check && (
+                <>
                 <MenuRow icon={ArrowDownCircle} label={tx("Too hard — swap for an easier one")} hint={tx("You can undo it right after.")} onClick={() => { setMenuOpen(false); handleTooHard(); }} />
+                <MenuRow icon={HeartCrack} label={tx("This hurts — swap it")} hint={tx("A gentler version now; it rests for two weeks.")} onClick={() => { setMenuOpen(false); handleHurt(); }} />
+                </>
               )}
             </>
           )}
