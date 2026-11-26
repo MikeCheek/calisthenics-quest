@@ -99,11 +99,59 @@ export function AchievementWatcher() {
   );
 }
 
-// The badge grid in Me
+// The badge grid in Me. Tapping a badge opens its card right there, pointing
+// at it — not a panel under the whole grid.
+const POP_W = 240;
+const GAP = 8;
 export function AchievementsCard() {
   const { userDoc } = useAuth();
   const { tx, locale } = useLanguage();
   const [open, setOpen] = useState<Achievement | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; arrow: number; above: boolean } | null>(null);
+  const anchor = useRef<HTMLButtonElement | null>(null);
+  const pop = useRef<HTMLDivElement | null>(null);
+
+  // place the card under the badge (or above, near the bottom of the screen),
+  // kept inside the screen, with its arrow on the badge
+  const place = () => {
+    const b = anchor.current?.getBoundingClientRect();
+    if (!b) return;
+    const vw = window.innerWidth;
+    const w = Math.min(POP_W, vw - 2 * GAP);
+    const left = Math.max(GAP, Math.min(b.left + b.width / 2 - w / 2, vw - w - GAP));
+    const h = pop.current?.offsetHeight ?? 120;
+    const above = b.bottom + GAP + h > window.innerHeight && b.top - GAP - h > 0;
+    setPos({ left, top: above ? b.top - GAP - h : b.bottom + GAP, arrow: b.left + b.width / 2 - left, above });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    const close = () => setOpen(null);
+    const outside = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!pop.current?.contains(t) && !anchor.current?.contains(t)) close();
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        close();
+        anchor.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", key);
+    window.addEventListener("scroll", close, { passive: true });
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("scroll", close);
+      window.removeEventListener("resize", close);
+    };
+    // re-measure once the card has rendered (its height decides above/below)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   if (!userDoc) return null;
   const earnedCount = ACHIEVEMENTS.filter((a) => userDoc.achievements?.[a.id] || isEarned(a, userDoc)).length;
   const fmt = (iso: string) => new Date(iso).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -122,8 +170,13 @@ export function AchievementsCard() {
           return (
             <li key={a.id}>
               <button
-                onClick={() => setOpen(open?.id === a.id ? null : a)}
+                onClick={(e) => {
+                  anchor.current = e.currentTarget;
+                  setPos(null);
+                  setOpen(open?.id === a.id ? null : a);
+                }}
                 aria-expanded={open?.id === a.id}
+                aria-controls={open?.id === a.id ? "achievement-card" : undefined}
                 className={`w-full rounded-xl p-2 flex flex-col items-center gap-1.5 text-center ${open?.id === a.id ? "bg-zinc-800" : "hover:bg-zinc-800/60"}`}
               >
                 <Badge a={a} earned={earned} size={48} />
@@ -134,9 +187,25 @@ export function AchievementsCard() {
         })}
       </ul>
       {open && (
-        <div className="mt-3 rounded-xl bg-zinc-950/50 p-3 flex items-center gap-3" aria-live="polite">
+        <div
+          ref={(el) => {
+            pop.current = el;
+          }}
+          id="achievement-card"
+          role="dialog"
+          aria-label={tx(open.title)}
+          style={{ position: "fixed", left: pos?.left ?? 0, top: pos?.top ?? 0, width: `min(${POP_W}px, calc(100vw - ${2 * GAP}px))`, visibility: pos ? "visible" : "hidden" }}
+          className="z-50 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl p-3 flex items-start gap-3 animate-overlay-fade-in"
+        >
+          {pos && (
+            <span
+              aria-hidden
+              style={{ left: Math.max(12, Math.min(pos.arrow, POP_W - 12)) - 6 }}
+              className={`absolute w-3 h-3 rotate-45 bg-zinc-900 border-zinc-700 ${pos.above ? "-bottom-1.5 border-r border-b" : "-top-1.5 border-l border-t"}`}
+            />
+          )}
           <Badge a={open} earned={!!userDoc.achievements?.[open.id] || isEarned(open, userDoc)} size={44} />
-          <div className="text-sm">
+          <div className="text-sm min-w-0">
             <p className="text-zinc-100 font-medium">
               {tx(open.title)} <span className="text-xs text-zinc-400">· {tx(TIER[open.tier].label)}</span>
             </p>

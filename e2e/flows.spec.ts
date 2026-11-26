@@ -182,8 +182,21 @@ test("Me shows the achievements grid", async ({ page }) => {
   await page.goto("/profile");
   const grid = page.locator("#achievements");
   await expect(grid.getByRole("heading", { name: "Achievements" })).toBeVisible();
-  await grid.getByRole("button", { name: /Century/ }).click();
-  await expect(grid.getByText(/of 100 so far/)).toBeVisible();
+  const badge = grid.getByRole("button", { name: /Century/ });
+  await badge.click();
+  // its card opens right at the badge, not under the whole grid
+  const card = page.getByRole("dialog", { name: "Century" });
+  await expect(card.getByText(/of 100 so far/)).toBeVisible();
+  const [b, c] = [await badge.boundingBox(), await card.boundingBox()];
+  expect(Math.abs(c!.y - (b!.y + b!.height)) < 20 || Math.abs(c!.y + c!.height - b!.y) < 20).toBe(true);
+  expect(c!.x).toBeGreaterThanOrEqual(0);
+  expect(c!.x + c!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+  await expect(badge).toBeFocused();
+  await badge.click();
+  await page.mouse.click(5, 5);
+  await expect(card).toHaveCount(0);
 });
 
 test("library: search, open an exercise, do it now", async ({ page }) => {
