@@ -189,9 +189,11 @@ export default function FocusTrainingMode() {
   // pick up where it was left, when this is a session saved on the device
   const restoredFrom = useRef<string | null>(null);
   useEffect(() => {
+    // already set up for this session (an effect can run twice): keep where it is
+    if (session && restoredFrom.current === session.id) return;
     // only this session's own saved progress (a new session starts fresh)
     const saved = session && userDoc ? loadActiveSession(userDoc.uid) : null;
-    const g = session && saved?.session.id === session.id && restoredFrom.current !== session.id ? saved.guided : undefined;
+    const g = session && saved?.session.id === session.id ? saved.guided : undefined;
     if (session) restoredFrom.current = session.id;
     setIndex(g ? Math.min(g.index, Math.max(0, steps.length - 1)) : 0);
     setCompletedSteps(new Set(g?.completed ?? []));

@@ -5,7 +5,12 @@ import { Locale } from "@/lib/types";
 import en from "@/lib/i18n/en";
 import it from "@/lib/i18n/it";
 import type { TranslationDict } from "@/lib/i18n/en";
-import { translate } from "@/lib/i18n/tx";
+import { english, makeTranslator, type Translator } from "@/lib/i18n/txCore";
+
+// The Italian phrase table is large (most of the app's text): loaded only
+// when Italian is chosen, once, and shared.
+let italian: Promise<Translator> | null = null;
+const loadItalian = () => (italian ??= import("@/lib/i18n/phrases.it").then((m) => makeTranslator(m.default)));
 
 const DICTS: Record<Locale, TranslationDict> = { en, it };
 const STORAGE_KEY = "barquests:locale";
@@ -29,11 +34,21 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
+  const [itTranslate, setItTranslate] = useState<Translator | null>(null);
+  // switch to Italian once its table is here, so a screen is never half
+  // English, half Italian while it loads
+  const showLocale = useCallback((next: Locale) => {
+    if (next === "en") return setLocaleState("en");
+    loadItalian().then((tr) => {
+      setItTranslate(() => tr);
+      setLocaleState("it");
+    });
+  }, []);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
     if (stored === "en" || stored === "it") {
-      setLocaleState(stored);
+      showLocale(stored);
       document.documentElement.lang = stored;
       return;
     }
@@ -41,18 +56,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     // so an Italian-language browser doesn't default to English.
     const browserLang = typeof navigator !== "undefined" ? navigator.language.slice(0, 2) : "en";
     if (browserLang === "it") {
-      setLocaleState("it");
+      showLocale("it");
       document.documentElement.lang = "it";
     }
-  }, []);
+  }, [showLocale]);
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
+    showLocale(next);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, next);
       document.documentElement.lang = next;
     }
-  }, []);
+  }, [showLocale]);
 
   const t = useCallback(
     <NS extends keyof TranslationDict>(
@@ -74,8 +89,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   );
 
   const tx = useCallback(
-    (english: string, vars?: Record<string, string | number>) => translate(locale, english, vars),
-    [locale]
+    (text: string, vars?: Record<string, string | number>) =>
+      locale === "it" && itTranslate ? itTranslate("it", text, vars) : english(text, vars),
+    [locale, itTranslate]
   );
 
   return <LanguageContext.Provider value={{ locale, setLocale, t, tx }}>{children}</LanguageContext.Provider>;
