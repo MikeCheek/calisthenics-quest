@@ -1,8 +1,8 @@
 "use client";
 
 import { skillHistoryPatch } from "@/lib/skillHistory";
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { saveProfile } from "@/lib/store";
 import {
@@ -24,13 +24,29 @@ import { useLanguage } from "@/context/LanguageContext";
 import PageLoading from "@/components/PageLoading";
 import { SPORTS, SPORT_META, newTrack, type Experience, type ExtraSport, type SportId } from "@/lib/sports";
 import { takeSportIntent } from "@/lib/sports/intent";
+import { takeInvitePath } from "@/lib/pendingInvite";
 
 type Phase = "pick" | "calisthenics" | ExtraSport;
 
+// useSearchParams needs a Suspense boundary for the static build
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <Onboarding />
+    </Suspense>
+  );
+}
+
+function Onboarding() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
   const { tx } = useLanguage();
   const router = useRouter();
+  const params = useSearchParams();
+  // ?step=N opens one part (from Settings); ?return=/path goes back there;
+  // ?sport=calisthenics: switching to calisthenics for the first time
+  const startStep = Number(params.get("step") ?? 0) || 0;
+  const returnTo = params.get("return")?.startsWith("/") ? params.get("return")! : "/dashboard";
+  const switchingToCalisthenics = params.get("sport") === "calisthenics";
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [phase, setPhase] = useState<Phase | null>(null);
@@ -71,7 +87,10 @@ export default function OnboardingPage() {
     try {
       await saveProfile(userDoc.uid, body, skills, equipment, goals, skillMastery, {
         ...skillHistoryPatch(userDoc, skills),
-        ...(userDoc.calisthenicsPending ? { calisthenicsPending: false, activeSport: "calisthenics" } : {}),
+        // the skill check is done now; calisthenics only becomes the active
+        // sport when that's what they came here for (not to edit their weight)
+        ...(userDoc.calisthenicsPending ? { calisthenicsPending: false } : {}),
+        ...(switchingToCalisthenics ? { activeSport: "calisthenics" } : {}),
       });
     } catch {
       toast.error("Couldn't save your profile — check your connection and try again.");
@@ -80,7 +99,8 @@ export default function OnboardingPage() {
     }
     await refreshUserDoc();
     setSaving(false);
-    router.replace("/dashboard");
+    // after the first setup: an invite opened before signing in comes first
+    router.replace(switchingToCalisthenics ? "/dashboard" : firstTime ? (takeInvitePath() ?? returnTo) : returnTo);
   };
 
   // starting with yoga or Pilates: its three questions, and in
@@ -103,7 +123,7 @@ export default function OnboardingPage() {
     }
     await refreshUserDoc();
     setSaving(false);
-    router.replace("/dashboard");
+    router.replace(takeInvitePath() ?? "/dashboard");
   };
 
   return (
@@ -121,6 +141,8 @@ export default function OnboardingPage() {
           onSave={handleSave}
           saving={saving}
           onBackFromStart={firstTime ? () => setPhase("pick") : undefined}
+          initialStep={firstTime ? 0 : startStep}
+          saveLabel={firstTime || switchingToCalisthenics ? "Save & start training" : "Save changes"}
         />
       ) : (
         <div className="space-y-4">

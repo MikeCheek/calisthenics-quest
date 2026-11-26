@@ -40,7 +40,8 @@ export default function OnlineStatus() {
 
   if (!offline) return null;
   return (
-    <div className="fixed left-1/2 -translate-x-1/2 bottom-[5.25rem] sm:bottom-4 z-30 w-[calc(100%-2rem)] max-w-sm pointer-events-none">
+    // phones: kept clear of the quick-actions button at the bottom right
+    <div className="fixed left-4 right-[4.75rem] sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bottom-[5.25rem] sm:bottom-4 z-30 sm:w-[calc(100%-2rem)] sm:max-w-sm pointer-events-none">
       <p role="status" className="mx-auto w-fit max-w-full rounded-full bg-amber-950/95 border border-amber-700/60 text-amber-100 text-sm px-4 py-2 flex items-center gap-2 shadow-lg">
         <WifiOff size={16} className="shrink-0" />
         {tx("Offline — training still works and saves on this phone.")}

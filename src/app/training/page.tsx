@@ -126,7 +126,7 @@ export default function TrainingPage() {
                 </button>
               ))}
             </div>
-            <Link href="/onboarding" className="text-xs text-muted hover:text-orange-400 mt-2 inline-block">
+            <Link href="/onboarding?step=1&return=/training" className="text-xs text-muted hover:text-orange-400 mt-2 inline-block">
               {tx("Not seeing a focus? Update your available equipment")}
             </Link>
           </div>

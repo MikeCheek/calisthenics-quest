@@ -34,6 +34,7 @@ import { Copy, Users } from "lucide-react";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
+import { rememberInvite } from "@/lib/pendingInvite";
 import PageLoading from "@/components/PageLoading";
 import { pushToFriend } from "@/lib/pushClient";
 
@@ -64,9 +65,13 @@ function PairContent() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) router.replace("/");
-    else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
-  }, [loading, user, userDoc, router]);
+    if (!user) {
+      // an invite link opened before signing in: keep it for afterwards
+      const invite = searchParams.get("code");
+      if (invite) rememberInvite(invite);
+      router.replace("/");
+    } else if (userDoc && !userDoc.onboarded) router.replace("/onboarding");
+  }, [loading, user, userDoc, router, searchParams]);
 
   // Arriving here from an accepted pairing invite — the join already
   // happened at accept time, this just picks up the existing pairing.
@@ -257,7 +262,17 @@ function PairContent() {
             <Users size={26} className="text-orange-400" />{" "}
             {t("nav", "friends")}
           </h1>
-          <SaveProgressPrompt reason="Friends, nudges and training together need an account, so others can find you. Save your progress with Google — nothing you've done so far is lost." />
+          {/* arrived from a train-together invite: say so — linking Google
+              keeps this page and its ?code=, so the invite opens right after */}
+          <SaveProgressPrompt
+            reason={
+              searchParams.get("code")
+                ? "You've been invited to train together. Save your progress with Google to accept — the invite opens right after, and nothing you've done so far is lost."
+                : "Friends, nudges and training together need an account, so others can find you. Save your progress with Google — nothing you've done so far is lost."
+            }
+          />
+          {/* what the crew is up to this month, open to everyone */}
+          <CommunityEventCard />
         </main>
       </>
     );

@@ -62,7 +62,7 @@ export default function SportSwitcher({
     // started with another sport: calisthenics' skill check comes first
     if (s === "calisthenics" && userDoc.calisthenicsPending) {
       setOpen(false);
-      router.push("/onboarding");
+      router.push("/onboarding?sport=calisthenics");
       return;
     }
     setBusy(true);

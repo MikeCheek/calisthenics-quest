@@ -47,7 +47,8 @@ How this is enforced:
 │   └── wheel             ✅  Bonus wheel
 │
 ├── friends               ✅  Crew                          ── bottom tab "Crew"
-│   │                     👤    whole page needs Google (guests see the save prompt)
+│   │                     👤    friends, nudges, feed and leaderboard need Google
+│   │                           (guests see the community event and a save prompt)
 │   └── friend/[uid]      🔑  A friend's public profile
 │
 └── profile               ✅  Me                            ── bottom tab "Me"
@@ -67,7 +68,7 @@ Server routes (not pages):
     ├── exercise-tip      🔑  token + rate limit
     ├── plan-coach        🔑  token + rate limit
     ├── plan-review       🔑  token + rate limit
-    ├── push/ping         🔑  token + must be friends
+    ├── push/ping         🔑  token + must be friends + rate limit
     ├── push/reminders    🔒  scheduler only (CRON_SECRET)
     └── parks/osm         🌐  per-address rate limit
 ```
@@ -84,12 +85,12 @@ These come from the root layout and the navigation, so they're available everywh
 - **Sport switcher**: a chip in the header (phone) or the sidebar (desktop).
   - It shows the active sport and opens **Your sports**, where you switch with one tap or start yoga or Pilates (three questions).
   - Each sport keeps its own level; the streak and XP are shared.
-- **Quick actions**: a floating button with shortcuts. It's hidden on the landing pages, onboarding, `/training`, `/about` and `/parks`.
+- **Quick actions**: a floating button with shortcuts. It's hidden on the landing pages, onboarding, `/training`, `/about` and `/parks`, and during a live session (the resume bubble takes its place). "Find a bar park" only appears while calisthenics is active.
 - **Training bubble**: "Resume training" while a session is in progress, from any page.
 - **Notifications**: nudges and kudos from friends arrive in the app (PingsListener) and as push notifications when enabled. A training reminder can be scheduled too.
 - **Park prompt**: "Where are you training?" before a calisthenics session, when enabled.
 - **Achievements**: unlocked badges are announced as they happen.
-- **Offline**: an offline banner. Sessions can be finished and logged without a connection and are sent later.
+- **Offline**: an offline banner, kept clear of the quick-actions button. Sessions can be finished and logged without a connection and are sent later. The AI features say they need a connection instead of trying.
 - **App behaviour**: installable as an app (PWA), page titles follow the page and language, the tab icon shows the streak status, and a skip link jumps to the content.
 - **Demo badge**: only in demo mode.
 
@@ -127,7 +128,12 @@ These come from the root layout and the navigation, so they're available everywh
 - **Yoga** or **Pilates** → three questions (experience, up to 3 goal skills, session length) → straight to Today.
   - Calisthenics is marked "not set up yet". Its check runs the first time you switch to it.
 
-**Later visits** (from Skills, Me or Today to update your profile, or after "Reset skills") go straight to the calisthenics setup.
+**Later visits** go straight to the calisthenics setup, opened on the part being edited, and return to where they came from:
+- `?step=0` (body & schedule) or `?step=1` (equipment), from Me → Settings or Today's session; `?step=2` (level), from Skills' "Retake assessment".
+- `?return=/path`: where to go after saving.
+- `?sport=calisthenics`: the first switch to calisthenics for someone who started with yoga or Pilates. Only this makes calisthenics the active sport; editing your weight from Settings doesn't switch sport.
+
+**Invites**: a train-together link (`/friends?code=…`) opened before signing in is remembered, and the user is sent back to it after the landing page or the first setup.
 
 ## Today
 
@@ -158,9 +164,10 @@ These come from the root layout and the navigation, so they're available everywh
 - **Today / Week switch** at the top.
 
 ### `/plan` — Week plan ✅
-- The sessions ahead this week, laid out in advance.
-- **AI plan coach** (`/api/plan-coach`) to adjust it.
-- **Note**: the plan covers calisthenics. With another sport active, the page says so and points to Today.
+- The sessions ahead (a day, a week or a month), on your training days, for the **active sport**:
+  - Calisthenics: by focus, training block and equipment.
+  - Yoga / Pilates: the sport's focus rotation (goal skills come up more often), starting with today's session, fitted to the sport's session length.
+- **AI plan coach** (`/api/plan-coach`) adds notes to it, for whichever sport.
 
 ### `/library` — Exercise library ✅
 - Every exercise of the **active sport**, searchable.
@@ -197,7 +204,7 @@ These come from the root layout and the navigation, so they're available everywh
 - **Proven**: skills verified with Skill Checks (video or timed).
 - **Road**: the trophy road, with level-by-level milestones.
 
-**Yoga / Pilates**: each skill as a ladder of stages.
+**Yoga / Pilates**: the sport's level, sessions and **session length** (editable), then each skill as a ladder of stages.
 - Each skill shows its mastery toward the next stage and its current exercises (tap one for the demo).
 - **Goal stars**: up to 3. Starred skills come up more often.
 
@@ -220,7 +227,7 @@ These come from the root layout and the navigation, so they're available everywh
 ## Crew
 
 ### `/friends` — Crew ✅ 👤
-Guests see a **Save your progress with Google** prompt instead, since friends need an account others can find.
+Guests see a **Save your progress with Google** prompt (friends need an account others can find) and the **community event**. Arriving from a train-together invite, the prompt says so: linking Google keeps the page and its code, so the invite opens right after.
 - **Crew activity**:
   - Friends' finished sessions from the last two weeks; yoga and Pilates ones show the sport.
   - Kudos, and kudos you've received.
@@ -270,7 +277,7 @@ Guests see a **Save your progress with Google** prompt instead, since friends ne
 | `POST /api/exercise-tip` | Any account | 30 per 10 min (guests 10) |
 | `POST /api/plan-coach` | Any account | 10 per 10 min (guests 3) |
 | `POST /api/plan-review` | Any account | 10 per 10 min (guests 3) |
-| `POST /api/push/ping` | Any account, and only to a friend | — |
+| `POST /api/push/ping` | A Google account, and only to a friend | 30 per hour per sender; 3 per 10 min to the same friend |
 | `POST /api/push/reminders` | The scheduler only (`Authorization: Bearer <CRON_SECRET>`) | — |
 | `GET /api/parks/osm` | Anyone (public map data) | 20 per 10 min per address |
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { activeSportOf } from "@/lib/sports";
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -51,9 +52,12 @@ export default function QuickActions() {
     };
   }, [open]);
 
-  if (!userDoc?.onboarded || HIDDEN_ON.includes(pathname) || expanded)
-    return null;
   const live = !!session && !completed;
+  // during a session the floating "resume" bubble is the one shortcut, so
+  // the two don't stack in the same corner
+  if (!userDoc?.onboarded || HIDDEN_ON.includes(pathname) || expanded || live)
+    return null;
+  const outdoor = activeSportOf(userDoc) === "calisthenics";
 
   const actions: {
     label: string;
@@ -81,7 +85,7 @@ export default function QuickActions() {
       href: "/profile?tab=activity#bodyweight",
       icon: Scale,
     },
-    { label: "Find a bar park", href: "/parks", icon: MapPin },
+    ...(outdoor ? [{ label: "Find a bar park", href: "/parks", icon: MapPin }] : []),
     { label: "Nudge a friend", href: "/friends#friends", icon: Users },
     { label: "Ask your coach", href: "/coach#chat", icon: MessageCircle },
   ];

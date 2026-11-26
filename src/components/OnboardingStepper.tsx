@@ -35,6 +35,8 @@ export default function OnboardingStepper({
   onSave,
   saving,
   onBackFromStart,
+  initialStep = 0,
+  saveLabel = "Save & start training",
 }: {
   initialBody: BodyProfile;
   initialSkills: SkillProfile;
@@ -51,9 +53,11 @@ export default function OnboardingStepper({
   ) => void;
   saving?: boolean;
   onBackFromStart?: () => void; // back from the first step (to the sport picker)
+  initialStep?: number; // open on this step (editing one part from Settings)
+  saveLabel?: string; // the last button (editing later: "Save changes")
 }) {
   const { tx } = useLanguage();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(Math.min(Math.max(0, initialStep), STEPS.length - 1));
   // on each new step, focus its title so screen readers announce where you are
   const titleRef = useRef<HTMLHeadingElement>(null);
   const firstStep = useRef(true);
@@ -215,7 +219,7 @@ export default function OnboardingStepper({
         disabled={saving}
         className="w-full py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 disabled:opacity-60"
       >
-        {step < STEPS.length - 1 ? tx("Continue") : saving ? tx("Saving...") : tx("Save & start training")}
+        {step < STEPS.length - 1 ? tx("Continue") : saving ? tx("Saving...") : tx(saveLabel)}
       </button>
       )}
     </div>

@@ -572,3 +572,98 @@ test.describe("first login: pick a sport", () => {
     await expect(page.getByRole("button", { name: /Main track.*Calisthenics/ })).not.toHaveClass(/ring-1/);
   });
 });
+
+// ---- from the UX review ----
+
+const go = (page: import("@playwright/test").Page, route: string) =>
+  page.evaluate((r) => (window as unknown as { next: { router: { push: (h: string) => void } } }).next.router.push(r), route);
+
+test.describe("started with yoga", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem("barquests:demo-fresh", "1");
+      } catch {
+        /* not this document */
+      }
+    });
+    await page.goto("/onboarding");
+    await page.getByRole("button", { name: /Yoga/ }).click();
+    await page.getByRole("button", { name: "Start Yoga" }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("editing settings opens that step, returns to Me, and keeps yoga active", async ({ page }) => {
+    await go(page, "/onboarding?step=3&return=/profile?tab=settings");
+    await expect(page.getByText("Step 4 of 4")).toBeVisible();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page).toHaveURL(/\/profile\?tab=settings/);
+    await expect(page.getByRole("banner").getByRole("button", { name: /Sport: Yoga/ })).toBeVisible();
+  });
+
+  test("the week plan is a yoga plan, starting with today's session", async ({ page }) => {
+    const errors = collectErrors(page);
+    await go(page, "/plan");
+    await expect(page.getByText(/Your Yoga plan/)).toBeVisible();
+    await page.getByRole("button", { name: "Generate plan" }).click();
+    await expect(page.getByText(/training days?/).first()).toBeVisible();
+    await expect(page.getByText(/Flow|Balance|Arm balances|Backbends|Flexibility/).first()).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("quick actions don't offer bar parks for an indoor sport; session length can change", async ({ page }) => {
+    await page.getByRole("button", { name: "Quick actions" }).click();
+    await expect(page.getByRole("navigation", { name: "Quick actions" }).getByRole("link", { name: "Do an exercise" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Find a bar park" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await go(page, "/skills");
+    const lengths = page.getByRole("group", { name: "Session length" });
+    await lengths.getByRole("button", { name: "40 min" }).click();
+    await expect(lengths.getByRole("button", { name: "40 min" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+test("during a session the resume bubble replaces the quick-actions button", async ({ page }) => {
+  await page.goto("/dashboard");
+  await expect(page.getByRole("button", { name: "Quick actions" })).toBeVisible();
+  await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
+  await expect(page.getByText(/^1 \/ \d+/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Resume training" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Quick actions" })).toHaveCount(0);
+});
+
+test("offline, the AI coach says it needs a connection", async ({ page, context }) => {
+  await page.goto("/coach");
+  await context.setOffline(true);
+  await page.getByPlaceholder("Ask about your training…").fill("How do I get my first muscle-up?");
+  await page.getByPlaceholder("Ask about your training…").press("Enter");
+  await expect(page.getByText(/You're offline — the AI coach needs a connection/)).toBeVisible();
+  // the offline banner and the quick-actions button don't overlap
+  const banner = (await page.getByRole("status").filter({ hasText: /Offline — training still works/ }).boundingBox())!;
+  const fab = (await page.getByRole("button", { name: "Quick actions" }).boundingBox())!;
+  const overlap = banner.x < fab.x + fab.width && fab.x < banner.x + banner.width && banner.y < fab.y + fab.height && fab.y < banner.y + banner.height;
+  expect(overlap).toBe(false);
+  await context.setOffline(false);
+});
+
+test.describe("as a guest", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem("barquests:demo-guest", "1");
+      } catch {
+        /* not this document */
+      }
+    });
+  });
+
+  test("Crew shows the community event and asks to save; an invite link says so", async ({ page }) => {
+    await page.goto("/friends");
+    await expect(page.getByText(/Friends, nudges and training together need an account/)).toBeVisible();
+    await expect(page.getByRole("progressbar", { name: "Everyone together" })).toBeVisible();
+    await expectNoA11yViolations(page);
+    await page.goto("/friends?code=AB12CD");
+    await expect(page.getByText(/You've been invited to train together/)).toBeVisible();
+  });
+});
