@@ -141,6 +141,7 @@ These come from the root layout and the navigation, so they're available everywh
 - **Today's session**: a card with the focus and length, ready to start.
   - Calisthenics asks where you're training first, if that's turned on.
 - **Week strip** and the **skipped-day shift**: miss a training day and the rest of the week moves along.
+- **This week by sport**: for anyone following more than one sport, sessions per sport this week.
 - **Missions** for the day.
 - **Calisthenics only**:
   - Weather card, with a home plan when it rains.
@@ -204,7 +205,7 @@ These come from the root layout and the navigation, so they're available everywh
 - **Proven**: skills verified with Skill Checks (video or timed).
 - **Road**: the trophy road, with level-by-level milestones.
 
-**Yoga / Pilates**: the sport's level, sessions and **session length** (editable), then each skill as a ladder of stages.
+**Yoga / Pilates**: the sport's level, sessions and **session length** (editable), a **training block** (a skill's next stage in 2, 4 or 6 weeks; sessions lean on it), then each skill as a ladder of stages, with a **stage check** once a stage is nearly mastered, and **your road** (every stage of every skill, tier by tier).
 - Each skill shows its mastery toward the next stage and its current exercises (tap one for the demo).
 - **Goal stars**: up to 3. Starred skills come up more often.
 
@@ -283,6 +284,8 @@ Guests see a **Save your progress with Google** prompt (friends need an account 
 
 **AI routes overall**: there is also a daily cap per account (150 for Google accounts, 30 for guests) and a global cap of 300 per minute per server instance.
 
+**Where the counts live**: per-account limits (AI, nudges) and the map's per-address limit are counted in Firestore (`rateLimits/…`, written only by the server), so they hold across every server instance; without server credentials they fall back to per-instance memory.
+
 ## Data permissions (Firestore rules, in short)
 
 | Data | Read | Write |
@@ -296,4 +299,4 @@ Guests see a **Save your progress with Google** prompt (friends need an account 
 | `leaderboard/{week}/entries/{uid}` | Anyone signed in | Owner, Google accounts only, values checked |
 | Bar parks, their reports, likes and visits, and the map cache | Anyone signed in | Signed in, fixed fields; reactions only your own |
 
-The exact rules are in the README ("Firestore security rules") and `docs/DEVELOPER_NOTES.md`, and a test keeps the two in sync.
+The rules live in `firestore.rules` (shown in the README and `docs/DEVELOPER_NOTES.md`, kept identical by a test). They're tested in the Firestore emulator (`npm run test:rules`, run by CI on every PR) and deployed by the *Deploy Firestore rules* workflow once its key is set. `rateLimits/*` is closed to every client.
