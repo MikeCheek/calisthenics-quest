@@ -26,31 +26,34 @@ import {
   exerciseLines,
   headline,
   inPeriod,
-  periodsFor,
+  presetDate,
+  ymd,
+  endOfDay,
+  snapshotSessions,
+  weeksBefore,
+  LOOKBACK_DAYS,
   stagesFor,
   stagesTrained,
 } from "@/lib/compare";
 
-// Then vs now: two two-week windows of training side by side — since you
-// started, a month or three ago, or any dates you pick (lib/compare.ts).
+// Then vs now: you today next to you on one day you pick — the stages you
+// were at, your level and weight, and how you last did each exercise before
+// that day (lib/compare.ts).
 
 const PRESETS: { id: Preset; label: string }[] = [
-  { id: "start", label: "Since you started" },
-  { id: "3m", label: "3 months" },
-  { id: "1m", label: "1 month" },
-  { id: "custom", label: "Custom" },
+  { id: "start", label: "When you started" },
+  { id: "3m", label: "3 months ago" },
+  { id: "1m", label: "1 month ago" },
 ];
 
-const day = (iso: string) => iso.slice(0, 10);
 const SHOWN = 12;
 
 export default function ComparePage() {
   const { user, userDoc, loading } = useAuth();
   const { tx, locale } = useLanguage();
   const router = useRouter();
-  const [preset, setPreset] = useState<Preset>("start");
-  const [thenDate, setThenDate] = useState("");
-  const [nowDate, setNowDate] = useState("");
+  const [picked, setPicked] = useState(""); // yyyy-mm-dd; empty = when you started
+  const [nowAt] = useState(() => new Date().toISOString());
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   const [area, setArea] = useState<Area | "all">("all");
   const [showAll, setShowAll] = useState(false);
@@ -79,42 +82,45 @@ export default function ComparePage() {
 
   const firstSession = useMemo(() => (sessions?.length ? sessions.reduce((a, s) => (s.finishedAt < a ? s.finishedAt : a), sessions[0].finishedAt) : undefined), [sessions]);
 
-  const periods = useMemo(
-    () =>
-      userDoc
-        ? periodsFor(preset, { startedAt: firstSession ?? userDoc.createdAt, thenDate: thenDate || undefined, nowDate: nowDate || undefined })
-        : null,
-    [userDoc, preset, thenDate, nowDate, firstSession]
-  );
+  const startedAt = firstSession ?? userDoc?.createdAt;
+  const startDay = startedAt ? ymd(new Date(startedAt)) : "";
+  const yesterday = ymd(new Date(new Date(nowAt).getTime() - 86400000));
+  const thenDate = picked || (startedAt ? presetDate("start", { startedAt }) : "");
+  const thenAt = thenDate ? endOfDay(thenDate) : "";
 
   const data = useMemo(() => {
-    if (!userDoc || !periods || !sessions) return null;
-    const thenS = sessions.filter((s) => inPeriod(s, periods.then));
-    const nowS = sessions.filter((s) => inPeriod(s, periods.now));
+    if (!userDoc || !sessions || !thenAt) return null;
+    const thenS = snapshotSessions(sessions, thenAt);
+    const nowS = snapshotSessions(sessions, nowAt);
+    const lookback = (at: string) => sessions.filter((s) => inPeriod(s, { from: new Date(new Date(at).getTime() - LOOKBACK_DAYS * 86400000).toISOString(), to: at })).length;
     const tl = exerciseLines(thenS);
     const nl = exerciseLines(nowS);
-    const stThen = stagesFor(periods.then, thenS, userDoc, false);
+    const stThen = stagesFor({ from: thenAt, to: thenAt }, thenS, userDoc, false);
     // like for like: if "then" had to be worked out from training, so is "now"
-    const stNow = stThen.exact ? stagesFor(periods.now, nowS, userDoc, true) : { stages: stagesTrained(nowS), exact: false };
+    const stNow = stThen.exact ? stagesFor({ from: nowAt, to: nowAt }, nowS, userDoc, true) : { stages: stagesTrained(nowS), exact: false };
     const areas = compareAreas(tl, nl);
     const withChange = areas.filter((a) => a.change !== null);
     return {
-      thenCount: thenS.length,
-      nowCount: nowS.length,
+      thenCount: lookback(thenAt),
+      nowCount: lookback(nowAt),
+      thenHas: thenS.length > 0,
+      nowHas: nowS.length > 0,
       exercises: compareExercises(tl, nl),
       skills: compareSkills(stThen.stages, stNow.stages, stThen.exact),
       reconstructed: !stThen.exact || !stNow.exact,
       areas,
       overall: withChange.length ? Math.round(withChange.reduce((a, x) => a + (x.change ?? 0), 0) / withChange.length) : null,
-      head: headline(userDoc, sessions, periods.then, periods.now),
-      kg: [weightAt(userDoc.weightLog, userDoc.body?.weightKg, periods.then.to), weightAt(userDoc.weightLog, userDoc.body?.weightKg, periods.now.to)] as [number | undefined, number | undefined],
+      head: headline(userDoc, sessions, weeksBefore(thenAt), weeksBefore(nowAt)),
+      kg: [weightAt(userDoc.weightLog, userDoc.body?.weightKg, thenAt), weightAt(userDoc.weightLog, userDoc.body?.weightKg, nowAt)] as [number | undefined, number | undefined],
     };
-  }, [userDoc, periods, sessions]);
+  }, [userDoc, sessions, thenAt, nowAt]);
 
-  if (loading || !userDoc || !periods) return <PageLoading variant="list" />;
+  if (loading || !userDoc || !thenDate) return <PageLoading variant="list" />;
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
-  const range = (p: { from: string; to: string }) => `${fmtDate(p.from)} – ${fmtDate(new Date(new Date(p.to).getTime() - 86400000).toISOString())}`;
+  const fmtDay = (d: string) => fmtDate(`${d}T12:00:00`);
+  // the quick picks, only those after you started
+  const presets = PRESETS.map((p) => ({ ...p, date: presetDate(p.id, { startedAt: startedAt ?? nowAt }) })).filter((p) => p.id === "start" || p.date > startDay);
   const val = (l: ExerciseLine, v: number) => (l.kind === "hold" ? formatHeld(Math.round(v)) : tx("{n} reps", { n: v }));
   const stage = (s: string) => (s === "none" ? tx("Not started") : s === "unknown" ? tx("not trained then") : tx(STAGE_LABEL[s] ?? s));
   const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`);
@@ -132,58 +138,44 @@ export default function ComparePage() {
       <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <div>
           <h1 className="heading text-2xl text-zinc-100">{tx("Then vs now")}</h1>
-          <p className="text-sm text-zinc-400">{tx("Two weeks of your training side by side: how far your exercises, skills and strength have come.")}</p>
+          <p className="text-sm text-zinc-400">{tx("You today next to you on a day you pick: how far your exercises, skills and strength have come.")}</p>
         </div>
 
-        {/* which two periods */}
+        {/* then: one day you pick; now: today */}
         <section className="panel p-3 space-y-3" aria-label={tx("Compare")}>
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-zinc-800/60" role="group" aria-label={tx("Compare")}>
-            {PRESETS.map((p) => (
+          <label className="block">
+            <span className="text-xs text-zinc-400">{tx("Compare today with")}</span>
+            <input
+              type="date"
+              value={thenDate}
+              min={startDay || undefined}
+              max={yesterday}
+              onChange={(e) => e.target.value && setPicked(e.target.value)}
+              className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-base"
+            />
+          </label>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={tx("Quick picks")}>
+            {presets.map((p) => (
               <button
                 key={p.id}
-                onClick={() => setPreset(p.id)}
-                aria-pressed={preset === p.id}
-                className={`py-2 px-1 rounded-lg text-sm leading-tight ${preset === p.id ? "bg-orange-500 text-zinc-950 font-semibold" : "text-zinc-300 hover:text-zinc-100"}`}
+                onClick={() => setPicked(p.id === "start" ? "" : p.date)}
+                aria-pressed={thenDate === p.date}
+                className={`text-sm px-3 py-1.5 rounded-full border ${thenDate === p.date ? "border-orange-500 bg-orange-500/15 text-orange-200" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}
               >
                 {tx(p.label)}
               </button>
             ))}
           </div>
-          {preset === "custom" && (
-            <div className="grid grid-cols-2 gap-2">
-              <label className="text-xs text-zinc-400">
-                {tx("Then — from")}
-                <input
-                  type="date"
-                  value={thenDate || day(periods.then.from)}
-                  max={nowDate || day(new Date().toISOString())}
-                  onChange={(e) => setThenDate(e.target.value)}
-                  className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100"
-                />
-              </label>
-              <label className="text-xs text-zinc-400">
-                {tx("Now — up to")}
-                <input
-                  type="date"
-                  value={nowDate || day(new Date().toISOString())}
-                  min={thenDate || undefined}
-                  max={day(new Date().toISOString())}
-                  onChange={(e) => setNowDate(e.target.value)}
-                  className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100"
-                />
-              </label>
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
               <span className="block text-zinc-400 uppercase tracking-wide">{tx("Then")}</span>
-              <span className="text-zinc-200">{range(periods.then)}</span>
-              {data && <span className="block text-zinc-400">{tx("{n} sessions", { n: data.thenCount })}</span>}
+              <span className="text-zinc-200 text-sm">{fmtDay(thenDate)}</span>
+              {data && <span className="block text-zinc-400">{tx("{n} sessions in the 6 weeks before", { n: data.thenCount })}</span>}
             </div>
             <div className="rounded-lg bg-orange-500/10 border border-orange-500/30 px-3 py-2">
               <span className="block text-orange-300 uppercase tracking-wide">{tx("Now")}</span>
-              <span className="text-zinc-200">{range(periods.now)}</span>
-              {data && <span className="block text-zinc-400">{tx("{n} sessions", { n: data.nowCount })}</span>}
+              <span className="text-zinc-200 text-sm">{tx("Today")}</span>
+              {data && <span className="block text-zinc-400">{tx("{n} sessions in the last 6 weeks", { n: data.nowCount })}</span>}
             </div>
           </div>
         </section>
@@ -197,10 +189,10 @@ export default function ComparePage() {
             </div>
             <Bone className="h-56 w-full rounded-xl" />
           </div>
-        ) : data.thenCount === 0 || data.nowCount === 0 ? (
+        ) : !data.thenHas || !data.nowHas ? (
           <section className="panel p-5 text-center">
-            <p className="text-zinc-200">{data.thenCount === 0 ? tx("No sessions in the “then” period.") : tx("No sessions in the “now” period.")}</p>
-            <p className="text-sm text-zinc-400 mt-1">{tx("Pick other dates, or train a little more — the comparison fills in as you log sessions.")}</p>
+            <p className="text-zinc-200">{!data.thenHas ? tx("No training logged in the 6 weeks before {d}.", { d: fmtDay(thenDate) }) : tx("No training logged in the last 6 weeks.")}</p>
+            <p className="text-sm text-zinc-400 mt-1">{!data.thenHas ? tx("Pick a later day — the comparison needs a few sessions before it.") : tx("Train a little and come back — the comparison fills in as you log sessions.")}</p>
           </section>
         ) : (
           <>
@@ -228,8 +220,8 @@ export default function ComparePage() {
               onClick={() =>
                 setShare({
                   kind: "progress",
-                  fromISO: periods.then.from,
-                  dateISO: new Date(new Date(periods.now.to).getTime() - 86400000).toISOString(),
+                  fromISO: `${thenDate}T12:00:00.000Z`,
+                  dateISO: nowAt,
                   strength: data.overall,
                   stages: stagesUp,
                   levels: [data.head.levelThen, data.head.levelNow],
@@ -304,14 +296,14 @@ export default function ComparePage() {
                     </li>
                   ))}
                 </ul>
-                {data.reconstructed && <p className="text-xs text-zinc-400 mt-2">{tx("Worked out from the hardest exercise you trained for each skill in each period; from now on every stage change is recorded.")}</p>}
+                {data.reconstructed && <p className="text-xs text-zinc-400 mt-2">{tx("Worked out from the hardest exercise you trained for each skill before each day; from now on every stage change is recorded.")}</p>}
               </section>
             )}
 
             {/* exercises */}
             <section className="panel p-4" aria-labelledby="ex-title">
               <h2 id="ex-title" className="heading text-base text-zinc-100 mb-1">{tx("Exercises you did in both")}</h2>
-              <p className="text-xs text-zinc-400 mb-3">{tx("Best set, typical set and sets per session. ≈ means it comes from the plan, not a logged set.")}</p>
+              <p className="text-xs text-zinc-400 mb-3">{tx("The last times you did each one before that day, and the last times now: best set, typical set and sets per session. ≈ means it comes from the plan, not a logged set.")}</p>
               {areasPresent.length > 1 && (
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1" role="group" aria-label={tx("Muscle group")}>
                   {(["all", ...areasPresent] as (Area | "all")[]).map((a) => (
@@ -327,7 +319,7 @@ export default function ComparePage() {
                 </div>
               )}
               {rows.length === 0 ? (
-                <p className="text-sm text-zinc-400">{tx("No exercise appears in both periods — see what's new below.")}</p>
+                <p className="text-sm text-zinc-400">{tx("No exercise you did then is in your recent training — see what's new below.")}</p>
               ) : (
                 <ul className="space-y-2">
                   {(showAll ? rows : rows.slice(0, SHOWN)).map((r) => (

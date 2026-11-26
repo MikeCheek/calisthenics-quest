@@ -64,22 +64,61 @@ export interface Period {
 const DAY = 86400000;
 export const WINDOW_DAYS = 14;
 
-export type Preset = "start" | "3m" | "1m" | "custom";
+export type Preset = "start" | "3m" | "1m";
 
-// "then" is the two weeks from a start date; "now" the two weeks up to an
-// end date (today unless chosen).
-export function periodsFor(preset: Preset, opts: { startedAt: string; now?: Date; thenDate?: string; nowDate?: string }): { then: Period; now: Period } {
-  const end = opts.nowDate ? new Date(new Date(opts.nowDate).getTime() + DAY) : opts.now ?? new Date();
-  const nowP = { from: new Date(end.getTime() - WINDOW_DAYS * DAY).toISOString(), to: end.toISOString() };
-  let thenStart: Date;
-  if (preset === "custom" && opts.thenDate) thenStart = new Date(opts.thenDate);
-  else if (preset === "3m") thenStart = new Date(end.getTime() - (91 + WINDOW_DAYS) * DAY);
-  else if (preset === "1m") thenStart = new Date(end.getTime() - (30 + WINDOW_DAYS) * DAY);
-  else thenStart = new Date(opts.startedAt);
-  // the two windows never overlap
-  const thenEnd = new Date(Math.min(thenStart.getTime() + WINDOW_DAYS * DAY, new Date(nowP.from).getTime()));
-  return { then: { from: thenStart.toISOString(), to: thenEnd.toISOString() }, now: nowP };
+// ---- then (a day you pick) vs now (today) ----
+//
+// "Now" is you today: your current skills, level and weight, and how you
+// last did each exercise. "Then" is the same picture on one day: the stages
+// you were at, the level, the weight, and how you last did each exercise
+// before that day. One date to pick — not two ranges.
+
+/** how far back "how you last did it" looks from a date */
+export const LOOKBACK_DAYS = 42;
+/** the last few times you did an exercise make its snapshot */
+export const LAST_TIMES = 2;
+
+/** a date as yyyy-mm-dd in local time */
+export const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** the day a preset points at (yyyy-mm-dd, local) — never today or later */
+export function presetDate(preset: Preset, opts: { startedAt: string; now?: Date }): string {
+  const now = opts.now ?? new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const back = (days: number) => new Date(today.getTime() - days * DAY);
+  // "when you started": the end of your first two weeks, so there's something to compare
+  const target = preset === "3m" ? back(91) : preset === "1m" ? back(30) : new Date(new Date(opts.startedAt).getTime() + (WINDOW_DAYS - 1) * DAY);
+  return ymd(new Date(Math.min(target.getTime(), back(1).getTime())));
 }
+
+/** the end of a picked day, as an ISO instant (sessions that day count) */
+export const endOfDay = (date: string) => {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d + 1).toISOString();
+};
+
+/** the sessions that make up your state at a moment: the last few times you
+ * did each exercise, within the lookback before it */
+export function snapshotSessions<S extends Pick<SessionRecord, "finishedAt" | "exercises">>(sessions: S[], atISO: string): S[] {
+  const from = new Date(new Date(atISO).getTime() - LOOKBACK_DAYS * DAY).toISOString();
+  const seen = new Map<string, number>();
+  const out: S[] = [];
+  for (const s of [...sessions].filter((x) => x.finishedAt < atISO && x.finishedAt >= from).sort((a, b) => b.finishedAt.localeCompare(a.finishedAt))) {
+    const keep = (s.exercises ?? []).filter((e) => {
+      if (e.outcome !== "done") return false;
+      const k = statKey(e.name.replace(/^Skill check:\s*/i, ""));
+      const n = seen.get(k) ?? 0;
+      if (n >= LAST_TIMES) return false;
+      seen.set(k, n + 1);
+      return true;
+    });
+    if (keep.length) out.push({ ...s, exercises: keep });
+  }
+  return out;
+}
+
+/** the four weeks before a moment, for "sessions a week" */
+export const weeksBefore = (atISO: string, weeks = 4): Period => ({ from: new Date(new Date(atISO).getTime() - weeks * 7 * DAY).toISOString(), to: atISO });
 
 export const inPeriod = (s: Pick<SessionRecord, "finishedAt">, p: Period) => s.finishedAt >= p.from && s.finishedAt < p.to;
 

@@ -117,23 +117,27 @@ test("a session that can't be done today can be cancelled without logging", asyn
   expect(errors).toEqual([]);
 });
 
-test("then vs now: from Skills, switch ranges, pick custom dates", async ({ page }) => {
+test("then vs now: from Skills, today against a day you pick", async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto("/skills");
   await page.getByRole("link", { name: /Then vs now/ }).click();
   await expect(page).toHaveURL(/\/compare$/);
   await expect(page.getByRole("heading", { name: "Strength by muscle group" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Exercises you did in both" })).toBeVisible();
+  // now is today, not a range
+  await expect(page.getByRole("region", { name: "Compare" }).getByText("Today", { exact: true })).toBeVisible();
+  const start = page.getByRole("button", { name: "When you started" });
+  await expect(start).toHaveAttribute("aria-pressed", "true");
 
-  await page.getByRole("button", { name: "1 month" }).click();
-  await expect(page.getByRole("button", { name: "1 month" })).toHaveAttribute("aria-pressed", "true");
-
-  await page.getByRole("button", { name: "Custom" }).click();
-  const from = page.getByLabel("Then — from");
-  await expect(from).toBeVisible();
-  const d = new Date(Date.now() - 20 * 86400000).toISOString().slice(0, 10);
-  await from.fill(d);
-  await expect(page.locator("main").getByText("THEN", { exact: false }).first()).toBeVisible();
+  // any day, straight from the one date field
+  const d = new Date(Date.now() - 10 * 86400000);
+  const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  await page.getByLabel("Compare today with").fill(ymd);
+  await expect(start).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText(d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }))).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Strength by muscle group" })).toBeVisible();
+  await start.click();
+  await expect(start).toHaveAttribute("aria-pressed", "true");
   expect(errors).toEqual([]);
 });
 

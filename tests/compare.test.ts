@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { areaScore, compareAreas, compareExercises, compareSkills, exerciseArea, exerciseDoneDates, exerciseHistory, exerciseLines, headline, periodsFor, stagesFor, stagesTrained } from "../src/lib/compare";
+import { areaScore, compareAreas, compareExercises, compareSkills, exerciseArea, exerciseDoneDates, exerciseHistory, exerciseLines, headline, presetDate, endOfDay, snapshotSessions, weeksBefore, stagesFor, stagesTrained } from "../src/lib/compare";
 import { nextSkillHistory, skillsAt, SKILL_HISTORY_MAX } from "../src/lib/skillHistory";
 import { DEFAULT_SKILLS, type ExerciseRecord, type SessionRecord, type SkillProfile } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
@@ -92,17 +92,30 @@ test("history gives exact stages when it reaches back far enough", () => {
   assert.equal(older.exact, false);
 });
 
-test("periods: two-week windows that never overlap", () => {
-  const now = new Date("2026-11-21T12:00:00Z");
-  const p = periodsFor("start", { startedAt: "2026-06-01T00:00:00Z", now });
-  assert.equal(p.then.from.slice(0, 10), "2026-06-01");
-  assert.equal(p.then.to.slice(0, 10), "2026-06-15");
-  assert.equal(p.now.to, now.toISOString());
-  const short = periodsFor("start", { startedAt: "2026-11-10T00:00:00Z", now });
-  assert.ok(short.then.to <= short.now.from);
-  const custom = periodsFor("custom", { startedAt: "2026-06-01T00:00:00Z", thenDate: "2026-08-01", nowDate: "2026-10-01" });
-  assert.equal(custom.then.from.slice(0, 10), "2026-08-01");
-  assert.equal(custom.now.to.slice(0, 10), "2026-10-02"); // up to and including the day picked
+test("then is one day you pick; now is today", () => {
+  const now = new Date(2026, 10, 21, 12);
+  // when you started: the end of your first two weeks
+  assert.equal(presetDate("start", { startedAt: new Date(2026, 5, 1).toISOString(), now }), "2026-06-14");
+  assert.equal(presetDate("1m", { startedAt: new Date(2026, 5, 1).toISOString(), now }), "2026-10-22");
+  assert.equal(presetDate("3m", { startedAt: new Date(2026, 5, 1).toISOString(), now }), "2026-08-22");
+  // never today or later, even if you only just started
+  assert.equal(presetDate("start", { startedAt: new Date(2026, 10, 20).toISOString(), now }), "2026-11-20");
+  // the picked day counts in full
+  assert.equal(new Date(endOfDay("2026-08-01")).getDate(), 2);
+});
+
+test("a snapshot is the last times you did each exercise before the moment", () => {
+  const all = [
+    session("2026-07-01T10:00:00Z", [ex("Pull-ups")]), // too long before: outside the six weeks
+    session("2026-08-20T10:00:00Z", [ex("Pull-ups"), ex("Dips")]),
+    session("2026-08-25T10:00:00Z", [ex("Pull-ups")]),
+    session("2026-08-30T10:00:00Z", [ex("Pull-ups")]),
+    session("2026-09-05T10:00:00Z", [ex("Pull-ups")]), // after the moment
+  ];
+  const snap = snapshotSessions(all, "2026-09-01T00:00:00Z");
+  const names = snap.flatMap((s) => s.exercises.map((e) => `${e.name}@${s.finishedAt.slice(5, 10)}`));
+  assert.deepEqual(names.sort(), ["Dips@08-20", "Pull-ups@08-25", "Pull-ups@08-30"]);
+  assert.equal(weeksBefore("2026-09-01T00:00:00Z").from.slice(0, 10), "2026-08-04");
 });
 
 test("headline: sessions a week and the level back then (approximate)", () => {
@@ -115,7 +128,7 @@ test("headline: sessions a week and the level back then (approximate)", () => {
 });
 
 test("the comparison screen speaks Italian", () => {
-  for (const s of ["Then vs now", "Strength by muscle group", "Exercises you did in both", "New in your training", "Since you started", "Pulling", "+1 stage"]) {
+  for (const s of ["Then vs now", "Strength by muscle group", "Exercises you did in both", "New in your training", "When you started", "Compare today with", "Pulling", "+1 stage"]) {
     assert.notEqual(translate("it", s), s, s);
   }
 });
