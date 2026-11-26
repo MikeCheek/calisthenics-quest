@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { VerifiedUser } from "./firebaseToken";
 import { verifyCaller } from "./caller";
 import { checkAppCheck } from "./appCheck";
-import { LimitRule, RateLimiter } from "./rateLimit";
+import { LimitRule, RateLimiter, SharedRateLimiter, limitsStore } from "./rateLimit";
 
 // Shared gate for the AI routes: every call must carry a valid Firebase ID
 // token (Authorization: Bearer …), and each account gets a request budget —
@@ -25,7 +25,10 @@ const DAILY: [LimitRule, LimitRule] = [{ max: 150, windowMs: DAY }, { max: 30, w
 // everyone together, per server instance
 const GLOBAL: LimitRule = { max: 300, windowMs: MIN };
 
+// the global cap stays per instance (one shared counter document would be a
+// write hotspot); per-account caps are shared across instances (Firestore)
 const limiter = new RateLimiter();
+const shared = new SharedRateLimiter(limitsStore);
 
 export const AI_ERRORS = {
   signIn: "Sign in to use the AI coach.",
@@ -56,9 +59,9 @@ export async function guardAiRequest(req: NextRequest, route: AiRoute): Promise<
   const tier = user.anonymous ? 1 : 0;
   const global = limiter.check("global", GLOBAL);
   if (!global.ok) return tooMany(AI_ERRORS.busy, global.retryAfterS);
-  const perRoute = limiter.check(`${route}:${user.uid}`, ROUTE_LIMITS[route][tier]);
+  const perRoute = await shared.check(`${route}:${user.uid}`, ROUTE_LIMITS[route][tier]);
   if (!perRoute.ok) return tooMany(AI_ERRORS.tooMany, perRoute.retryAfterS);
-  const daily = limiter.check(`day:${user.uid}`, DAILY[tier]);
+  const daily = await shared.check(`day:${user.uid}`, DAILY[tier]);
   if (!daily.ok) return tooMany(AI_ERRORS.daily, daily.retryAfterS);
 
   return user;

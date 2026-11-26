@@ -2,6 +2,8 @@
 #   checks  — types, lint, unit tests, production build
 #   browser — Playwright tests in a real browser: every screen (demo mode)
 #             and the public pages, with an accessibility scan (axe) on each
+#   rules   — the Firestore security rules (firestore.rules), in the local
+#             Firebase emulator
 # Nothing here needs secrets: demo mode has no Firebase, and the public
 # pages render with placeholder Firebase settings.
 name: CI
@@ -41,6 +43,23 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: placeholder
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: placeholder
           NEXT_PUBLIC_FIREBASE_APP_ID: placeholder
+
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Security rules in the Firestore emulator
+        run: npm run test:rules
 
   browser:
     runs-on: ubuntu-latest
