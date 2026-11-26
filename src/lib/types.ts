@@ -125,7 +125,18 @@ export interface TrainingEquipment {
   monkeyBars: boolean; // grip / traverse work
   weights: boolean; // dip belt, weight vest, plates, or a loaded backpack
   resistanceBands: boolean; // elastic bands for assistance
+  // kit you own that only counts at home (a park has its own bars)
+  homeBar?: boolean; // doorway / wall-mounted pull-up bar
+  parallettes?: boolean; // floor parallettes, dip handles
 }
+
+// What the place gives you (a park, a gym, your usual spot) and what you
+// bring along. The place changes with where you train today; your kit
+// follows you.
+export const SPOT_KEYS = ["pullUpBar", "parallelBars", "wallSpace", "verticalPole", "monkeyBars"] as const;
+export const KIT_KEYS = ["weights", "resistanceBands", "rings", "homeBar", "parallettes"] as const;
+export type SpotKey = (typeof SPOT_KEYS)[number];
+export type KitKey = (typeof KIT_KEYS)[number];
 
 export const DEFAULT_EQUIPMENT: TrainingEquipment = {
   pullUpBar: true,

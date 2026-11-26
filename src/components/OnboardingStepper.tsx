@@ -1,5 +1,6 @@
 "use client";
 
+import { KIT_LABEL, SPOT_LABEL } from "@/lib/equipmentLabels";
 import { useEffect, useRef, useState } from "react";
 import {
   BodyProfile,
@@ -9,6 +10,8 @@ import {
   StagedSkillKey,
   SkillMastery,
   TRACK_LABEL,
+  KIT_KEYS,
+  SPOT_KEYS,
 } from "@/lib/types";
 import ScrollPicker from "@/components/ScrollPicker";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -147,27 +150,26 @@ export default function OnboardingStepper({
       )}
 
       {step === 1 && (
-        <div className="space-y-4">
-          <p className="text-sm text-zinc-400">
-            {tx("Tap everything available where you usually train. Sessions only suggest what you can actually do — ground work always shows up.")}
-          </p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <EquipmentToggle label={tx("Pull-up bar")} checked={equipment.pullUpBar}
-              onChange={(v) => setEquipment({ ...equipment, pullUpBar: v })} />
-            <EquipmentToggle label={tx("Parallel bars / dip station")} checked={equipment.parallelBars}
-              onChange={(v) => setEquipment({ ...equipment, parallelBars: v })} />
-            <EquipmentToggle label={tx("Rings")} checked={equipment.rings}
-              onChange={(v) => setEquipment({ ...equipment, rings: v })} />
-            <EquipmentToggle label={tx("Wall space")} checked={equipment.wallSpace}
-              onChange={(v) => setEquipment({ ...equipment, wallSpace: v })} />
-            <EquipmentToggle label={tx("Vertical pole / sturdy tree")} checked={equipment.verticalPole}
-              onChange={(v) => setEquipment({ ...equipment, verticalPole: v })} />
-            <EquipmentToggle label={tx("Monkey bars")} checked={equipment.monkeyBars}
-              onChange={(v) => setEquipment({ ...equipment, monkeyBars: v })} />
-            <EquipmentToggle label={tx("Weights (vest, belt, plates, backpack)")} checked={equipment.weights}
-              onChange={(v) => setEquipment({ ...equipment, weights: v })} />
-            <EquipmentToggle label={tx("Elastic / resistance bands")} checked={equipment.resistanceBands}
-              onChange={(v) => setEquipment({ ...equipment, resistanceBands: v })} />
+        <div className="space-y-5">
+          <div className="space-y-2.5">
+            <h3 className="text-sm text-zinc-100">{tx("Your usual spot")}</h3>
+            <p className="text-sm text-zinc-400">
+              {tx("What the place you usually train at has. On any day you can pick a different park, or home, from Today — ground work always shows up.")}
+            </p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {SPOT_KEYS.map((k) => (
+                <EquipmentToggle key={k} label={tx(SPOT_LABEL[k])} checked={equipment[k]} onChange={(v) => setEquipment({ ...equipment, [k]: v })} />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2.5">
+            <h3 className="text-sm text-zinc-100">{tx("Your kit")}</h3>
+            <p className="text-sm text-zinc-400">{tx("What you own and bring along. It comes with you to any park — and makes home sessions better.")}</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {KIT_KEYS.map((k) => (
+                <EquipmentToggle key={k} label={tx(KIT_LABEL[k][0])} checked={!!equipment[k]} onChange={(v) => setEquipment({ ...equipment, [k]: v })} />
+              ))}
+            </div>
           </div>
         </div>
       )}

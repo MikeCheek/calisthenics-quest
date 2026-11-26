@@ -45,16 +45,20 @@ const KEY = "barquests:equipmentOverride";
 const EVENT = "barquests:equipment-override";
 const day = () => new Date().toDateString();
 
-export function floorOnly(own: TrainingEquipment): TrainingEquipment {
+// Training at home: the floor and a wall, plus the kit you own — a doorway
+// bar and parallettes count here, rings need somewhere to hang so they don't.
+export function atHome(own: TrainingEquipment): TrainingEquipment {
   return {
-    pullUpBar: false,
-    parallelBars: false,
+    pullUpBar: !!own.homeBar,
+    parallelBars: !!own.parallettes,
     rings: false,
     wallSpace: true,
     verticalPole: false,
     monkeyBars: false,
     weights: own.weights,
     resistanceBands: own.resistanceBands,
+    homeBar: own.homeBar,
+    parallettes: own.parallettes,
   };
 }
 

@@ -59,7 +59,7 @@ test("robots.txt and the sitemap list the public pages", async ({ request }) => 
 
 test("landing page: a short word on yoga and Pilates, linking to their pages", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Rainy day? Train yoga or Pilates" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rainy day? Train at home — or try yoga and Pilates" })).toBeVisible();
   await page.getByRole("link", { name: /Yoga.*Discover Yoga/ }).click();
   await expect(page).toHaveURL(/\/yoga$/);
   await expect(page.getByRole("heading", { level: 1, name: /Yoga/ })).toBeVisible();

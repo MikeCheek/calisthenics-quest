@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { advise, hoursOf, isWet, rainyStretch, roundCoord, tipFor, trainingHour, type Forecast } from "../src/lib/weather";
-import { floorOnly } from "../src/lib/todayEquipment";
+import { atHome } from "../src/lib/todayEquipment";
 import { DEFAULT_EQUIPMENT } from "../src/lib/types";
 import { translate } from "../src/lib/i18n/tx";
 
@@ -73,16 +73,24 @@ test("the training hour: reminder, else last session's start, else 18", () => {
   assert.equal(trainingHour({}), 18);
 });
 
-test("only rounded coordinates leave the device; floor-only keeps bands and weights", () => {
+test("only rounded coordinates leave the device; at home keeps your own kit", () => {
   assert.equal(roundCoord(45.464211), 45.46);
-  const f = floorOnly({ ...DEFAULT_EQUIPMENT, resistanceBands: true });
+  // the usual spot's bars don't come home; bands and weights do
+  const f = atHome({ ...DEFAULT_EQUIPMENT, resistanceBands: true });
   assert.equal(f.pullUpBar, false);
   assert.equal(f.parallelBars, false);
+  assert.equal(f.verticalPole, false);
+  assert.equal(f.wallSpace, true);
   assert.equal(f.resistanceBands, true);
+  // a doorway bar and parallettes do count at home
+  const g = atHome({ ...DEFAULT_EQUIPMENT, homeBar: true, parallettes: true });
+  assert.equal(g.pullUpBar, true);
+  assert.equal(g.parallelBars, true);
+  assert.equal(g.rings, false);
 });
 
 test("weather copy is in Italian", () => {
-  for (const p of ["Train indoors today", "Today: indoors, floor only", "Use location", "Hide the weather"]) assert.notEqual(translate("it", p), p);
+  for (const p of ["Train at home today", "Where today?", "Usual spot", "At home", "A park", "Your kit", "Use location", "Hide the weather"]) assert.notEqual(translate("it", p), p);
   assert.equal(translate("it", "Rain likely at {t} ({p}%)", { t: "18:00", p: 70 }), "Pioggia probabile alle 18:00 (70%)");
 });
 
