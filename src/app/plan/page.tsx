@@ -1,6 +1,6 @@
 "use client";
 
-import { SPORT_META, activeSportOf } from "@/lib/sports";
+import { SPORTS, SPORT_META, activeSportOf, isExtraSport } from "@/lib/sports";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import Nav from "@/components/Nav";
 import SessionView from "@/components/SessionView";
 import { historySummary } from "@/lib/adaptation";
-import { generatePlan, PlanDay, PlanRange } from "@/lib/planGenerator";
+import { generatePlan, generateSportPlan, PlanDay, PlanRange } from "@/lib/planGenerator";
 import { TRACK_LABEL } from "@/lib/types";
 import { Sparkles, ChevronDown, ChevronUp, Moon } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -67,9 +67,17 @@ export default function PlanPage() {
       .join(", ");
   }, [userDoc]);
 
+  // yoga or Pilates active: the plan is that sport's
+  const active = activeSportOf(userDoc);
+  const sportTrack = isExtraSport(active) && userDoc?.sports?.[active] ? { id: active, track: userDoc.sports[active]! } : null;
+  // a plan made for another sport is cleared when the sport changes
+  useEffect(() => setPlan([]), [active]);
+
   const handleGenerate = async () => {
     if (!userDoc) return;
-    const newPlan = generatePlan(
+    const newPlan = sportTrack
+      ? generateSportPlan(SPORTS[sportTrack.id], sportTrack.track, userDoc.body, userDoc.equipment, range)
+      : generatePlan(
       userDoc.skills,
       userDoc.equipment,
       userDoc.goalTracks ?? [],
@@ -99,12 +107,19 @@ export default function PlanPage() {
               isRestDay: d.isRestDay,
               focusLabel: d.session?.focusLabel,
               mainExercises: d.session?.sets
-                .find((s) => s.title.startsWith("Main Focus"))
+                .find((s) => s.title.startsWith("Main Focus") || s.track === "sport")
                 ?.exercises.map((e) => e.name)
                 .slice(0, 3),
             })),
-            goals: (userDoc.goalTracks ?? []).map((t) => TRACK_LABEL[t]),
-            skillsSummary,
+            goals: sportTrack
+              ? sportTrack.track.goals.map((g) => SPORTS[sportTrack.id].skills.find((k) => k.key === g)?.name ?? g)
+              : (userDoc.goalTracks ?? []).map((t) => TRACK_LABEL[t]),
+            skillsSummary: sportTrack
+              ? `${SPORT_META[sportTrack.id].name}: ` +
+                SPORTS[sportTrack.id].skills
+                  .map((k) => `${k.name} ${k.stages[Math.min(sportTrack.track.stage[k.key] ?? 0, k.stages.length - 1)].label}`)
+                  .join(", ")
+              : skillsSummary,
           }),
         });
         const data = await res.json();
@@ -147,12 +162,10 @@ export default function PlanPage() {
           <p className="text-zinc-400 text-sm">
             {tx("Lay out sessions ahead of time instead of just today's.")}
           </p>
-          {activeSportOf(userDoc) !== "calisthenics" && (
-            <p className="text-sm text-amber-300 mt-2">
-              {tx(
-                "This plan is for calisthenics. Your {sport} sessions come from Today.",
-                { sport: tx(SPORT_META[activeSportOf(userDoc)].name) },
-              )}
+          {sportTrack && (
+            <p className="text-sm text-zinc-300 mt-2">
+              <span aria-hidden="true">{SPORT_META[sportTrack.id].emoji}</span>{" "}
+              {tx("Your {sport} plan, from your schedule and goals.", { sport: tx(SPORT_META[sportTrack.id].name) })}
             </p>
           )}
         </div>

@@ -186,3 +186,33 @@ test("sport page titles and descriptions fit search results", async () => {
       assert.ok(d >= 100 && d <= 230, `${s} ${l}: ${d}`);
     }
 });
+
+test("a yoga week plan: your training days, today's focus first, no focus twice in a row, all yoga", async () => {
+  const { generateSportPlan } = await import("../src/lib/planGenerator");
+  const { pickSportFocus } = await import("../src/lib/sports/generator");
+  const { DEFAULT_BODY, DEFAULT_EQUIPMENT } = await import("../src/lib/types");
+  const track = newTrack(SPORTS.yoga, "some", ["crow"], 25);
+  const start = new Date(2026, 10, 23); // a Monday
+  const body = { ...DEFAULT_BODY, trainingDaysOfWeek: [1, 3, 5] };
+  const plan = generateSportPlan(SPORTS.yoga, track, body, DEFAULT_EQUIPMENT, "week", start);
+  assert.equal(plan.length, 7);
+  const days = plan.filter((d) => !d.isRestDay);
+  assert.deepEqual(days.map((d) => d.weekday), ["Mon", "Wed", "Fri"]);
+  assert.ok(days.every((d) => d.session?.sport === "yoga"));
+  const foci = days.map((d) => d.session!.sets.find((s) => s.track === "sport")!.title);
+  const { groupLabel } = await import("../src/lib/sports/generator");
+  assert.equal(foci[0], groupLabel(SPORTS.yoga, pickSportFocus(SPORTS.yoga, track, start)));
+  for (let i = 1; i < foci.length; i++) assert.notEqual(foci[i], foci[i - 1]);
+});
+
+test("an invite opened before signing in is kept once, then cleared", async () => {
+  const store = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
+  const { rememberInvite, takeInvitePath } = await import("../src/lib/pendingInvite");
+  rememberInvite("ab12cd");
+  assert.equal(takeInvitePath(), "/friends?code=AB12CD");
+  assert.equal(takeInvitePath(), null);
+  rememberInvite("<script>");
+  assert.equal(takeInvitePath(), null); // only real codes come back
+  delete (globalThis as { localStorage?: unknown }).localStorage;
+});

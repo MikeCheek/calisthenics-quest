@@ -37,7 +37,8 @@
     ".next-e2e-demo/types/**/*.ts",
     ".next-e2e-public/types/**/*.ts",
     ".next-pub/types/**/*.ts",
-    ".next-build/types/**/*.ts"
+    ".next-build/types/**/*.ts",
+    ".next-buildcheck/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

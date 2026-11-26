@@ -165,7 +165,7 @@ export default function SkillsPage() {
                     {t("profile", "declareSkill")}
                   </button>
                   <Link
-                    href="/onboarding"
+                    href="/onboarding?step=2&return=/skills"
                     className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 text-sm text-center"
                   >
                     {t("profile", "retakeAssessment")}

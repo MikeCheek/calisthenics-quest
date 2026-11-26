@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { LANDING, pick } from "@/lib/landingCopy";
+import { takeInvitePath } from "@/lib/pendingInvite";
 import { SPORTS_SECTION, SPORT_COPY } from "@/lib/sportLandingCopy";
 import { EXTRA_SPORTS, SPORT_META } from "@/lib/sports";
 import ExerciseDemo from "@/components/ExerciseDemo";
@@ -103,7 +104,8 @@ export default function LandingPage({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     if (loading) return;
-    if (user && userDoc) router.replace(userDoc.onboarded ? "/dashboard" : "/onboarding");
+    // set up already: back to an invite they opened before signing in, if any
+    if (user && userDoc) router.replace(userDoc.onboarded ? (takeInvitePath() ?? "/dashboard") : "/onboarding");
   }, [loading, user, userDoc, router]);
 
   const ctas = (

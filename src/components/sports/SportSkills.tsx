@@ -42,9 +42,17 @@ export default function SportSkills() {
     await refreshUserDoc();
   };
 
+  const setMinutes = async (sessionLengthMinutes: number) => {
+    await updateProgress(userDoc.uid, {
+      sports: { ...userDoc.sports, [sport]: { ...track, sessionLengthMinutes } },
+    }).catch(() => {});
+    await refreshUserDoc();
+  };
+  const minutes = track.sessionLengthMinutes ?? 25;
+
   return (
     <div className="space-y-4">
-      <section className="panel p-4 flex items-center gap-3">
+      <section className="panel p-4 flex flex-wrap items-center gap-3">
         <span className="text-3xl" aria-hidden>
           {SPORT_META[sport].emoji}
         </span>
@@ -57,6 +65,20 @@ export default function SportSkills() {
               n: track.sessions,
             })}
           </p>
+        </div>
+        {/* this sport's session length (set when it was started) */}
+        <div className="w-full flex items-center gap-1.5 flex-wrap" role="group" aria-label={tx("Session length")}>
+          <span className="text-xs text-zinc-400 mr-1">{tx("Session length")}</span>
+          {[15, 25, 40, 60].map((m) => (
+            <button
+              key={m}
+              aria-pressed={minutes === m}
+              onClick={() => setMinutes(m)}
+              className={`px-3 py-1.5 rounded-full text-xs border ${minutes === m ? "border-orange-500 bg-orange-500/15 text-orange-100" : "border-zinc-700 text-zinc-300"}`}
+            >
+              {tx("{n} min", { n: m })}
+            </button>
+          ))}
         </div>
       </section>
       {def.groups.map((g) => {

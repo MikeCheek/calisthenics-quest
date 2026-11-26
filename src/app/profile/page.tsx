@@ -261,7 +261,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
             <Link
               id="body"
-              href="/onboarding"
+              href="/onboarding?step=0&return=/profile?tab=settings"
               className="panel p-4 block hover:border-orange-500/60 transition-colors"
             >
               <div className="flex items-center justify-between mb-3">
@@ -297,7 +297,7 @@ export default function ProfilePage() {
 
             <Link
               id="equipment"
-              href="/onboarding"
+              href="/onboarding?step=1&return=/profile?tab=settings"
               className="panel p-4 block hover:border-orange-500/60 transition-colors"
             >
               <div className="flex items-center justify-between mb-3">

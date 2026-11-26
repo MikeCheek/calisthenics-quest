@@ -144,7 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // example athlete, no Firebase (see lib/demoMode)
       const demoUser = {
         uid: DEMO_UID,
-        isAnonymous: false,
+        // sessionStorage "barquests:demo-guest" = "1": a guest, to try what guests see
+        isAnonymous: (() => {
+          try {
+            return sessionStorage.getItem("barquests:demo-guest") === "1";
+          } catch {
+            return false;
+          }
+        })(),
         displayName: "Alex Demo",
         email: "demo@example.com",
         photoURL: null,

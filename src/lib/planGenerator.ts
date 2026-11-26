@@ -10,6 +10,8 @@ import {
 import { generateSession } from "./trainingGenerator";
 import { applyDeload, blockWeek, focusWithBlock, isActive, phaseOf, type TrainingBlock } from "./trainingBlock";
 import { fitSessionToMinutes } from "./sessionFit";
+import { generateSportSession, pickSportFocus } from "./sports/generator";
+import type { SportDef, SportTrack } from "./sports/types";
 
 export interface PlanDay {
   dateISO: string;
@@ -82,5 +84,37 @@ export function generatePlan(
     days.push({ dateISO, weekday, isRestDay: false, session });
   }
 
+  return days;
+}
+
+// The same plan for yoga or Pilates: training days from your schedule, each
+// with the next focus in the sport's rotation (the first is today's, so the
+// plan and Today agree), adapted to its history and fitted to its length.
+export function generateSportPlan(
+  def: SportDef,
+  track: SportTrack,
+  body: BodyProfile,
+  equipment: TrainingEquipment,
+  range: PlanRange,
+  startDate: Date = new Date()
+): PlanDay[] {
+  const days: PlanDay[] = [];
+  let trainingCounter = 0;
+  for (let i = 0; i < RANGE_DAYS[range]; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+    const dateISO = date.toISOString().slice(0, 10);
+    const weekday = WEEKDAYS[date.getDay()];
+    if (!isTrainingDay(date, body)) {
+      days.push({ dateISO, weekday, isRestDay: true, session: null });
+      continue;
+    }
+    const focus = pickSportFocus(def, track, startDate, trainingCounter++);
+    const session = fitSessionToMinutes(
+      adaptSession(generateSportSession(def, track, focus, date), track.exerciseStats, equipment),
+      track.sessionLengthMinutes ?? body.sessionLengthMinutes
+    ).session;
+    days.push({ dateISO, weekday, isRestDay: false, session: { ...session, sport: def.id } });
+  }
   return days;
 }
