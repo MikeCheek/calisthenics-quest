@@ -159,7 +159,7 @@ export function catCow(opts: { reach?: boolean } = {}): Demo {
     return {
       viewBox: VB,
       props: [floor],
-      frames: [kf(quadruped(0, ang(100, 120)), 300, 900), kf(quadruped(-4, ang(-70, -80)), 500, 900)],
+      frames: [kf(quadruped(0, ang(140, 172)), 300, 900), kf(quadruped(-4, ang(-70, -80)), 500, 900)], // under the chest (above the floor), then up
     };
   }
   return { viewBox: VB, props: [floor], frames: [kf(quadruped(8), 500, 1100), kf(quadruped(-10), 500, 1100)] };
@@ -271,12 +271,18 @@ export function chestOpener(): Demo {
 }
 
 // Crow / frog stand: hands down, knees on the elbows, lean until the feet float.
-export function crowStand(opts: { elbowLever?: boolean } = {}): Demo {
+export function crowStand(opts: { elbowLever?: boolean; shape?: "tuck" | "straddle" | "full" | "entry" } = {}): Demo {
   const hand: Pt = [86, FLOOR];
   if (opts.elbowLever) {
-    // body horizontal on bent arms, elbows tucked into the hips
+    // body horizontal on bent arms, elbows tucked into the hips; a hold keeps
+    // its shape, entry drills and presses go from the tuck out to the lever
     const lever: Pose = { hip: [70, FLOOR - 22], torso: 0, arm: pin(hand, -1), leg: ang(180, 180) };
+    const straddle: Pose = { ...lever, leg: ang(176, 176), leg2: ang(186, 186) };
     const tuck: Pose = { hip: [72, FLOOR - 24], torso: 6, arm: pin(hand, -1), leg: ang(150, 70) };
+    const shape = opts.shape ?? "entry";
+    if (shape === "tuck") return { viewBox: VB, props: [floor], frames: [kf(tuck, 1600, 900), kf({ ...tuck, hip: [72, FLOOR - 23] }, 0, 900)] };
+    if (shape === "straddle") return { viewBox: VB, props: [floor], frames: [kf(straddle, 1600, 900), kf({ ...straddle, hip: [70, FLOOR - 21] }, 0, 900)] };
+    if (shape === "full") return { viewBox: VB, props: [floor], frames: [kf(lever, 1600, 900), kf({ ...lever, hip: [70, FLOOR - 21] }, 0, 900)] };
     return { viewBox: VB, props: [floor], frames: [kf(tuck, 400, 1100), kf(lever, 1500, 1000)] };
   }
   // hips high behind, shoulders over the hands with the elbows bent; the knees rest on the elbows

@@ -2,6 +2,7 @@ import { Demo } from "./figure";
 import * as T from "./templates";
 import * as T2 from "./templates2";
 import * as T3 from "./templates3";
+import * as T4 from "./templates4";
 import type { Variant } from "./templates";
 
 // ---------------------------------------------------------------------------
@@ -20,7 +21,8 @@ export type Family =
   | "cross" | "crow" | "elbowLever" | "monkeyBars" | "rope" | "jump" | "rdl"
   | "jacks" | "armCircles" | "pullApart" | "hipCircles" | "catCow" | "childsPose" | "hipFlexor" | "worldsGreatest" | "fold"
   | "legSwings" | "highKnees" | "climbers" | "burpee" | "prone" | "wrists" | "chestOpener" | "stretch"
-  | "flow" | "downDog" | "balance" | "backbend" | "split" | "seated" | "inversion" | "curl" | "rolling" | "sideLying" | "rest";
+  | "flow" | "downDog" | "balance" | "backbend" | "split" | "seated" | "inversion" | "curl" | "rolling" | "sideLying" | "rest"
+  | "kipUp" | "flip" | "barSpin" | "getUp";
 
 export const MISTAKES: Record<Family, string[]> = {
   pullUp: ["Kipping or swinging to get up", "Half reps — not starting from a full hang", "Shrugging: shoulders up by the ears at the bottom"],
@@ -87,6 +89,10 @@ export const MISTAKES: Record<Family, string[]> = {
   rolling: ["Using momentum to sit back up", "Rolling onto the neck", "Losing the shape halfway"],
   sideLying: ["Rolling back onto the hips", "Moving the waist instead of the leg", "Collapsing the bottom shoulder"],
   rest: ["Fidgeting — let the floor hold you", "Holding tension in the jaw and shoulders", "Skipping it"],
+  kipUp: ["Kicking forward instead of up", "Pushing late — the hands push as the legs kick", "Landing with the feet too far in front of the hips"],
+  flip: ["Throwing the head back before the jump", "Jumping backward instead of up", "Opening the tuck too late — spot the floor early"],
+  barSpin: ["Bent arms", "Letting the hips drift off the bar", "Losing the hollow shape as you turn"],
+  getUp: ["Taking the eyes off the weight", "Letting the loaded arm drift off vertical", "Rushing the hip bridge and the leg sweep"],
 };
 
 function variantOf(name: string): Variant {
@@ -197,8 +203,55 @@ const SPORT_RULES: Rule[] = [
   { test: /^saw$/i, family: "seated", build: () => T3.spineTwist({ saw: true }) },
 ];
 
+// Exercises that need a specific drawing — checked before the general
+// rules, which would match them by a word in their name
+const SPECIFIC_RULES: Rule[] = [
+  { test: /one-arm pull-up, other hand on wrist/i, family: "pullUp", build: () => T2.pullUpFront({ oneArm: true }) },
+  { test: /nordic curl (with push-up catch|to push-up)/i, family: "nordic", build: () => T.nordic() },
+  { test: /side plank hip dips/i, family: "plank", build: () => T4.sidePlank({ dips: true }) },
+  { test: /side plank with leg raised|single-leg extended side plank/i, family: "plank", build: () => T4.sidePlank({ legUp: true }) },
+  { test: /copenhagen|adductor plank/i, family: "plank", build: () => T4.sidePlank({ copenhagen: true }) },
+  { test: /side plank/i, family: "plank", build: () => T4.sidePlank() },
+  { test: /reverse plank/i, family: "plank", build: () => T4.reversePlank() },
+  { test: /^lying leg raises/i, family: "legRaise", build: () => T4.lyingLegRaise() },
+  { test: /side-lying leg raises|adductor squeezes/i, family: "sideLying", build: () => T3.sideLegLift() },
+  { test: /sissy squat/i, family: "squat", build: () => T4.sissySquat() },
+  { test: /cossack|lateral lunge/i, family: "lunge", build: () => T4.cossack() },
+  { test: /hollow-to-arch swing|bar swing|partial rotation swings/i, family: "hang", build: (n) => (/partial/i.test(n) ? T4.giant({ partial: true }) : T4.barSwing()) },
+  { test: /l-sit holds during dead hang/i, family: "lSit", build: () => T4.hangingLSit() },
+  { test: /wall walks?\b/i, family: "handstand", build: () => T4.wallWalk() },
+  { test: /kick-ups?\b|kick-up attempts/i, family: "handstand", build: () => T4.kickUp() },
+  { test: /vertical pole holds/i, family: "flag", build: () => T4.poleLean() },
+  { test: /archer push-ups?/i, family: "pushUp", build: (n) => T.pushUp({ archer: true, slow: /deep/i.test(n) }) },
+  { test: /one-arm push-ups?/i, family: "pushUp", build: (n) => T.pushUp({ oneArm: true, slow: /negative/i.test(n) }) },
+  { test: /one-leg extensions from tuck|elbow-lever entry|elbow lever (presses|to handstand)/i, family: "elbowLever", build: () => T2.crowStand({ elbowLever: true, shape: "entry" }) },
+  { test: /tuck elbow lever/i, family: "elbowLever", build: () => T2.crowStand({ elbowLever: true, shape: "tuck" }) },
+  { test: /straddle elbow lever/i, family: "elbowLever", build: () => T2.crowStand({ elbowLever: true, shape: "straddle" }) },
+  { test: /full elbow lever/i, family: "elbowLever", build: () => T2.crowStand({ elbowLever: true, shape: "full" }) },
+  // the dynamic skills
+  { test: /shoulder rolls to feet/i, family: "kipUp", build: () => T4.kipUp({ drill: true }) },
+  { test: /hip-to-shoulder rolls/i, family: "rolling", build: () => T3.rollOver() },
+  { test: /kip-up/i, family: "kipUp", build: (n) => T4.kipUp({ jump: /jump/i.test(n) }) },
+  { test: /box jump-backs/i, family: "jump", build: () => T4.jumpBack() },
+  { test: /back tuck|back flip/i, family: "flip", build: () => T4.flip("back") },
+  { test: /front tuck|front flip/i, family: "flip", build: () => T4.flip("front") },
+  { test: /dive roll/i, family: "flip", build: () => T4.diveRoll() },
+  { test: /giant swing/i, family: "barSpin", build: () => T4.giant() },
+  { test: /windmill|around.the.world|bar spin|hip circles on bar/i, family: "barSpin", build: () => T4.hipCircleBar() },
+  { test: /half get-ups/i, family: "getUp", build: () => T4.getUp({ half: true }) },
+  { test: /get-ups?\b/i, family: "getUp", build: () => T4.getUp() },
+  { test: /straight-arm pull-downs/i, family: "pullApart", build: () => T4.pullDown() },
+  { test: /ring pull-outs/i, family: "cross", build: () => T4.ringPullOut() },
+  { test: /inverted hang on rings/i, family: "hang", build: () => T4.invertedHang() },
+  { test: /rope pulls/i, family: "rope", build: () => T4.ropePull() },
+  { test: /shoulder opening/i, family: "stretch", build: () => T4.shoulderOpening() },
+  { test: /single-leg hops/i, family: "jump", build: () => T4.singleLegHop() },
+  { test: /windshield wipers \(pole/i, family: "legRaise", build: () => T4.wipers() },
+];
+
 const RULES: Rule[] = [
   ...SPORT_RULES,
+  ...SPECIFIC_RULES,
   // warm-up, mobility and cool-down first — their names reuse words like "push-up", "hang", "squat"
   { test: /wrist|forearm/i, family: "wrists", build: () => T2.wristRocks() },
   { test: /jumping jacks?/i, family: "jacks", build: () => T2.jumpingJack() },

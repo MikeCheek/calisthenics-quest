@@ -6,6 +6,7 @@ import { generateSession } from "../src/lib/trainingGenerator";
 import { translate } from "../src/lib/i18n/tx";
 import { DEFAULT_EQUIPMENT, DEFAULT_SKILLS, SkillProfile, SkillTrack } from "../src/lib/types";
 import { STAGE_ORDER } from "../src/lib/stageOrder";
+import { libraryEntries } from "../src/lib/exerciseLibrary";
 
 // Every exercise that shows up in real sessions (all focuses, all stages,
 // basic and full equipment), weighted by how often it appears.
@@ -88,7 +89,7 @@ test("name matching picks the right movement and stage", () => {
   assert.equal(demoFor("Jumping jacks")?.demo.view, "front");
   assert.equal(demoFor("Cat-cow spinal rocks")?.family, "catCow");
   assert.equal(demoFor("Monkey bar traverse")?.family, "monkeyBars");
-  assert.equal(demoFor("Hip circles on bar"), null); // a bar skill, not the warm-up
+  assert.equal(demoFor("Hip circles on bar")?.family, "barSpin"); // a bar skill, not the warm-up
 });
 
 test("every common mistake has an Italian translation", () => {
@@ -127,6 +128,18 @@ test("an open skill card animates the stage you're on, or the first one", async 
   assert.equal(demoFor(skillDemoName("planche", "advancedTuck")!)?.family, "planche");
   // not started: the first stage
   assert.equal(demoFor(skillDemoName("frontLever", "none")!)?.family, "frontLever");
-  // no animation for this one: nothing to show
-  assert.equal(skillDemoName("kipUp" as never, "none"), null);
+  // every skill and stage now has one (the dynamic skills included)
+  const { STAGE_ORDER } = await import("../src/lib/stageOrder");
+  const { SKILL_FIELD_LABEL } = await import("../src/lib/types");
+  const missing = (Object.keys(SKILL_FIELD_LABEL) as never[]).flatMap((k) => (STAGE_ORDER[k] ?? []).filter((st: string) => st !== "none" && !skillDemoName(k, st)).map((st: string) => `${k}/${st}`));
+  assert.deepEqual(missing, []);
+});
+
+test("every exercise in the library, in every sport, has an animation", () => {
+  for (const sport of ["calisthenics", "yoga", "pilates"] as const) {
+    const missing = libraryEntries(sport)
+      .map((e) => e.exercise.name)
+      .filter((n) => !demoFor(n));
+    assert.deepEqual(missing, [], `${sport} exercises without a demo`);
+  }
 });

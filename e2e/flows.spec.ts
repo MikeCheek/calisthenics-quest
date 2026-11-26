@@ -193,6 +193,12 @@ test("library: search, open an exercise, do it now", async ({ page }) => {
   await page.getByRole("button", { name: /Tuck front lever holds/ }).first().click();
   const sheet = page.getByRole("dialog", { name: "Tuck front lever holds" });
   await expect(sheet.getByText(/Needs:/)).toBeVisible();
+  // the full form guide, with what this version (a tuck) changes
+  const guide = sheet.getByTestId("form-guide");
+  await expect(guide.getByRole("heading", { name: "Step by step" })).toBeVisible();
+  await expect(guide.getByRole("heading", { name: "What to aim for" })).toBeVisible();
+  await expect(guide.getByText(/Tuck: knees pulled tight/)).toBeVisible();
+  await expect(guide.getByText(/Body horizontal/)).toBeVisible();
   await sheet.getByRole("button", { name: "More sets" }).click();
   await sheet.getByRole("button", { name: "Do it now" }).click();
   await expect(page.getByText(/^1 \/ 1 ·/)).toBeVisible();

@@ -5,9 +5,9 @@ import ExerciseTipButton from "@/components/ExerciseTipButton";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizedDescription } from "@/lib/exerciseTiming";
 import { Exercise } from "@/lib/types";
-import { Clock, AlertTriangle } from "lucide-react";
+import { Clock } from "lucide-react";
 import ExerciseDemo from "@/components/ExerciseDemo";
-import { demoFor } from "@/lib/demos/catalog";
+import FormGuide from "@/components/FormGuide";
 import { localizeDetail } from "@/lib/i18n/detail";
 
 export default function ExerciseDetailModal({
@@ -24,7 +24,6 @@ export default function ExerciseDetailModal({
   const { t, tx, locale } = useLanguage();
   if (!exercise) return null;
   const description = localizedDescription(exercise, locale);
-  const mistakes = demoFor(exercise.name)?.mistakes ?? [];
 
   return (
     <Modal open={open} onClose={onClose} title={exercise.name}>
@@ -42,21 +41,9 @@ export default function ExerciseDetailModal({
         </div>
       )}
       {exercise.cue && <p className="text-sm text-orange-400/90 italic mb-3">{tx(exercise.cue)}</p>}
-      {mistakes.length > 0 && (
-        <div className="mb-3 rounded-xl border border-orange-500/25 bg-orange-500/5 p-3">
-          <div className="text-xs uppercase tracking-wide text-orange-300 mb-1.5 flex items-center gap-1.5">
-            <AlertTriangle size={12} /> {tx("Common mistakes")}
-          </div>
-          <ul className="space-y-1 text-sm text-zinc-300">
-            {mistakes.map((m) => (
-              <li key={m} className="flex gap-2">
-                <span className="text-orange-400">✕</span>
-                {tx(m)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mb-3">
+        <FormGuide exerciseName={exercise.name} />
+      </div>
       <ExerciseTipButton exerciseName={exercise.name} exerciseDetail={exercise.detail} trackLabel={trackLabel} />
     </Modal>
   );
