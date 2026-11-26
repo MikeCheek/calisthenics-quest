@@ -27,7 +27,7 @@ function plankFrom(feet: Pt, deg: number) {
 function holdLegs(t: number, v: Variant): { leg: Limb; leg2?: Limb } {
   const away = t + 180; // straight legs point away from the shoulders
   const front = t + 90;
-  const tuck = ang(t + 150, away + 10); // knees up to the chest, shins back
+  const tuck = ang(t + 45, away); // knees pulled in to the chest (face side), shins back along the torso
   const adv = ang(front - 10, away); // thighs ~90° to the torso, shins parallel
   switch (v) {
     case "tuck":
@@ -68,6 +68,28 @@ function sweep(
         ? { ang: [fromLeg.ang[0] + (toLeg.ang[0] - fromLeg.ang[0]) * t, fromLeg.ang[1] + (toLeg.ang[1] - fromLeg.ang[1]) * t] }
         : fromLeg;
     out.push(kf({ hip: along(shoulder, SEG.torso, torso + 180), torso, arm: pin(hand, bend), leg }, 0, totalMs / steps));
+  }
+  return out;
+}
+
+// The same sweep for a body that keeps its shape (a tuck stays a tuck all
+// the way up): the legs are worked out from the torso at every step, so
+// they rotate with it instead of drifting through other shapes.
+function sweepShape(
+  shoulder: Pt,
+  hand: Pt,
+  bend: 1 | -1,
+  fromTorso: number,
+  toTorso: number,
+  legs: (torso: number) => { leg: Limb; leg2?: Limb },
+  totalMs: number
+): Keyframe[] {
+  const delta = ((toTorso - fromTorso) % 360 + 540) % 360 - 180;
+  const steps = Math.max(1, Math.ceil(Math.abs(delta) / 30));
+  const out: Keyframe[] = [];
+  for (let i = 0; i < steps; i++) {
+    const torso = fromTorso + (delta * i) / steps;
+    out.push(kf({ hip: along(shoulder, SEG.torso, torso + 180), torso, arm: pin(hand, bend), ...legs(torso) }, 0, totalMs / steps));
   }
   return out;
 }
@@ -172,8 +194,10 @@ export function frontLever(v: Variant, opts: { raise?: boolean } = {}): Demo {
   const hold: Pose = { hip, torso: t, arm: pin(hand, -1), ...holdLegs(t, v) };
   const breathe: Pose = { ...hold, hip: [hip[0], hip[1] + 1.5] };
   if (!opts.raise) return { viewBox: VB, props: [bar()], frames: [kf(hold, 1400, 900), kf(breathe, 0, 900)] };
-  const up = sweep(shoulder, hand, -1, -90, t, holdLegs(-90, v).leg, holdLegs(t, v).leg, 1300);
-  const down = sweep(shoulder, hand, -1, t, -90, holdLegs(t, v).leg, holdLegs(-90, v).leg, 1300);
+  // the shape (tuck, one leg, straddle…) is held from the hang all the way up
+  const shape = (torso: number) => holdLegs(torso, v);
+  const up = sweepShape(shoulder, hand, -1, -90, t, shape, 1300);
+  const down = sweepShape(shoulder, hand, -1, t, -90, shape, 1300);
   up[0].hold = 300;
   down[0].hold = 600;
   return { viewBox: VB, props: [bar()], frames: [...up, ...down] };
@@ -192,8 +216,9 @@ export function backLever(v: Variant, opts: { raise?: boolean } = {}): Demo {
   if (!opts.raise) return { viewBox: VB, props: [bar(by)], frames: [kf(hold, 1400, 900), kf(breathe, 0, 900)] };
   // from the inverted hang (hips over the shoulders), lower to horizontal
   // and pull back up
-  const lower = sweep(shoulder, hand, 1, 90, t, holdLegs(90, v).leg, holdLegs(t, v).leg, 1300);
-  const raise = sweep(shoulder, hand, 1, t, 90, holdLegs(t, v).leg, holdLegs(90, v).leg, 1300);
+  const shape = (torso: number) => holdLegs(torso, v);
+  const lower = sweepShape(shoulder, hand, 1, 90, t, shape, 1300);
+  const raise = sweepShape(shoulder, hand, 1, t, 90, shape, 1300);
   const up = lower;
   const down = raise;
   up[0].hold = 300;
@@ -202,28 +227,37 @@ export function backLever(v: Variant, opts: { raise?: boolean } = {}): Demo {
 }
 
 // ---------------- floor & bars pushing ----------------
-export function pushUp(opts: { decline?: boolean; slow?: boolean } = {}): Demo {
+// Push-ups from the side. Archer: the far arm stays straight, reaching
+// forward, while the near one bends. One-arm: the free hand on the back.
+export function pushUp(opts: { decline?: boolean; slow?: boolean; archer?: boolean; oneArm?: boolean } = {}): Demo {
   const feet: Pt = opts.decline ? [24, 90] : [30, FLOOR];
   const topBody = opts.decline ? plankFrom(feet, -8) : plankFrom(feet, -28);
   const hand: Pt = [topBody.shoulder[0], FLOOR];
-  const botBody = opts.decline ? plankFrom(feet, 8) : plankFrom(feet, -10);
+  // at the bottom the chest stops just above the floor (the head never
+  // goes through it): body angle from the feet, by how high they are
+  const botBody = opts.decline ? plankFrom(feet, 3) : plankFrom(feet, -10);
   const props: Prop[] = [floor];
   if (opts.decline) props.push({ kind: "box", x: 12, y: 90, w: 22, h: FLOOR - 90 });
+  const far: Pt = [hand[0] + 24, FLOOR];
+  const second = (top: boolean): Partial<Pose> =>
+    opts.oneArm ? { arm2: ang(150, -60) } : opts.archer ? { arm2: top ? pin(hand, -1) : pin(far, 1) } : {};
   return {
     viewBox: VB,
     props,
     frames: [
-      kf({ hip: topBody.hip, torso: topBody.torso, arm: pin(hand, -1), leg: pin(feet, 1) }, 300, 900),
-      kf({ hip: botBody.hip, torso: botBody.torso, arm: pin(hand, -1), leg: pin(feet, 1) }, 200, opts.slow ? 1600 : 900),
+      kf({ hip: topBody.hip, torso: topBody.torso, arm: pin(hand, -1), leg: pin(feet, 1), ...second(true) }, 300, 900),
+      kf({ hip: botBody.hip, torso: botBody.torso, arm: pin(hand, -1), leg: pin(feet, 1), ...second(false) }, 200, opts.slow ? 1600 : 900),
     ],
   };
 }
 
+// Pike push-up: an inverted V, hips as high as straight legs allow; the
+// head comes down between and just in front of the hands, to the floor.
 export function pikePushUp(): Demo {
-  const feet: Pt = [38, FLOOR];
-  const hand: Pt = [92, FLOOR];
-  const top: Pose = { hip: [62, 82], torso: 40, arm: pin(hand, -1), leg: pin(feet, -1) };
-  const bottom: Pose = { hip: [64, 86], torso: 56, arm: pin(hand, -1), leg: pin(feet, -1) };
+  const feet: Pt = [56, FLOOR];
+  const hand: Pt = [106, FLOOR];
+  const top: Pose = { hip: [60, FLOOR - 33], torso: 35, arm: pin(hand, -1), leg: pin(feet, -1) };
+  const bottom: Pose = { hip: [70, FLOOR - 31.5], torso: 45, arm: pin(hand, -1), leg: pin(feet, -1) };
   return { viewBox: VB, props: [floor], frames: [kf(top, 300, 1000), kf(bottom, 200, 1000)] };
 }
 
@@ -293,17 +327,20 @@ export function plancheLean(opts: { pushUp?: boolean } = {}): Demo {
   return { viewBox: VB, props: [floor], frames: [kf(lean, 700, 1000), kf({ ...lean, hip: deeper.hip, torso: deeper.torso }, 900, 1000)] };
 }
 
-export function lSit(v: Variant, opts: { parallettes?: boolean } = {}): Demo {
-  const handY = opts.parallettes ? FLOOR - 8 : FLOOR;
-  const hand: Pt = [80, handY];
-  const hip: Pt = [78, handY - ARM + 2 + SEG.torso - 2];
-  const t = -90;
+// L-sit: straight arms pushing down beside the hips, shoulders over the
+// hands, hips just off the support and the legs level in front. Drawn on
+// parallettes, so the gap under the hips and legs shows.
+export function lSit(v: Variant, _opts: { parallettes?: boolean } = {}): Demo {
+  const handY = FLOOR - 10;
+  const t = -105; // a slight lean back keeps the shoulders over the hands
+  const hip: Pt = [78, handY - 2];
+  const shoulder = along(hip, SEG.torso, t);
+  const hand: Pt = [shoulder[0], handY];
   const legs =
-    v === "tuck" ? { leg: ang(-40, 80) } : v === "advTuck" || v === "oneLeg" ? { leg: ang(0), leg2: ang(-40, 80) } : { leg: ang(0) };
+    v === "tuck" ? { leg: ang(-40, 80) } : v === "advTuck" || v === "oneLeg" ? { leg: ang(-3), leg2: ang(-40, 80) } : v === "straddle" ? { leg: ang(-8), leg2: ang(-2) } : { leg: ang(-3) };
   const hold: Pose = { hip, torso: t, arm: pin(hand, 1), ...legs };
-  const props: Prop[] = [floor];
-  if (opts.parallettes) props.push({ kind: "pbars", y: handY, x1: 70, x2: 90 });
-  return { viewBox: VB, props, frames: [kf(hold, 1500, 800), kf({ ...hold, hip: [hip[0], hip[1] - 1.5] }, 0, 800)] };
+  const props: Prop[] = [floor, { kind: "pbars", y: handY, x1: hand[0] - 10, x2: hand[0] + 10 }];
+  return { viewBox: VB, props, frames: [kf(hold, 1500, 800), kf({ ...hold, hip: [hip[0], hip[1] - 1] }, 0, 800)] };
 }
 
 export function supportHold(opts: { rings?: boolean } = {}): Demo {
