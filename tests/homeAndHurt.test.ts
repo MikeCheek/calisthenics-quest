@@ -72,3 +72,18 @@ test("the gentler swap skips rungs that hurt recently too", () => {
   assert.ok(g);
   assert.notEqual(g!.name, one);
 });
+
+test("a skill check is one set, like a test — not a whole exercise", async () => {
+  const { checkExercise } = await import("../src/lib/verification");
+  const { localizedDescription } = await import("../src/lib/exerciseTiming");
+  const hold = checkExercise({ key: "planche", kind: "hold", target: 5, label: "Tuck planche" });
+  assert.equal(hold.detail, "1 x 5s");
+  const reps = checkExercise({ key: "muscleUp", kind: "reps", target: 3, label: "Muscle-up" });
+  assert.equal(reps.detail, "1 x 3 clean reps");
+  const pass = checkExercise({ key: "handstand", kind: "pass", target: 1, label: "Freestanding handstand" });
+  assert.equal(pass.detail, "1 clean attempt");
+  for (const e of [hold, reps, pass]) {
+    assert.doesNotMatch(e.detail, /^[2-9] x|attempts/);
+    assert.match(localizedDescription(e, "it") ?? "", /^Verifica la tua dichiarazione/);
+  }
+});

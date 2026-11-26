@@ -205,9 +205,9 @@ export function checkExercise(spec: CheckSpec): Exercise {
     return {
       ...base,
       name: `Skill check: ${spec.label}`,
-      detail: `3 x ${spec.target}s`,
-      cue: "Up to 3 attempts — stop the timer the moment form breaks",
-      description: `Verifies your claim. Get into a clean ${spec.label} and hold it for ${spec.target} seconds. The timer measures your best attempt; you can also type it in.`,
+      detail: `1 x ${spec.target}s`,
+      cue: "One clean attempt — stop the timer the moment form breaks",
+      description: `Verifies your claim. Fully warmed up, get into a clean ${spec.label} and hold it for ${spec.target} seconds, once. The timer measures it; you can also type it in.`,
     };
   }
   if (isBaseline(spec.key)) {
@@ -222,9 +222,10 @@ export function checkExercise(spec: CheckSpec): Exercise {
   return {
     ...base,
     name: `Skill check: ${spec.label}`,
-    detail: spec.kind === "reps" ? `Up to 3 attempts at ${spec.target} clean rep${spec.target === 1 ? "" : "s"}` : "Up to 3 attempts",
+    // one set, like a test: not a whole exercise
+    detail: spec.kind === "reps" ? `1 x ${spec.target} clean rep${spec.target === 1 ? "" : "s"}` : "1 clean attempt",
     cue: "Clean, controlled — this verifies your level",
-    description: `Verifies your claim. Perform a clean ${spec.label}${spec.kind === "reps" ? ` for ${spec.target} rep${spec.target === 1 ? "" : "s"}` : ""} and log whether you got it.`,
+    description: `Verifies your claim. Fully warmed up, perform one clean ${spec.label}${spec.kind === "reps" ? ` set of ${spec.target} rep${spec.target === 1 ? "" : "s"}` : ""} and log whether you got it.`,
   };
 }
 

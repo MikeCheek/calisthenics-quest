@@ -359,6 +359,7 @@ const IT_PHRASES: [string, string][] = [
 
   // ---- skill check exercise (generated cues) ----
   ["Up to 3 attempts — stop the timer the moment form breaks", "Fino a 3 tentativi — ferma il timer appena la forma cede"],
+  ["One clean attempt — stop the timer the moment form breaks", "Un tentativo pulito — ferma il timer appena la forma cede"],
   ["One all-out set, strict form, full range", "Una serie al massimo, forma stretta, escursione completa"],
   ["Clean, controlled — this verifies your level", "Pulito e controllato — questo verifica il tuo livello"],
   ["Complete a few more sessions to see your XP trend here.", "Completa qualche altra sessione per vedere qui l'andamento degli XP."],
