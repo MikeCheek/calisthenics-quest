@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { pushContext, pushToUser } from "@/lib/server/push";
 import { reminderDue, ReminderPrefs } from "@/lib/reminderSchedule";
 import { translate } from "@/lib/i18n/tx";
-import { pickReminderLine } from "@/lib/reminderMessages";
+import { reminderFor } from "@/lib/reminderMessages";
 import type { Locale } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -42,10 +42,12 @@ async function run(req: NextRequest) {
       // marked first, so a retry of this hour can't remind twice
       await ctx.fs.update(`users/${u.id}`, { "notifications.lastPushDate": localDate });
       reminded++;
+      // about their sport: a block, a skill close to its next stage, or a general line
+      const line = reminderFor(u.data as never);
       delivered += await pushToUser(
         ctx,
         u.id,
-        { title: "BarQuests", body: translate(locale, pickReminderLine()), url: "/dashboard", tag: "training-reminder" },
+        { title: "BarQuests", body: translate(locale, line.text, line.vars), url: "/dashboard", tag: "training-reminder" },
         u.data
       );
     }

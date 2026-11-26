@@ -1966,6 +1966,14 @@ const IT_PHRASES: [string, string][] = [
   ["Make {name} a goal", "Rendi {name} un obiettivo"],
   ["Remove {name} from goals", "Togli {name} dagli obiettivi"],
   ["New stages", "Nuovi livelli"],
+  ["Your mat is waiting. Even 15 minutes of {sport} counts.", "Il tappetino ti aspetta. Anche 15 minuti di {sport} contano."],
+  ["A little {sport} today keeps your streak and your spine happy.", "Un po' di {sport} oggi fa bene alla streak e alla schiena."],
+  ["Roll out the mat — today's {sport} session is ready.", "Srotola il tappetino: la sessione di {sport} di oggi è pronta."],
+  ["Breathe, move, done. Your {sport} session takes less time than you think.", "Respira, muoviti, fatto. La sessione di {sport} dura meno di quanto pensi."],
+  ["Consistency beats intensity. A short {sport} session today?", "La costanza batte l'intensità. Una breve sessione di {sport} oggi?"],
+  ["Your {sport} block: {skill} → {stage}, week {a} of {b}. A session today keeps it on track.", "Il tuo blocco di {sport}: {skill} → {stage}, settimana {a} di {b}. Una sessione oggi lo tiene in carreggiata."],
+  ["{sport} today? {skill} is close to {stage}.", "{sport} oggi? {skill} è vicino a {stage}."],
+
   ["This week, by sport", "Questa settimana, per sport"],
   // yoga & Pilates: badges, stage checks, blocks, road
   ["New discipline", "Nuova disciplina"],

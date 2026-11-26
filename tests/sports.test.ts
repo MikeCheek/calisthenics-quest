@@ -314,3 +314,24 @@ test("this week by sport: sessions without a sport are calisthenics", async () =
     { sport: "pilates", count: 0 },
   ]);
 });
+
+test("reminders talk about your sport: a block, a skill close to its next stage, or a general line — all in Italian", async () => {
+  const { reminderFor, SPORT_REMINDER_LINES, REMINDER_LINES } = await import("../src/lib/reminderMessages");
+  const X = await import("../src/lib/sports/extras");
+  const yoga = { ...newTrack(SPORTS.yoga, "some", []), mastery: { crow: 4.5 } };
+  const personal = () => 0.1; // the personal branch
+  const general = () => 0.9;
+  // no block: the skill closest to its next stage
+  const near = reminderFor({ activeSport: "yoga", sports: { yoga } }, personal);
+  assert.equal(near.text, "{sport} today? {skill} is close to {stage}.");
+  assert.deepEqual(near.vars, { sport: "Yoga", skill: "Crow", stage: "Side crow" });
+  // a block: it comes first
+  const blocked = reminderFor({ activeSport: "yoga", sports: { yoga: X.startBlock(SPORTS.yoga, yoga, "headstand", 4) } }, personal);
+  assert.match(blocked.text, /block/);
+  assert.equal(blocked.vars?.skill, "Headstand");
+  // the general yoga lines, and calisthenics keeps its own pool
+  assert.ok(SPORT_REMINDER_LINES.includes(reminderFor({ activeSport: "yoga", sports: { yoga } }, general).text));
+  assert.ok(REMINDER_LINES.includes(reminderFor({}, general).text));
+  for (const t of [...SPORT_REMINDER_LINES, near.text, blocked.text]) assert.notEqual(translate("it", t), t, t);
+  assert.equal(translate("it", near.text, near.vars), "Yoga oggi? Crow è vicino a Side crow.");
+});

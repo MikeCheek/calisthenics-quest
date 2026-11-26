@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { scheduleDailyReminder } from "@/lib/notifications";
 import { enablePush } from "@/lib/pushClient";
@@ -17,6 +17,9 @@ export default function ReminderScheduler() {
   const time = userDoc?.notifications?.time;
   const [push, setPush] = useState<boolean | null>(null);
   const { tx } = useLanguage();
+  // the latest profile, read when the reminder fires (for a line about your sport)
+  const latest = useRef(userDoc);
+  latest.current = userDoc;
 
   useEffect(() => {
     if (!uid || !enabled) return;
@@ -32,7 +35,7 @@ export default function ReminderScheduler() {
     if (!enabled || !time || push !== false) return; // undecided yet, or push handles it
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
-    return scheduleDailyReminder(time, (s) => tx(s));
+    return scheduleDailyReminder(time, (s, vars) => tx(s, vars), () => latest.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, time, push]);
 

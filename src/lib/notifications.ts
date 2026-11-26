@@ -1,4 +1,7 @@
-import { pickReminderLine } from "./reminderMessages";
+import { reminderFor } from "./reminderMessages";
+import type { UserDoc } from "./types";
+
+type Translate = (s: string, vars?: Record<string, string | number>) => string;
 
 export function notificationsSupported(): boolean {
   return typeof window !== "undefined" && "Notification" in window;
@@ -32,8 +35,10 @@ async function showNotification(title: string, body: string, tag: string) {
   new Notification(title, { body, tag, icon: "/icons/icon-192.png" });
 }
 
-export async function fireTrainingReminder(translate: (s: string) => string = (s) => s) {
-  await showNotification("BarQuests", translate(pickReminderLine()), "training-reminder");
+// `user`: for a line about their sport (yoga block, a skill close to its next stage…)
+export async function fireTrainingReminder(translate: Translate = (s) => s, user?: UserDoc | null) {
+  const line = reminderFor(user);
+  await showNotification("BarQuests", translate(line.text, line.vars), "training-reminder");
 }
 
 export async function firePing(fromName: string, message: string) {
@@ -46,7 +51,7 @@ export async function firePing(fromName: string, message: string) {
 // in the background, shortly after) — there's no server component here, so
 // it can't wake a fully closed app. See README for the FCM-based alternative
 // if you want guaranteed delivery when the app isn't running.
-export function scheduleDailyReminder(time: string, translate?: (s: string) => string): () => void {
+export function scheduleDailyReminder(time: string, translate?: Translate, user?: () => UserDoc | null | undefined): () => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let cancelled = false;
 
@@ -59,7 +64,7 @@ export function scheduleDailyReminder(time: string, translate?: (s: string) => s
     const delay = next.getTime() - now.getTime();
 
     timeoutId = setTimeout(() => {
-      fireTrainingReminder(translate);
+      fireTrainingReminder(translate, user?.());
       scheduleNext();
     }, delay);
   };

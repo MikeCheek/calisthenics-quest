@@ -1,3 +1,6 @@
+import { SPORTS, SPORT_META, activeSportOf, isExtraSport, upNext } from "./sports";
+import { blockStatus } from "./sports/extras";
+
 // A big pool of short, playful reminder lines. One is picked at random each
 // time, avoiding an immediate repeat of the last one shown (tracked in
 // localStorage — see notifications.ts).
@@ -60,4 +63,46 @@ export function pickReminderLine(): string {
   }
 
   return REMINDER_LINES[idx];
+}
+
+// ---- reminders that know your sport ----
+// Lines for yoga and Pilates ({sport} is filled in), and personal ones about
+// a block or a skill close to its next stage. Calisthenics keeps the pool
+// above. Each is a template plus values, for translate(locale, text, vars).
+
+export const SPORT_REMINDER_LINES: string[] = [
+  "Your mat is waiting. Even 15 minutes of {sport} counts.",
+  "A little {sport} today keeps your streak and your spine happy.",
+  "Roll out the mat — today's {sport} session is ready.",
+  "Breathe, move, done. Your {sport} session takes less time than you think.",
+  "Consistency beats intensity. A short {sport} session today?",
+];
+
+export interface Reminder {
+  text: string;
+  vars?: Record<string, string | number>;
+}
+
+type ReminderUser = {
+  activeSport?: import("./sports/types").SportId;
+  sports?: import("./types").UserDoc["sports"];
+};
+
+// The reminder for this person now. `rnd` picks between a personal line and
+// a general one (and which general one), so both stay in rotation.
+export function reminderFor(user: ReminderUser | null | undefined, rnd: () => number = Math.random): Reminder {
+  const sport = activeSportOf(user as never);
+  const track = isExtraSport(sport) ? user?.sports?.[sport] : undefined;
+  if (!isExtraSport(sport) || !track) return { text: pickReminderLine() };
+  const def = SPORTS[sport];
+  const name = SPORT_META[sport].name;
+  if (rnd() < 0.5) {
+    const status = blockStatus(track);
+    const bsk = status ? def.skills.find((s) => s.key === status.block.skill) : undefined;
+    if (status && bsk && !status.overdue)
+      return { text: "Your {sport} block: {skill} → {stage}, week {a} of {b}. A session today keeps it on track.", vars: { sport: name, skill: bsk.name, stage: bsk.stages[status.block.target]?.label ?? "", a: status.week, b: status.weeks } };
+    const next = upNext(def, track, 1)[0];
+    if (next?.next) return { text: "{sport} today? {skill} is close to {stage}.", vars: { sport: name, skill: next.skill.name, stage: next.next.label } };
+  }
+  return { text: SPORT_REMINDER_LINES[Math.floor(rnd() * SPORT_REMINDER_LINES.length) % SPORT_REMINDER_LINES.length], vars: { sport: name } };
 }
