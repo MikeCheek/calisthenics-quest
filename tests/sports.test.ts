@@ -305,3 +305,12 @@ test("yoga and Pilates count toward badges", async () => {
   assert.equal(earned("stage-up-1"), true);
   assert.equal(earned("all-sports"), false); // no Pilates yet
 });
+
+test("this week by sport: sessions without a sport are calisthenics", async () => {
+  const { sessionsBySport } = await import("../src/lib/sports/trackView");
+  assert.deepEqual(sessionsBySport([{}, { sport: "yoga" }, { sport: "calisthenics" }, { sport: "yoga" }], ["calisthenics", "yoga", "pilates"]), [
+    { sport: "calisthenics", count: 2 },
+    { sport: "yoga", count: 2 },
+    { sport: "pilates", count: 0 },
+  ]);
+});

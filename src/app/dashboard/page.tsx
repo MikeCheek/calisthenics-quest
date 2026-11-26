@@ -1,5 +1,6 @@
 "use client";
 
+import SportWeekSummary from "@/components/sports/SportWeekSummary";
 import { SPORT_META } from "@/lib/sports";
 import SportProgressCard from "@/components/sports/SportProgressCard";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
@@ -179,6 +180,7 @@ export default function TodayPage() {
 
           <div className="space-y-4 lg:col-span-5">
             <WeekStrip days={days} planned={plannedCount} />
+            <SportWeekSummary userDoc={userDoc} weekSessions={weekSessions} />
 
             {outdoor ? (
               <>

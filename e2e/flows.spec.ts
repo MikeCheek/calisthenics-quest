@@ -486,6 +486,8 @@ test("sports: start yoga, train it, switch back to calisthenics with nothing los
   await page.getByRole("button", { name: /Finish & log session/ }).click();
   await expect(page.getByRole("heading", { name: "Done for today" })).toBeAttached({ timeout: 5000 });
   await page.getByRole("button", { name: "Got it" }).click();
+  // Today's week line counts it as yoga
+  await expect(page.getByLabel("This week, by sport")).toContainText(/Yoga\s*1/);
 
   // Skills and the library follow the sport
   // (in-app navigation: the demo data lives in memory, a reload resets it)

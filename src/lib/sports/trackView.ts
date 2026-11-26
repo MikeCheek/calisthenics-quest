@@ -72,3 +72,9 @@ export function recordFor(u: Source, key: string): ExerciseBest | undefined {
   }
   return undefined;
 }
+
+// This week's sessions per sport, in the order sports are listed (for the
+// weekly balance on Today). Sessions are counted as given — pass this week's.
+export function sessionsBySport(sessions: { sport?: SportId }[], sports: SportId[]): { sport: SportId; count: number }[] {
+  return sports.map((sport) => ({ sport, count: sessions.filter((s) => sportOfSession(s) === sport).length }));
+}

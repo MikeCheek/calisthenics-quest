@@ -1966,6 +1966,7 @@ const IT_PHRASES: [string, string][] = [
   ["Make {name} a goal", "Rendi {name} un obiettivo"],
   ["Remove {name} from goals", "Togli {name} dagli obiettivi"],
   ["New stages", "Nuovi livelli"],
+  ["This week, by sport", "Questa settimana, per sport"],
   // yoga & Pilates: badges, stage checks, blocks, road
   ["New discipline", "Nuova disciplina"],
   ["Finish a yoga or Pilates session.", "Completa una sessione di yoga o Pilates."],
