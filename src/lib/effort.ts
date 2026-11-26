@@ -191,7 +191,8 @@ export function balanceSession(session: TrainingSession, capacity: number | null
   if (planned <= limit) return { session, trimmed: 0 };
   const sets = session.sets.map((s) => ({ ...s, exercises: [...s.exercises] }));
   const order = sets
-    .map((s, si) => ({ s, si, rank: s.track === "warmup" || s.track === "skillCheck" ? -1 : s.track === "finisher" ? 0 : s.title.startsWith("Accessory") ? 1 : 2 }))
+    // the bonus skill block goes first, then the finisher, then accessories
+    .map((s, si) => ({ s, si, rank: s.track === "warmup" || s.track === "skillCheck" ? -1 : s.title.startsWith("Bonus") ? 0 : s.track === "finisher" ? 0.5 : s.title.startsWith("Accessory") ? 1 : 2 }))
     .filter((x) => x.rank >= 0)
     .sort((a, b) => a.rank - b.rank);
   const effortNow = () => totalEffort(sets.flatMap((s) => s.exercises.map((exercise) => ({ setTitle: s.title, exercise }))));
@@ -204,6 +205,17 @@ export function balanceSession(session: TrainingSession, capacity: number | null
         s.exercises[i] = { ...s.exercises[i], detail: `${parseInt(m[1], 10) - 1}${m[2]}` };
       }
     }
+  }
+  // still too much with every set trimmed: drop whole exercises — the bonus
+  // block, then accessories from the end (keeping one), then the finisher
+  if (effortNow() > limit) {
+    const bonus = sets.findIndex((s) => s.title.startsWith("Bonus"));
+    if (bonus >= 0) sets.splice(bonus, 1);
+    for (const s of sets.filter((x) => x.title.startsWith("Accessory"))) {
+      while (s.exercises.length > 1 && effortNow() > limit) s.exercises.pop();
+    }
+    const fin = sets.findIndex((s) => s.track === "finisher");
+    if (fin >= 0 && effortNow() > limit) sets.splice(fin, 1);
   }
   const after = effortNow();
   return { session: { ...session, sets }, trimmed: Math.round((1 - after / planned) * 100) };

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { TrainingSession, TrainingEquipment, Exercise, ExerciseFeedback } from "@/lib/types";
 import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, findHarderExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { gentlerFor } from "@/lib/adaptation";
+import { easierForAthlete, gentlerFor } from "@/lib/adaptation";
 import { useToast } from "@/context/ToastContext";
 import ExerciseRow from "@/components/ExerciseRow";
 import { TimerLog, summarizeTimerLog, bestHoldFromLog, cleanSets } from "@/lib/timingLearning";
@@ -133,9 +133,12 @@ export default function SessionView({
     });
   };
 
+  // every exercise in the session now (swaps included): a swap never duplicates one
+  const namesInSession = () => new Set([...session.sets.flatMap((st) => st.exercises.map((e) => e.name)), ...Object.values(individualOverrides).map((e) => e.name)]);
+
   const swapForEasier = (key: string, currentExercise: Exercise, setTitle: string) => {
     setTooHard((prev) => [...prev, { name: currentExercise.name, outcome: "tooHard", setTitle, fatigue: fatigueNow() }]);
-    const easier = findEasierExercise(currentExercise.name, eq);
+    const easier = easierForAthlete(currentExercise.name, eq, { skills: userDoc?.skills, taken: namesInSession(), stats: userDoc?.exerciseStats });
     if (!easier) {
       toast.warning(`No easier variation for ${currentExercise.name} — noted, future sessions will ease off. Try fewer reps for now.`);
       bump(key, -1);
@@ -154,7 +157,7 @@ export default function SessionView({
   // This hurts: rest it for two weeks with a gentler rung, from now
   const swapForHurt = (key: string, currentExercise: Exercise, setTitle: string) => {
     setTooHard((prev) => [...prev, { name: currentExercise.name, outcome: "skipped", hurt: true, setTitle }]);
-    const gentler = gentlerFor(currentExercise.name, eq, userDoc?.exerciseStats);
+    const gentler = gentlerFor(currentExercise.name, eq, userDoc?.exerciseStats, undefined, { skills: userDoc?.skills, taken: namesInSession() });
     if (!gentler) {
       setSkipped((prev) => new Set(prev).add(key));
       toast.info(`${currentExercise.name} rests for two weeks — skipped for today. If the pain is sharp or doesn't go away, stop and get it checked.`);

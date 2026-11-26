@@ -58,6 +58,12 @@ export default function ExerciseTimer({
   const targetReps = targetCount(exercise.detail);
   const unit = countUnit(exercise.detail);
   const openHold = timing.isTimed && isOpenHold(exercise.detail);
+  // a max hold, a skill check or an "accumulate" target: the countdown is the
+  // goal, not the limit — at zero it keeps counting up until you tap Done,
+  // so a longer hold is recorded in full
+  const keepsGoing = timing.isTimed && timing.workSeconds !== null && (openHold || !!exercise.check || /accumulate|max attempt/i.test(exercise.detail));
+  const [overSec, setOverSec] = useState<number | null>(null);
+  const overStart = useRef<number | null>(null);
   const [repLog, setRepLog] = useState<(number | undefined)[]>([]);
   const [set, setSet] = useState(1);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -231,6 +237,12 @@ export default function ExerciseTimer({
   };
 
   const advanceAfterWork = (remaining: number | null) => {
+    // in overtime, the extra seconds count as held (a negative "remaining")
+    if (overStart.current !== null) {
+      remaining = -Math.floor((Date.now() - overStart.current) / 1000);
+      overStart.current = null;
+      setOverSec(null);
+    }
     recordWork(remaining);
     if (isLastSet) {
       playCompleteSound();
@@ -326,7 +338,7 @@ export default function ExerciseTimer({
     endsAt.current = Date.now() + secondsLeft * 1000;
     shownLeft.current = secondsLeft;
     const tick = () => {
-      if (endsAt.current === null) return;
+      if (endsAt.current === null || overStart.current !== null) return;
       const left = Math.max(0, Math.ceil((endsAt.current - Date.now()) / 1000));
       const prev = shownLeft.current ?? left;
       if (left === prev && left > 0) return;
@@ -339,6 +351,13 @@ export default function ExerciseTimer({
       }
       endsAt.current = null;
       setSecondsLeft(0);
+      if (phase === "work" && keepsGoing) {
+        // target reached: keep going — counts up until Done
+        playCompleteSound();
+        overStart.current = Date.now();
+        setOverSec(0);
+        return;
+      }
       if (phase === "work") advanceAfterWork(0);
       else advanceAfterRest();
     };
@@ -351,6 +370,12 @@ export default function ExerciseTimer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, phase, externallyPaused]);
+
+  useEffect(() => {
+    if (overSec === null) return;
+    const t = setInterval(() => overStart.current !== null && setOverSec(Math.floor((Date.now() - overStart.current) / 1000)), 250);
+    return () => clearInterval(t);
+  }, [overSec === null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = () => {
     if (externallyPaused) return;
@@ -367,6 +392,8 @@ export default function ExerciseTimer({
   };
 
   const reset = () => {
+    overStart.current = null;
+    setOverSec(null);
     setSet(1);
     setPhase("idle");
     setCountdownValue(COUNTDOWN_FROM);
@@ -458,9 +485,25 @@ export default function ExerciseTimer({
           <div className={`text-xs uppercase tracking-wide mb-1 ${phase === "work" ? "text-orange-400" : "text-emerald-400"}`}>
             {externallyPaused ? tx("Paused") : phase === "work" ? tx("Go") : tx("Rest")}
           </div>
+          {overSec !== null ? (
+            <>
+              <div className="stat-mono text-6xl text-emerald-300 mb-1">
+                +{String(Math.floor(overSec / 60)).padStart(2, "0")}:{String(overSec % 60).padStart(2, "0")}
+              </div>
+              <p className="text-sm text-zinc-300 mb-3">{tx("Target reached — keep holding, tap Done when you stop.")}</p>
+              <button
+                onClick={() => advanceAfterWork(0)}
+                className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-base font-semibold"
+              >
+                {tx("Done with set {n}", { n: set })}
+              </button>
+            </>
+          ) : (
           <div className="stat-mono text-6xl text-zinc-100 mb-3">
             {mm}:{ss}
           </div>
+          )}
+          {overSec === null && (
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => !externallyPaused && setRunning((r) => !r)}
@@ -479,6 +522,7 @@ export default function ExerciseTimer({
               <SkipForward size={24} />
             </button>
           </div>
+          )}
           {phase === "rest" && onStopEarly && (
             <button
               onClick={finishEarly}

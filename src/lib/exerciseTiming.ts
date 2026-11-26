@@ -12,14 +12,29 @@ export interface ExerciseTiming {
 // app's data ("4 x max hold (target 8-12s)", "3 x 10-12 reps", "8 min, 1-2
 // reps per minute", "4 x 15-20s"). This pulls out a set count and, when the
 // exercise is a timed hold, a target number of seconds to count down.
-export function parseTiming(detail: string): ExerciseTiming {
-  const setsMatch = detail.match(/^(\d+)(?:-\d+)?\s*x/i);
+export function parseTiming(rawDetail: string): ExerciseTiming {
+  const setsMatch = rawDetail.match(/^(\d+)(?:-\d+)?\s*x/i);
   const sets = setsMatch ? parseInt(setsMatch[1], 10) : 1;
+  // "rest-pause 15s between" is rest inside a set, not how long to work:
+  // cluster sets are counted in reps
+  const detail = rawDetail.replace(/,?\s*rest-pause\s+\d+\s*s\b(\s+between)?/i, "");
+
+  // "accumulate 60-90s" is a total over all the attempts, not each one: each
+  // attempt aims at its share and keeps counting past it (see ExerciseTimer)
+  const acc = detail.match(/accumulate\s+(\d+)(?:-(\d+))?\s*s\b/i);
+  if (acc) {
+    const total = (parseInt(acc[1], 10) + parseInt(acc[2] ?? acc[1], 10)) / 2;
+    return { sets: sets || 1, workSeconds: Math.max(5, Math.round(total / (sets || 1))), isTimed: true };
+  }
 
   const minMatch = detail.match(/(\d+)\s*min\b/i);
   if (minMatch) {
     return { sets: 1, workSeconds: parseInt(minMatch[1], 10) * 60, isTimed: true };
   }
+
+  // reps with a tempo ("3 x 5 reps, 4s descent", "3s down / 3s up") are
+  // counted in reps: the seconds are how slowly, not how long
+  if (/\breps?\b/i.test(detail) && !/\bper minute\b/i.test(detail)) return { sets: sets || 1, workSeconds: null, isTimed: false };
 
   const secMatch = detail.match(/(\d+)(?:-(\d+))?\s*s\b/i);
   if (secMatch) {

@@ -958,6 +958,7 @@ const IT_PHRASES: [string, string][] = [
   ["Back to {ex} — the \"too hard\" is forgotten.", "Di nuovo {ex} — il \"troppo difficile\" è dimenticato."],
   ["Back to {ex} — that's forgotten.", "Di nuovo {ex} — dimenticato."],
   ["Hurts", "Fa male"],
+  ["Target reached — keep holding, tap Done when you stop.", "Obiettivo raggiunto — continua a tenere, tocca Fatto quando ti fermi."],
   ["This hurts — swap it", "Fa male — sostituiscilo"],
   ["A gentler version now; it rests for two weeks.", "Una versione più delicata ora; resta a riposo per due settimane."],
   ["Swapped in {a}. {b} rests for two weeks — if the pain is sharp or doesn't go away, stop and get it checked.", "Sostituito con {a}. {b} resta a riposo per due settimane — se il dolore è acuto o non passa, fermati e fatti visitare."],

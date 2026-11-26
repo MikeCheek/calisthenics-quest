@@ -15,7 +15,7 @@ import { statKey } from "@/lib/adaptation";
 import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
-import { gentlerFor } from "@/lib/adaptation";
+import { easierForAthlete, gentlerFor } from "@/lib/adaptation";
 import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle, Vibrate, HeartCrack } from "lucide-react";
 import Modal from "@/components/Modal";
 import CancelSessionDialog from "@/components/CancelSessionDialog";
@@ -474,12 +474,15 @@ export default function FocusTrainingMode() {
     setIndex((i) => i + 1);
   };
 
+  const namesInSession = () => new Set(steps.map((st, i) => (overrides[i] ?? st.exercise).name));
+
   // Too hard: remember it against this exercise, and swap in the next rung
   // down right away so the athlete can keep going.
   const handleTooHard = () => {
     const ex = current.exercise;
     setTooHard((prev) => [...prev, { name: ex.name, outcome: "tooHard", setTitle: current.setTitle, fatigue: fatigueNow() }]);
-    const easier = findEasierExercise(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT);
+    // your own stage if it was above it; never something already in the session
+    const easier = easierForAthlete(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT, { skills: userDoc?.skills, taken: namesInSession(), stats: userDoc?.exerciseStats });
     if (easier) {
       setOverrides((prev) => ({ ...prev, [index]: { ...easier, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
       toast.success(`Swapped in ${easier.name}. Noted for future sessions.`);
@@ -496,7 +499,7 @@ export default function FocusTrainingMode() {
   const handleHurt = () => {
     const ex = current.exercise;
     setTooHard((prev) => [...prev, { name: ex.name, outcome: "skipped", hurt: true, setTitle: current.setTitle }]);
-    const gentler = gentlerFor(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT, userDoc?.exerciseStats);
+    const gentler = gentlerFor(ex.name, userDoc?.equipment ?? EASE_LOOKUP_EQUIPMENT, userDoc?.exerciseStats, undefined, { skills: userDoc?.skills, taken: namesInSession() });
     if (gentler) {
       setOverrides((prev) => ({ ...prev, [index]: { ...gentler, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: undefined } }));
       toast.success(`Swapped in ${gentler.name}. ${ex.name} rests for two weeks — if the pain is sharp or doesn't go away, stop and get it checked.`);

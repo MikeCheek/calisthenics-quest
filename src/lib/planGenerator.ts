@@ -76,7 +76,7 @@ export function generatePlan(
     const focus = focusWithBlock(date, equipment, goalTracks, block ?? undefined, trainingCounter);
     // planned sessions reflect what training has already learned
     const fitted = fitSessionToMinutes(
-      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes), stats, equipment),
+      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes), stats, equipment, skills),
       body.sessionLengthMinutes
     ).session;
     const session = block && isActive(block, date) && phaseOf(block, blockWeek(block, date)) === "deload" ? applyDeload(fitted) : fitted;

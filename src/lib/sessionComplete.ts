@@ -130,7 +130,8 @@ export async function completeSession(
       ...skillHistoryPatch(userDoc, newSkills),
       claims,
       records: detected.records,
-      ...(opts.transitionRestRatio !== undefined ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) } : {}),
+      // a skipped transition (well under half) isn't a preference — not learned
+      ...(opts.transitionRestRatio !== undefined && opts.transitionRestRatio >= 0.4 ? { transitionRest: [...(userDoc.transitionRest ?? []), +opts.transitionRestRatio.toFixed(2)].slice(-5) } : {}),
     };
   }
 

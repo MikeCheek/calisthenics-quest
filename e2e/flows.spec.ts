@@ -141,6 +141,29 @@ test("then vs now: from Skills, today against a day you pick", async ({ page }) 
   expect(errors).toEqual([]);
 });
 
+test("a max hold keeps counting past its target until you tap Done", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.clock.install();
+  await page.goto("/library");
+  await page.getByRole("searchbox").fill("tuck front lever holds");
+  await page.getByRole("button", { name: /Tuck front lever holds/ }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: "Do it now" }).click();
+  await page.getByRole("button", { name: "Start timer" }).click();
+  // 3-2-1, then the 20 s target runs out… (a second at a time: the countdown
+  // schedules each tick after the last one renders)
+  const seconds = async (n: number) => {
+    for (let i = 0; i < n; i++) await page.clock.runFor(1000);
+  };
+  await seconds(25);
+  // …and it keeps going instead of ending the set
+  await expect(page.getByText(/Target reached — keep holding/)).toBeVisible();
+  await seconds(7);
+  await expect(page.getByText(/^\+00:0[5-9]$/)).toBeVisible();
+  await page.getByRole("button", { name: /Done with set 1/ }).click();
+  await expect(page.getByText(/Target reached/)).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test("after the last exercise: cool-down stretches for the muscles worked", async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto("/dashboard");

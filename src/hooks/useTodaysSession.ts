@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SkillTrack, UserDoc } from "@/lib/types";
 import { availableFocuses, generateSession } from "@/lib/trainingGenerator";
 import { adaptSession } from "@/lib/adaptation";
-import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
+import { addSkillChecks, checksPerSession, pickSkillChecks, skillsForTraining, syncClaims } from "@/lib/verification";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { balanceSession, effortCapacity } from "@/lib/effort";
 import { atHome, readTodayEquipment, onTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
@@ -61,21 +61,26 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
   const deload = isActive(block) && phaseOf(block, blockWeek(block)) === "deload";
   const focus = focusOverride && options.includes(focusOverride) ? focusOverride : picked;
 
-  const skillsKey = JSON.stringify(userDoc?.skills ?? null);
+  const skillsKey = JSON.stringify([userDoc?.skills ?? null, Object.entries(userDoc?.claims ?? {}).map(([k, c]) => `${k}:${c?.status}`)]);
   const equipmentKey = JSON.stringify(equipment ?? null);
   const built = useMemo(() => {
     if (!userDoc || !focus) return null;
     // generated from the athlete's stages, then adapted to their own history
     // of completing, skipping and struggling with specific exercises
+    // a claim that failed its check is trained one stage lower until confirmed
+    const claims = syncClaims(userDoc.claims, userDoc.skills);
+    const trainSkills = skillsForTraining(userDoc.skills, claims);
     const adapted = adaptSession(
-      generateSession(userDoc.skills, equipment!, focus, new Date(), userDoc.body?.sessionLengthMinutes),
+      generateSession(trainSkills, equipment!, focus, new Date(), userDoc.body?.sessionLengthMinutes),
       userDoc.exerciseStats,
-      equipment!
+      equipment!,
+      trainSkills
     );
-    // one Skill Check per session, verifying something the athlete claimed
-    const check = pickSkillCheck(syncClaims(userDoc.claims, userDoc.skills), equipment!, focus);
+    // a Skill Check (two while much is unchecked), verifying what the athlete claimed
+    const checks = pickSkillChecks(claims, equipment!, focus, checksPerSession(claims));
+    const check = checks[0] ?? null;
     // fit everything to the athlete's chosen session length…
-    const fitted = fitSessionToMinutes(addSkillCheck(adapted, check), userDoc.body?.sessionLengthMinutes);
+    const fitted = fitSessionToMinutes(addSkillChecks(adapted, checks), userDoc.body?.sessionLengthMinutes);
     // …and within the effort they've had energy for lately (effort.ts)
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc.effortHistory));
     // a block's deload week: lighter on purpose
