@@ -121,9 +121,12 @@ test("security rules: nothing private is listable, and the board rules match the
   for (const [k, max] of Object.entries(BOARD_LIMITS)) {
     assert.ok(rules.includes(`count(request.resource.data.${k}, ${max})`), `rules limit for ${k} should be ${max}`);
   }
-  // the developer notes carry the same rules
+  // firestore.rules is the source (deployed by CI); the README and the
+  // developer notes show exactly the same rules
+  const source = readFileSync("firestore.rules", "utf8").trim();
+  assert.equal(rules.trim(), source, "README rules differ from firestore.rules");
   const notes = readFileSync("docs/DEVELOPER_NOTES.md", "utf8");
-  assert.ok(notes.includes(rules.trim().slice(0, 2000)), "docs/DEVELOPER_NOTES.md rules differ from the README's");
+  assert.ok(notes.includes(source), "docs/DEVELOPER_NOTES.md rules differ from firestore.rules");
 });
 
 test("every reminder line has an Italian version", () => {

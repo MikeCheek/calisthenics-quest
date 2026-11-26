@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { collectErrors, expectNoA11yViolations } from "./helpers";
+import { collectErrors, demoScenario, expectNoA11yViolations } from "./helpers";
 
 test("the skip link jumps to the page content", async ({ page }) => {
   await page.goto("/dashboard");
@@ -486,6 +486,8 @@ test("sports: start yoga, train it, switch back to calisthenics with nothing los
   await page.getByRole("button", { name: /Finish & log session/ }).click();
   await expect(page.getByRole("heading", { name: "Done for today" })).toBeAttached({ timeout: 5000 });
   await page.getByRole("button", { name: "Got it" }).click();
+  // Today's week line counts it as yoga
+  await expect(page.getByLabel("This week, by sport")).toContainText(/Yoga\s*1/);
 
   // Skills and the library follow the sport
   // (in-app navigation: the demo data lives in memory, a reload resets it)
@@ -522,15 +524,7 @@ test("sports: starting from the yoga page opens yoga's setup in the app", async 
 
 test.describe("first login: pick a sport", () => {
   test.beforeEach(async ({ page }) => {
-    // runs in every document, some of which (opaque-origin frames) refuse
-    // storage access: guard it like the app does
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-fresh", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "fresh");
   });
 
   test("start with yoga: its three questions, then Today is yoga; calisthenics asks for its check when added", async ({ page }) => {
@@ -580,13 +574,7 @@ const go = (page: import("@playwright/test").Page, route: string) =>
 
 test.describe("started with yoga", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-fresh", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "fresh");
     await page.goto("/onboarding");
     await page.getByRole("button", { name: /Yoga/ }).click();
     await page.getByRole("button", { name: "Start Yoga" }).click();
@@ -623,6 +611,34 @@ test.describe("started with yoga", () => {
   });
 });
 
+test.describe("yoga extras", () => {
+  test.beforeEach(async ({ page }) => {
+    await demoScenario(page, "fresh");
+    await page.goto("/onboarding");
+    await page.getByRole("button", { name: /Yoga/ }).click();
+    await page.getByRole("button", { name: "Start Yoga" }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("a training block toward a stage, and the road of every stage", async ({ page }) => {
+    const errors = collectErrors(page);
+    await go(page, "/skills");
+    const block = page.getByRole("region", { name: "Training block" });
+    await block.getByLabel("Skill").selectOption("crow");
+    await block.getByRole("button", { name: "2 weeks" }).click();
+    await block.getByRole("button", { name: "Start block" }).click();
+    await expect(block.getByText(/Crow → Crow pose|Crow →/)).toBeVisible();
+    await expect(block.getByText(/Week 1 of 2/)).toBeVisible();
+    await expectNoA11yViolations(page);
+    await block.getByRole("button", { name: "Stop block" }).click();
+    await expect(block.getByRole("button", { name: "Start block" })).toBeVisible();
+    await page.getByText("Your road").click();
+    await expect(page.getByText(/\d+ of \d+ reached/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Stage 1" })).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+});
+
 test("during a session the resume bubble replaces the quick-actions button", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page.getByRole("button", { name: "Quick actions" })).toBeVisible();
@@ -649,13 +665,7 @@ test("offline, the AI coach says it needs a connection", async ({ page, context 
 
 test.describe("as a guest", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-guest", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "guest");
   });
 
   test("Crew shows the community event and asks to save; an invite link says so", async ({ page }) => {

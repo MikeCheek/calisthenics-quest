@@ -94,6 +94,8 @@ export function buildCoachContext(
     lines.push(
       `Also follows ${SPORT_META[id].name} (${t.sessions} sessions${goals.length ? `, goals: ${goals.join(", ")}` : ""}): ${stages}.`,
     );
+    const learnedHere = historySummary(t.exerciseStats, undefined, (k) => k.replace(/_/g, " "));
+    if (learnedHere) lines.push(`Learned from ${SPORT_META[id].name} training: ${learnedHere}.`);
   }
   const active = activeSportOf(userDoc);
   if (active !== "calisthenics")

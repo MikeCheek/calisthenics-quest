@@ -334,7 +334,10 @@ APP_CHECK_MODE=monitor          # off | monitor | enforce
 NEXT_PUBLIC_SITE_URL=https://your-domain.example
 ```
 
-5. **Firestore → Rules** — paste the rules below.
+5. **Firestore → Rules** — the rules live in [`firestore.rules`](firestore.rules) (shown below), and are tested in the Firestore emulator (`npm run test:rules`, needs Java).
+   - **Automatic:** add a `FIREBASE_SERVICE_ACCOUNT` secret (a service-account key with the *Firebase Rules Admin* role) and a `FIREBASE_PROJECT_ID` variable in GitHub → Settings → Secrets and variables → Actions. From then on, every change to `firestore.rules` on `main` is tested and deployed by the *Deploy Firestore rules* workflow.
+   - **By hand:** `npx firebase deploy --only firestore:rules --project <your-project-id>`, or paste the rules below into Firestore → Rules.
+   - **Optional:** a TTL policy on the `rateLimits` collection, field `expireAt` (Firestore → TTL), cleans up the server's rate-limit counters automatically.
 
 <details>
 <summary><b>Firestore security rules</b></summary>
@@ -554,6 +557,12 @@ service cloud.firestore {
     match /{path=**}/reports/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
     }
+
+    // the server's rate-limit counters (lib/server/rateLimit.ts): written
+    // with the service account only, never readable or writable by clients
+    match /rateLimits/{counter} {
+      allow read, write: if false;
+    }
   }
 }
 ```
@@ -613,6 +622,11 @@ training, friends and Skill Checks, all kept in memory, so you can try every sig
 screen without a Firebase project. A "DEMO" tab on the left edge marks it. It only runs on
 the development server: production builds never include it. The AI features answer with
 canned, clearly labelled demo replies, so no OpenRouter key is needed either.
+
+To try other situations, set a scenario in the browser console before loading the page:
+`sessionStorage.setItem("barquests:demo-scenario", "fresh")` starts as a brand-new user
+(the sport picker and setup), `"guest"` as a guest account, `"fresh,guest"` both. The
+browser tests use the same switch (`demoScenario()` in `e2e/helpers.ts`).
 
 On a phone (or any production build) the app can be installed from the browser's
 *Add to Home Screen* / install prompt — it ships a web manifest and a service worker.

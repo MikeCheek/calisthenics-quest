@@ -55,6 +55,25 @@ export class FirestoreRest {
     return this.fetchImpl(url, { ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${await this.token()}`, "Content-Type": "application/json" } });
   }
 
+  // Atomically adds `by` to a numeric field (creating the document if
+  // needed) and returns the new value — one request, safe across instances.
+  // `expireAt` lets a Firestore TTL policy clean the document up later.
+  async increment(path: string, field: string, by = 1, expireAt?: Date): Promise<number> {
+    const name = `projects/${this.projectId}/databases/(default)/documents/${path}`;
+    const write = {
+      update: { name, fields: expireAt ? { expireAt: { timestampValue: expireAt.toISOString() } } : {} },
+      updateMask: { fieldPaths: expireAt ? ["expireAt"] : [] },
+      updateTransforms: [{ fieldPath: field, increment: { integerValue: String(by) } }],
+    };
+    const res = await this.call(`${this.base}:commit`, { method: "POST", body: JSON.stringify({ writes: [write] }) });
+    if (!res.ok) throw new Error(`firestore commit ${res.status}`);
+    const out = (await res.json()) as { writeResults?: { transformResults?: Value[] }[] };
+    const v = out.writeResults?.[0]?.transformResults?.[0];
+    const n = v ? Number(decodeValue(v)) : NaN;
+    if (!Number.isFinite(n)) throw new Error("firestore commit: no count");
+    return n;
+  }
+
   // null when the document doesn't exist
   async get(path: string): Promise<Record<string, unknown> | null> {
     const res = await this.call(`${this.base}/${path}`);

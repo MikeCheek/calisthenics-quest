@@ -1,5 +1,6 @@
 "use client";
 
+import { activeSportOf } from "@/lib/sports";
 import SportSwitcher from "@/components/sports/SportSwitcher";
 import { useState } from "react";
 import Link from "next/link";
@@ -18,7 +19,8 @@ export default function Nav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const progress = userDoc ? levelProgress(userDoc.xp) : null;
-  const claims = userDoc ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
+  // verified skills are calisthenics skill checks: shown while it's the active sport
+  const claims = userDoc && activeSportOf(userDoc) === "calisthenics" ? claimCounts(syncClaims(userDoc.claims, userDoc.skills)) : { verified: 0, total: 0 };
 
   // Each tab owns a group of routes, so it stays highlighted on its
   // sub-pages (the full session and the week plan belong to Today, etc.).

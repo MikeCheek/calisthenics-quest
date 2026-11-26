@@ -317,6 +317,12 @@ service cloud.firestore {
     match /{path=**}/reports/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
     }
+
+    // the server's rate-limit counters (lib/server/rateLimit.ts): written
+    // with the service account only, never readable or writable by clients
+    match /rateLimits/{counter} {
+      allow read, write: if false;
+    }
   }
 }
 ```

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyCaller } from "@/lib/server/caller";
 import { checkAppCheck } from "@/lib/server/appCheck";
 import { pushContext, pushToUser } from "@/lib/server/push";
-import { RateLimiter } from "@/lib/server/rateLimit";
+import { SharedRateLimiter } from "@/lib/server/rateLimit";
 import { translate } from "@/lib/i18n/tx";
 import { pickReminderLine } from "@/lib/reminderMessages";
 import { cleanCustomNudge, renderNudge, validNudge, validReply } from "@/lib/nudges";
@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 // really are friends (like the security rules do for in-app nudges) and
 // writes the text itself, in the recipient's language.
 
-const limiter = new RateLimiter();
+const limiter = new SharedRateLimiter(() => pushContext()?.fs ?? null);
 const MIN = 60_000;
 
 export async function POST(req: NextRequest) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     [`from:${caller.uid}`, { max: 30, windowMs: 60 * MIN }],
     [`pair:${caller.uid}:${toUid}`, { max: 3, windowMs: 10 * MIN }],
   ] as const) {
-    const r = limiter.check(key, rule);
+    const r = await limiter.check(key, rule);
     if (!r.ok) return NextResponse.json({ error: "Easy on the nudges — try again in a few minutes." }, { status: 429, headers: { "Retry-After": String(r.retryAfterS) } });
   }
 

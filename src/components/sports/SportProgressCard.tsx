@@ -59,6 +59,7 @@ export default function SportProgressCard() {
             </p>
             <div
               className="flex gap-0.5 mt-1.5 max-w-[140px]"
+              role="img"
               aria-label={tx("Mastery {n} of {m}", {
                 n: Math.floor(x.mastery),
                 m: MASTERY_MAX,

@@ -1,5 +1,6 @@
 "use client";
 
+import { recordFor } from "@/lib/sports/trackView";
 import { useEffect, useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -41,7 +42,7 @@ export default function ExerciseHistory({ name }: { name: string }) {
   const points = useMemo(() => (sessions ? exerciseHistory(sessions, name) : null), [sessions, name]);
   const done = useMemo(() => (sessions ? exerciseDoneDates(sessions, name) : []), [sessions, name]);
   if (!userDoc) return null;
-  const record = userDoc.records?.[statKey(name)];
+  const record = recordFor(userDoc, statKey(name));
   const fmt = (v: number, kind: "reps" | "hold") => (kind === "hold" ? formatHeld(Math.round(v)) : tx("{n} reps", { n: v }));
   const day = (iso: string) => new Date(iso).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short" });
 

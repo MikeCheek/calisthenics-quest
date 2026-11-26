@@ -114,7 +114,7 @@ test("every string in the sport screens has Italian", async () => {
     const src = readFileSync(`${dir}/${f}`, "utf8");
     for (const m of src.matchAll(/(?:tx\(|tx\(goal \? |label: |hint: )"([^"]{2,})"/g)) if (/[a-z]{3}/.test(m[1]) && !/^(text|bg|border|px|py|flex|h-|w-|grid|rounded)/.test(m[1])) strings.add(m[1]);
   }
-  const missing = [...strings].filter((s) => translate("it", s) === s && !["Calisthenics", "Yoga", "Pilates", "{n} min"].includes(s));
+  const missing = [...strings].filter((s) => translate("it", s) === s && !["Calisthenics", "Yoga", "Pilates", "{n} min", "Skill", "{skill} → {stage}"].includes(s));
   assert.deepEqual(missing, []);
 });
 
@@ -215,4 +215,123 @@ test("an invite opened before signing in is kept once, then cleared", async () =
   rememberInvite("<script>");
   assert.equal(takeInvitePath(), null); // only real codes come back
   delete (globalThis as { localStorage?: unknown }).localStorage;
+});
+
+test("trackView: every sport in one shape, and stats saved back where they belong", async () => {
+  const { trackView, allRecords, recordFor, sportOfSession } = await import("../src/lib/sports/trackView");
+  const yoga = { ...newTrack(SPORTS.yoga, "some", []), xp: 300, sessions: 4, mastery: { crow: 4.5 }, exerciseStats: { crow_pose: { p: 0, done: 3 } }, records: { crow_pose: { name: "Crow pose", hold: 20, dateISO: "2026-11-20" } } };
+  const u = {
+    xp: 1000, totalSessionsCompleted: 10, activeSport: "yoga" as const,
+    exerciseStats: { pull_ups: { p: -3, done: 9 } },
+    records: { pull_ups: { name: "Pull-ups", reps: 12, dateISO: "2026-11-01" } },
+    skillProgress: { frontLever: { score: 3 } },
+    sports: { yoga },
+  } as never;
+  const y = trackView(u);
+  assert.equal(y.sport, "yoga");
+  assert.equal(y.xp, 300);
+  assert.equal(y.sessions, 4);
+  assert.deepEqual(Object.keys(y.exerciseStats), ["crow_pose"]);
+  assert.deepEqual(y.rising, ["Crow"]);
+  const c = trackView(u, "calisthenics");
+  assert.equal(c.xp, 700); // the rest of the total
+  assert.equal(c.sessions, 6);
+  assert.deepEqual(Object.keys(c.exerciseStats), ["pull_ups"]);
+  assert.deepEqual(c.rising, ["Front Lever"]);
+  // stats go back to the right place, and nothing else is touched
+  const ys = y.statsPatch({}) as { sports: { yoga: { exerciseStats: object; xp: number } } };
+  assert.deepEqual(ys.sports.yoga.exerciseStats, {});
+  assert.equal(ys.sports.yoga.xp, 300);
+  assert.deepEqual(c.statsPatch({}), { exerciseStats: {} });
+  assert.equal(allRecords(u).length, 2);
+  assert.equal(recordFor(u, "crow_pose")?.hold, 20);
+  assert.equal(recordFor(u, "pull_ups")?.reps, 12);
+  assert.equal(sportOfSession({}), "calisthenics");
+  assert.equal(sportOfSession({ sport: "pilates" }), "pilates");
+});
+
+test("yoga extras: stage-ups from the start, stage checks once nearly mastered, blocks that finish themselves, the road", async () => {
+  const X = await import("../src/lib/sports/extras");
+  const { pickSportFocus } = await import("../src/lib/sports/generator");
+  const { applySportSession } = await import("../src/lib/sports/progress");
+  const def = SPORTS.yoga;
+  const t0 = newTrack(def, "some", []); // every skill starts at stage 1
+  assert.equal(X.sportStageUps(def, t0), 0);
+  // a stage check needs mastery 4 of 5, and isn't offered at the last stage
+  assert.equal(X.canCheckStage(def, t0, "crow"), false);
+  const ready = { ...t0, mastery: { ...t0.mastery, crow: 4 } };
+  assert.equal(X.canCheckStage(def, ready, "crow"), true);
+  const blocked = X.startBlock(def, ready, "crow", 4, new Date(2026, 10, 1));
+  assert.deepEqual({ skill: blocked.block!.skill, target: blocked.block!.target, weeks: blocked.block!.weeks }, { skill: "crow", target: 2, weeks: 4 });
+  assert.equal(X.blockStatus(blocked, new Date(2026, 10, 10))!.week, 2);
+  assert.equal(X.blockStatus(blocked, new Date(2026, 11, 10))!.overdue, true);
+  // passing the check: up a stage, XP, and the block on that skill is done
+  const { track: up, xp } = X.passStageCheck(def, blocked, "crow", new Date(2026, 10, 12));
+  assert.equal(up.stage.crow, 2);
+  assert.equal(up.mastery.crow, 2.5);
+  assert.ok(xp > 0 && up.xp === blocked.xp + xp);
+  assert.equal(up.block, undefined);
+  assert.equal(up.blocksReached, 1);
+  assert.equal(X.sportStageUps(def, up), 1);
+  // the road marks reached and current stages
+  const road = X.sportRoad(def, up);
+  const crow = road.flatMap((r) => r.nodes).filter((n) => n.skill === "crow");
+  assert.deepEqual(crow.map((n) => [n.reached, n.current]), crow.map((_, i) => [i <= 2, i === 2]));
+  // a block's skill comes up most often in the rotation
+  const days = Array.from({ length: 60 }, (_, i) => new Date(2026, 0, 1 + i));
+  const crowGroup = def.skills.find((s) => s.key === "crow")!.group;
+  const share = (t: typeof t0) => days.filter((d) => pickSportFocus(def, t, d) === crowGroup).length;
+  assert.ok(share(X.startBlock(def, t0, "crow", 4)) > share(t0));
+  // a block also finishes when a regular session moves the skill up
+  const nearly = X.startBlock(def, { ...t0, mastery: { ...t0.mastery, crow: 4.5 } }, "crow", 2);
+  const crowEx = def.skills.find((s) => s.key === "crow")!.stages[1].exercises[0].name;
+  const after = applySportSession(def, nearly, [{ name: crowEx, setTitle: "Arm balances & inversions", outcome: "done" }] as never).track;
+  assert.equal(after.stage.crow, 2);
+  assert.equal(after.block, undefined);
+  assert.equal(after.blocksReached, 1);
+});
+
+test("yoga and Pilates count toward badges", async () => {
+  const { ACHIEVEMENTS, isEarned } = await import("../src/lib/achievements");
+  const X = await import("../src/lib/sports/extras");
+  const def = SPORTS.yoga;
+  let t = { ...newTrack(def, "new", []), sessions: 26 };
+  for (let i = 0; i < 5; i++) t = X.passStageCheck(def, { ...t, mastery: { ...t.mastery, crow: 4 } }, "crow").track;
+  const u = { totalSessionsCompleted: 30, streak: 0, xp: 0, skills: {}, sports: { yoga: t } } as never;
+  const earned = (id: string) => isEarned(ACHIEVEMENTS.find((a) => a.id === id)!, u);
+  assert.equal(earned("sport-first"), true);
+  assert.equal(earned("sport-sessions-25"), true);
+  assert.equal(earned("sport-stage-5"), X.sportStageUps(def, t) >= 5);
+  assert.equal(earned("stage-up-1"), true);
+  assert.equal(earned("all-sports"), false); // no Pilates yet
+});
+
+test("this week by sport: sessions without a sport are calisthenics", async () => {
+  const { sessionsBySport } = await import("../src/lib/sports/trackView");
+  assert.deepEqual(sessionsBySport([{}, { sport: "yoga" }, { sport: "calisthenics" }, { sport: "yoga" }], ["calisthenics", "yoga", "pilates"]), [
+    { sport: "calisthenics", count: 2 },
+    { sport: "yoga", count: 2 },
+    { sport: "pilates", count: 0 },
+  ]);
+});
+
+test("reminders talk about your sport: a block, a skill close to its next stage, or a general line — all in Italian", async () => {
+  const { reminderFor, SPORT_REMINDER_LINES, REMINDER_LINES } = await import("../src/lib/reminderMessages");
+  const X = await import("../src/lib/sports/extras");
+  const yoga = { ...newTrack(SPORTS.yoga, "some", []), mastery: { crow: 4.5 } };
+  const personal = () => 0.1; // the personal branch
+  const general = () => 0.9;
+  // no block: the skill closest to its next stage
+  const near = reminderFor({ activeSport: "yoga", sports: { yoga } }, personal);
+  assert.equal(near.text, "{sport} today? {skill} is close to {stage}.");
+  assert.deepEqual(near.vars, { sport: "Yoga", skill: "Crow", stage: "Side crow" });
+  // a block: it comes first
+  const blocked = reminderFor({ activeSport: "yoga", sports: { yoga: X.startBlock(SPORTS.yoga, yoga, "headstand", 4) } }, personal);
+  assert.match(blocked.text, /block/);
+  assert.equal(blocked.vars?.skill, "Headstand");
+  // the general yoga lines, and calisthenics keeps its own pool
+  assert.ok(SPORT_REMINDER_LINES.includes(reminderFor({ activeSport: "yoga", sports: { yoga } }, general).text));
+  assert.ok(REMINDER_LINES.includes(reminderFor({}, general).text));
+  for (const t of [...SPORT_REMINDER_LINES, near.text, blocked.text]) assert.notEqual(translate("it", t), t, t);
+  assert.equal(translate("it", near.text, near.vars), "Yoga oggi? Crow è vicino a Side crow.");
 });

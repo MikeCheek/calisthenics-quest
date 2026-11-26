@@ -61,7 +61,7 @@ export function AchievementWatcher() {
     const saved = { ...(userDoc.achievements ?? {}), ...Object.fromEntries(fresh.map((id) => [id, now])) };
     updateProgress(userDoc.uid, { achievements: saved }).catch(() => fresh.forEach((id) => handled.current.delete(id)));
     if (!userDoc.achievements) {
-      toast.success(tx("You've already earned {n} achievements — see them in Me.", { n: fresh.length }));
+      toast.success(fresh.length === 1 ? tx("You've already earned an achievement — see it in Me.") : tx("You've already earned {n} achievements — see them in Me.", { n: fresh.length }));
     } else {
       setQueue((q) => [...q, ...fresh]);
     }

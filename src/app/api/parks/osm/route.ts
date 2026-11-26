@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RateLimiter } from "@/lib/server/rateLimit";
+import { SharedRateLimiter, limitsStore } from "@/lib/server/rateLimit";
 import { askOverpass, parksQuery, placeQuery, validBox } from "@/lib/server/overpass";
 
 export const runtime = "nodejs";
@@ -10,11 +10,11 @@ export const maxDuration = 60;
 // is needed; a per-address limit keeps it from being used as a free proxy.
 // Results are cached in Firestore by the app, so most visits never get here.
 
-const limiter = new RateLimiter();
+const limiter = new SharedRateLimiter(limitsStore);
 
 export async function POST(req: NextRequest) {
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
-  const r = limiter.check(`osm:${ip}`, { max: 20, windowMs: 10 * 60_000 });
+  const r = await limiter.check(`osm:${ip}`, { max: 20, windowMs: 10 * 60_000 });
   if (!r.ok) return NextResponse.json({ error: "Too many map searches — try again in a few minutes." }, { status: 429, headers: { "Retry-After": String(r.retryAfterS) } });
 
   let body: { box?: unknown; at?: { lat?: unknown; lon?: unknown } };

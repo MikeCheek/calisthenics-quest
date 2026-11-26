@@ -1,0 +1,222 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /friends/{friendUid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        // both sides of a mutual add need to write: the person adding writes
+        // their own list (auth.uid == uid) AND mirrors the entry into the
+        // other person's list (auth.uid == friendUid, the doc's own id).
+        allow write: if request.auth != null &&
+          (request.auth.uid == uid || request.auth.uid == friendUid);
+      }
+
+      // finished-session history, private to its owner
+      match /sessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /pings/{pingId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        // only an established friend can drop a nudge in your inbox
+        allow create: if request.auth != null && request.auth.uid != uid &&
+          request.resource.data.fromUid == request.auth.uid &&
+          request.resource.data.message is string &&
+          request.resource.data.message.size() <= 200 &&
+          exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
+      }
+
+      // the crew feed: your finished sessions, for your friends to see;
+      // a friend may only add or take back their own kudos
+      match /feed/{itemId} {
+        allow read: if request.auth != null && (request.auth.uid == uid ||
+          exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid)));
+        // the owner writes it (and rewrites it without their name when the
+        // account is deleted — see anonymize.ts)
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'focusLabel', 'sport', 'minutes', 'xp', 'exercises', 'records', 'streak', 'paired', 'createdAtISO', 'kudos'])
+          && (!('sport' in request.resource.data) || request.resource.data.sport in ['yoga', 'pilates'])
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40
+          && request.resource.data.records is list && request.resource.data.records.size() <= 3;
+        allow update: if request.auth != null && request.auth.uid != uid
+          && exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kudos'])
+          && request.resource.data.get('kudos', {}).diff(resource.data.get('kudos', {})).affectedKeys().hasOnly([request.auth.uid]);
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // minimal public info so friends can be found by code — see PublicProfile.
+    // "get" only: a profile can be opened by its id, but the collection can't
+    // be listed, so nobody can download every player's profile.
+    match /profiles/{uid} {
+      allow get: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // friend-code -> uid reverse lookup, one doc per user, immutable once set.
+    // "get" only, or listing it would reveal every uid.
+    match /usercodes/{code} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      // released when its owner deletes their account
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    match /pairings/{code} {
+      // opened by code; listed only for your own (account deletion finds them)
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && resource.data.hostUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
+      allow update: if request.auth != null &&
+        (resource.data.hostUid == request.auth.uid ||
+         request.resource.data.guestUid == request.auth.uid);
+      // pairings hold the host's body stats and skills — removed on account deletion
+      allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
+    }
+
+    // opt-in global weekly leaderboard: a short name, level and the week's
+    // totals only. Anyone signed in can read it; only the owner writes their
+    // own entry, guests can't, and numbers must be ones a real week allows
+    // (the same limits as BOARD_LIMITS in src/lib/leaderboard.ts).
+    match /leaderboard/{week}/entries/{uid} {
+      function count(v, max) { return v is int && v >= 0 && v <= max; }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && week.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['name', 'level', 'sessions', 'minutes', 'verified', 'xp'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.level is int && request.resource.data.level >= 1 && request.resource.data.level <= 1000
+        && count(request.resource.data.sessions, 21)
+        && count(request.resource.data.minutes, 1800)
+        && count(request.resource.data.verified, 30)
+        && count(request.resource.data.xp, 20000);
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // monthly community events: one number per player, which the app sums
+    // with an aggregation query (that needs read access to the collection)
+    match /events/{month}/players/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && month.matches('^[0-9]{4}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['value', 'updatedAtISO'])
+        && request.resource.data.value is int
+        && request.resource.data.value >= 0 && request.resource.data.value <= 100000;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // bar parks: parks athletes added (OpenStreetMap ones have no doc) and
+    // each athlete's one report per park. Others may only change their own
+    // reaction on a report.
+    match /parks/{parkId} {
+      function validSpot(d) {
+        return d.name is string && d.name.size() <= 60
+          && d.lat is number && d.lat >= -90 && d.lat <= 90
+          && d.lon is number && d.lon >= -180 && d.lon <= 180
+          && d.cell is string && d.cell.size() <= 16;
+      }
+      allow read: if request.auth != null;
+      // an athlete's own park, or the first community edit of an
+      // OpenStreetMap park (its doc id is the map's id, "osm-…")
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['name', 'lat', 'lon', 'cell', 'source', 'createdBy', 'createdAtISO', 'editedBy', 'editedByName', 'editedAtISO'])
+        && request.resource.data.createdBy == request.auth.uid
+        && validSpot(request.resource.data)
+        && ((request.resource.data.source == 'user' && request.resource.data.name.size() > 0)
+          || (request.resource.data.source == 'osm' && parkId.matches('^osm-[nwr][0-9]+$')));
+      // anyone may correct a park's name or position, as themselves
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'lat', 'lon', 'cell', 'editedBy', 'editedByName', 'editedAtISO'])
+        && request.resource.data.editedBy == request.auth.uid
+        && request.resource.data.editedByName is string && request.resource.data.editedByName.size() <= 40
+        && validSpot(request.resource.data);
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+
+      // likes: one per athlete (the count is in parkStats)
+      match /likes/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['atISO']) && request.resource.data.atISO is string;
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // sessions logged here: one doc per athlete, its count only goes up by one
+      match /trained/{uid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['sessions', 'firstISO', 'lastISO'])
+          && request.resource.data.sessions == 1;
+        allow update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sessions', 'lastISO'])
+          && request.resource.data.sessions == resource.data.sessions + 1;
+      }
+
+      match /reports/{uid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'kit', 'note', 'atISO', 'reactions'])
+          && request.resource.data.kit is map && request.resource.data.kit.size() <= 6
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40
+          && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 140));
+        allow update: if request.auth != null && request.auth.uid != uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          && request.resource.data.get('reactions', {}).diff(resource.data.get('reactions', {})).affectedKeys().hasOnly([request.auth.uid])
+          && request.resource.data.get('reactions', {}).get(request.auth.uid, 'thanks') in ['thanks', 'strong', 'fire'];
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+    // public counts per park: likes and athletes who trained there. Each
+    // change is ±1 and must come in the same batch as the like (or the first
+    // visit) it counts — so nobody can inflate them.
+    match /parkStats/{parkId} {
+      function base() { return resource == null ? {} : resource.data; }
+      function stepped(field, by) {
+        return request.resource.data.get(field, 0) == base().get(field, 0) + by;
+      }
+      function likeDoc() { return /databases/$(database)/documents/parks/$(parkId)/likes/$(request.auth.uid); }
+      function visitDoc() { return /databases/$(database)/documents/parks/$(parkId)/trained/$(request.auth.uid); }
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['likes', 'people'])
+        && (
+          (request.resource.data.diff(base()).affectedKeys().hasOnly(['likes'])
+            && ((stepped('likes', 1) && !exists(likeDoc()) && existsAfter(likeDoc()))
+              || (stepped('likes', -1) && exists(likeDoc()) && !existsAfter(likeDoc()))))
+          || (request.resource.data.diff(base()).affectedKeys().hasOnly(['people'])
+            && stepped('people', 1) && !exists(visitDoc()) && existsAfter(visitDoc()))
+        );
+    }
+
+    // OpenStreetMap parks, cached per 0.1° cell by whoever loads an area
+    // first, so everyone else skips the slow Overpass query. A cell can be
+    // refreshed at most once a day, and the date is the server's.
+    match /osmCache/{cell} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && cell.matches('^-?[0-9]{1,4}:-?[0-9]{1,4}$')
+        && request.resource.data.keys().hasOnly(['cell', 'parks', 'fetchedAt'])
+        && request.resource.data.cell == cell
+        && request.resource.data.parks is list && request.resource.data.parks.size() <= 400
+        && request.resource.data.fetchedAt == request.time
+        && (resource == null || resource.data.fetchedAt < request.time - duration.value(1, 'd'));
+    }
+
+    // account deletion (which anonymises your reports) finds them on every park (collection group);
+    // it needs a single-field index exemption on reports.uid (collection group)
+    match /{path=**}/reports/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // the server's rate-limit counters (lib/server/rateLimit.ts): written
+    // with the service account only, never readable or writable by clients
+    match /rateLimits/{counter} {
+      allow read, write: if false;
+    }
+  }
+}

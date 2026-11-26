@@ -1,3 +1,6 @@
+import { allRecords } from "./sports/trackView";
+import { EXTRA_SPORTS, SPORTS } from "./sports";
+import { sportStageUps, fullSkills as sportFullSkills } from "./sports/extras";
 import type { UserDoc } from "./types";
 import { levelFromXp } from "./xp";
 import { claimCounts, syncClaims } from "./verification";
@@ -25,14 +28,23 @@ export interface Achievement {
 
 export type AchievementInput = Pick<
   UserDoc,
-  "totalSessionsCompleted" | "streak" | "xp" | "claims" | "skills" | "records" | "skillHistory" | "lastSessionDateISO" | "missions" | "pastBlocks"
+  "totalSessionsCompleted" | "streak" | "xp" | "claims" | "skills" | "records" | "skillHistory" | "lastSessionDateISO" | "missions" | "pastBlocks" | "sports"
 >;
 
 const count = (value: (u: AchievementInput) => number, target: number) => (u: AchievementInput): [number, number] => [Math.min(value(u), target), target];
 
 const sessions = (u: AchievementInput) => u.totalSessionsCompleted ?? 0;
 const verified = (u: AchievementInput) => claimCounts(syncClaims(u.claims, u.skills)).verified;
-const records = (u: AchievementInput) => Object.keys(u.records ?? {}).length;
+// every sport's records, stage-ups and blocks count
+const records = (u: AchievementInput) => allRecords(u as never).length;
+const tracks = (u: AchievementInput) => EXTRA_SPORTS.flatMap((s) => (u.sports?.[s] ? [{ def: SPORTS[s], t: u.sports[s]! }] : []));
+const sportUps = (u: AchievementInput) => tracks(u).reduce((n, { def, t }) => n + sportStageUps(def, t), 0);
+const sportSessions = (u: AchievementInput) => Math.max(0, ...tracks(u).map(({ t }) => t.sessions ?? 0));
+const sportsTrained = (u: AchievementInput) => {
+  const other = tracks(u).filter(({ t }) => (t.sessions ?? 0) > 0).length;
+  const cali = (u.totalSessionsCompleted ?? 0) - tracks(u).reduce((n, { t }) => n + (t.sessions ?? 0), 0) > 0 ? 1 : 0;
+  return other + cali;
+};
 
 // stages gained over the skill history (any skill, any step up)
 export function stageUps(u: Pick<AchievementInput, "skillHistory">): number {
@@ -85,10 +97,16 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "records-10", title: "Record breaker", description: "Hold personal records on 10 exercises.", icon: "trending", tier: "silver", progress: count(records, 10) },
   { id: "records-25", title: "Always better", description: "Hold personal records on 25 exercises.", icon: "trending", tier: "gold", progress: count(records, 25) },
 
-  { id: "stage-up-1", title: "Level up a skill", description: "Move a skill up a stage.", icon: "trending", tier: "bronze", progress: count(stageUps, 1) },
-  { id: "stage-up-10", title: "Climber", description: "Move skills up 10 stages in all.", icon: "trending", tier: "silver", progress: count(stageUps, 10) },
-  { id: "block-1", title: "Mission accomplished", description: "Reach the goal of a training block.", icon: "trophy", tier: "silver", progress: count((u) => (u.pastBlocks ?? []).filter((b) => b.outcome === "reached").length, 1) },
-  { id: "full-skill", title: "The full thing", description: "Reach the last stage of any skill.", icon: "crown", tier: "gold", progress: count(fullSkills, 1) },
+  { id: "stage-up-1", title: "Level up a skill", description: "Move a skill up a stage.", icon: "trending", tier: "bronze", progress: count((u) => stageUps(u) + sportUps(u), 1) },
+  { id: "stage-up-10", title: "Climber", description: "Move skills up 10 stages in all.", icon: "trending", tier: "silver", progress: count((u) => stageUps(u) + sportUps(u), 10) },
+  { id: "block-1", title: "Mission accomplished", description: "Reach the goal of a training block.", icon: "trophy", tier: "silver", progress: count((u) => (u.pastBlocks ?? []).filter((b) => b.outcome === "reached").length + tracks(u).reduce((n, { t }) => n + (t.blocksReached ?? 0), 0), 1) },
+  { id: "full-skill", title: "The full thing", description: "Reach the last stage of any skill.", icon: "crown", tier: "gold", progress: count((u) => fullSkills(u) + tracks(u).reduce((n, { def, t }) => n + sportFullSkills(def, t), 0), 1) },
+  // yoga and Pilates
+  { id: "sport-first", title: "New discipline", description: "Finish a yoga or Pilates session.", icon: "sunrise", tier: "bronze", progress: count((u) => Math.min(1, sportSessions(u)), 1) },
+  { id: "all-sports", title: "All-rounder", description: "Train calisthenics, yoga and Pilates.", icon: "star", tier: "silver", progress: count(sportsTrained, 1 + EXTRA_SPORTS.length) },
+  { id: "sport-sessions-25", title: "Dedicated", description: "Finish 25 sessions of yoga or of Pilates.", icon: "dumbbell", tier: "silver", progress: count(sportSessions, 25) },
+  { id: "sport-stage-5", title: "In the flow", description: "Move yoga or Pilates skills up 5 stages.", icon: "trending", tier: "silver", progress: count(sportUps, 5) },
+  { id: "sport-full-skill", title: "Mastery", description: "Reach the last stage of a yoga or Pilates skill.", icon: "crown", tier: "gold", progress: count((u) => tracks(u).reduce((n, { def, t }) => n + sportFullSkills(def, t), 0), 1) },
 
   { id: "early-bird", title: "Early bird", description: "Finish a session before 7 in the morning.", icon: "sunrise", tier: "bronze", progress: (u) => [lastHour(u) !== null && lastHour(u)! < 7 ? 1 : 0, 1] },
   { id: "night-owl", title: "Night owl", description: "Finish a session after 10 at night.", icon: "moon", tier: "bronze", progress: (u) => [lastHour(u) !== null && lastHour(u)! >= 22 ? 1 : 0, 1] },

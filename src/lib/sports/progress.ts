@@ -1,3 +1,4 @@
+import { settleBlock } from "./extras";
 import type { ExerciseFeedback, PersonalRecord } from "../types";
 import { applyExerciseFeedback } from "../adaptation";
 import { detectRecords, recordLastTimes } from "../sessionHistory";
@@ -65,7 +66,8 @@ export function applySportSession(
     }
   }
   return {
-    track: {
+    // a block whose stage was just reached is done
+    track: settleBlock({
       ...track,
       exerciseStats,
       records,
@@ -73,7 +75,7 @@ export function applySportSession(
       stage,
       sessions: (track.sessions ?? 0) + 1,
       lastSessionISO: nowISO,
-    },
+    }),
     stageUps,
     newRecords,
   };

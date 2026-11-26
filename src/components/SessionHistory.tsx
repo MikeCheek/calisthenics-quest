@@ -1,5 +1,7 @@
 "use client";
 
+import { allRecords, sportOfSession, trackView } from "@/lib/sports/trackView";
+import { isExtraSport } from "@/lib/sports";
 import { SPORT_META } from "@/lib/sports";
 import { useEffect, useMemo, useState } from "react";
 import { UserDoc, SessionRecord, ExerciseRecord } from "@/lib/types";
@@ -72,16 +74,22 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
         exercises,
         xp: session.xp + xp,
       });
+      // the session's own sport learns the correction (calisthenics also
+      // its skill progress; another sport also gets the XP on its track)
+      const view = trackView(userDoc, sportOfSession(session));
       const fixed = correctToDone(
-        userDoc.exerciseStats ?? {},
+        view.exerciseStats,
         userDoc.skillProgress ?? {},
         userDoc.skills,
         ex,
       );
-      await updateProgress(userDoc.uid, {
-        exerciseStats: fixed.stats,
-        skillProgress: fixed.progress,
-      });
+      const t = isExtraSport(view.sport) ? userDoc.sports?.[view.sport] : undefined;
+      await updateProgress(
+        userDoc.uid,
+        t && isExtraSport(view.sport)
+          ? { sports: { ...userDoc.sports, [view.sport]: { ...t, exerciseStats: fixed.stats, xp: t.xp + xp } } }
+          : { exerciseStats: fixed.stats, skillProgress: fixed.progress },
+      );
       if (xp > 0) await awardXp(userDoc, xp);
       await refreshUserDoc();
       setSessions(
@@ -144,7 +152,7 @@ export default function SessionHistory({ userDoc }: { userDoc: UserDoc }) {
     0,
   );
   const totalXp = (sessions ?? []).reduce((n, s) => n + (s.xp ?? 0), 0);
-  const bests = Object.values(userDoc.records ?? {})
+  const bests = allRecords(userDoc)
     .filter((r) => r.name)
     .sort((a, b) => b.dateISO.localeCompare(a.dateISO))
     .slice(0, 8);

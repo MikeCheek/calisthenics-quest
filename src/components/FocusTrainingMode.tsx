@@ -1,5 +1,6 @@
 "use client";
 
+import { sportOfSession, trackView } from "@/lib/sports/trackView";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Exercise, ExerciseFeedback } from "@/lib/types";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
@@ -188,9 +189,11 @@ export default function FocusTrainingMode() {
   // pick up where it was left, when this is a session saved on the device
   const restoredFrom = useRef<string | null>(null);
   useEffect(() => {
+    // already set up for this session (an effect can run twice): keep where it is
+    if (session && restoredFrom.current === session.id) return;
     // only this session's own saved progress (a new session starts fresh)
     const saved = session && userDoc ? loadActiveSession(userDoc.uid) : null;
-    const g = session && saved?.session.id === session.id && restoredFrom.current !== session.id ? saved.guided : undefined;
+    const g = session && saved?.session.id === session.id ? saved.guided : undefined;
     if (session) restoredFrom.current = session.id;
     setIndex(g ? Math.min(g.index, Math.max(0, steps.length - 1)) : 0);
     setCompletedSteps(new Set(g?.completed ?? []));
@@ -238,6 +241,9 @@ export default function FocusTrainingMode() {
     () => (rawCurrent ? { ...rawCurrent, exercise: overrides[index] ?? rawCurrent.exercise } : undefined),
     [rawCurrent, overrides, index]
   );
+  // what you did last time, from this session's sport
+  const lastSets =
+    current && userDoc ? trackView(userDoc, sportOfSession(session)).exerciseStats[statKey(current.exercise.name)]?.lastSets : undefined;
   const rawNext = steps[index + 1];
   const next = useMemo(
     () => (rawNext ? { ...rawNext, exercise: overrides[index + 1] ?? rawNext.exercise } : undefined),
@@ -686,10 +692,10 @@ export default function FocusTrainingMode() {
                 )
               )}
               <div className="text-sm text-zinc-400 mt-1">{localizeDetail(current.exercise.detail, locale)}</div>
-              {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && userDoc?.exerciseStats?.[statKey(current.exercise.name)]?.lastSets && (
+              {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && lastSets && (
                 <div className="text-xs text-muted mt-0.5">
                   {tx("Last time:")}{" "}
-                  <span className="text-zinc-300 stat-mono">{localizeDetail(userDoc.exerciseStats[statKey(current.exercise.name)].lastSets ?? "", locale)}</span>
+                  <span className="text-zinc-300 stat-mono">{localizeDetail(lastSets, locale)}</span>
                 </div>
               )}
               {current.exercise.cue && (

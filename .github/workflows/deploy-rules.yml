@@ -1,0 +1,55 @@
+# Deploys firestore.rules to the Firebase project when it changes on main
+# (after the rules tests pass), so the rules in the repository are the rules
+# in production — no more copying them into the console by hand.
+#
+# Setup, once, in GitHub → Settings → Secrets and variables → Actions:
+#   - secret   FIREBASE_SERVICE_ACCOUNT: the JSON key of a service account
+#              with the "Firebase Rules Admin" role (Google Cloud console →
+#              IAM → Service accounts → Keys)
+#   - variable FIREBASE_PROJECT_ID: the Firebase project id
+# Without them this workflow skips the deploy and says so.
+name: Deploy Firestore rules
+
+on:
+  push:
+    branches: [main]
+    paths: [firestore.rules]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' && vars.FIREBASE_PROJECT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Rules tests first
+        run: npm run test:rules
+      - name: Not set up yet
+        if: env.HAS_KEY != 'true'
+        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT / FIREBASE_PROJECT_ID aren't set — rules not deployed. See the top of this workflow."
+      - name: Deploy the rules
+        if: env.HAS_KEY == 'true'
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx firebase deploy --only firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"

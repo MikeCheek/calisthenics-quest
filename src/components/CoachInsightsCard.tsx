@@ -1,6 +1,8 @@
 "use client";
 
-import { UserDoc, ExerciseStat, SKILL_FIELD_LABEL, StagedSkillKey } from "@/lib/types";
+import { trackView } from "@/lib/sports/trackView";
+import { SPORT_META } from "@/lib/sports";
+import { UserDoc, ExerciseStat } from "@/lib/types";
 import { median } from "@/lib/timingLearning";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
@@ -19,18 +21,20 @@ function prettyName(key: string): string {
 export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
   const { tx } = useLanguage();
   const { refreshUserDoc } = useAuth();
+  // what's been learned in the sport you're training now
+  const view = trackView(userDoc);
   const toast = useToast();
   // a "too hard" or skip remembered by mistake: stop easing it off
   const canDo = async (key: string) => {
     try {
-      await updateProgress(userDoc.uid, { exerciseStats: forgetStruggles(userDoc.exerciseStats ?? {}, key) });
+      await updateProgress(userDoc.uid, view.statsPatch(forgetStruggles(view.exerciseStats, key)));
       await refreshUserDoc();
       toast.success("Got it — sessions won't ease this one off any more.");
     } catch {
       toast.error("Couldn't save that — try again.");
     }
   };
-  const entries = Object.entries(userDoc.exerciseStats ?? {}) as [string, ExerciseStat][];
+  const entries = Object.entries(view.exerciseStats) as [string, ExerciseStat][];
   const struggling = entries.filter(([, s]) => s.p >= 2).sort((a, b) => b[1].p - a[1].p).slice(0, 4);
   const progressing = entries.filter(([, s]) => s.p <= -3).sort((a, b) => a[1].p - b[1].p).slice(0, 4);
   const restLearned = entries
@@ -38,10 +42,7 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
     .slice(0, 3);
   const holdShort = entries.filter(([, s]) => (s.hr?.length ?? 0) >= 2 && median(s.hr!) < 0.75).slice(0, 3);
   const transition = userDoc.transitionRest && userDoc.transitionRest.length >= 3 ? median(userDoc.transitionRest) : null;
-  const rising = (Object.entries(userDoc.skillProgress ?? {}) as [StagedSkillKey, { score: number }][])
-    .filter(([, p]) => p.score >= 3)
-    .map(([k]) => SKILL_FIELD_LABEL[k])
-    .slice(0, 4);
+  const rising = view.rising.slice(0, 4);
 
   const empty =
     !struggling.length && !progressing.length && !restLearned.length && !holdShort.length && transition === null && !rising.length;
@@ -51,7 +52,11 @@ export default function CoachInsightsCard({ userDoc }: { userDoc: UserDoc }) {
       <h2 className="heading text-base text-zinc-100 flex items-center gap-2 mb-1">
         <Brain size={16} className="text-sky-400" /> {tx("Coach insights")}
       </h2>
-      <p className="text-xs text-muted mb-3">{tx("What your training has taught the coach so far.")}</p>
+      <p className="text-xs text-muted mb-3">
+        {view.sport === "calisthenics"
+          ? tx("What your training has taught the coach so far.")
+          : tx("What your {sport} training has taught the coach so far.", { sport: tx(SPORT_META[view.sport].name) })}
+      </p>
 
       {empty ? (
         <p className="text-sm text-zinc-400">
