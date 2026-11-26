@@ -29,6 +29,8 @@ test("typical prescriptions read naturally in Italian", () => {
     ["8 min, 1-2 reps per minute", "8 min, 1-2 rip. al minuto"],
     ["3 x 6 reps, 3s down / 3s up", "3 × 6 rip., 3s giù / 3s su"],
     ["Up to 3 attempts at 5 clean reps", "Fino a 3 tentativi per 5 rip. pulite"],
+    ["1 x 5 clean reps", "1 × 5 rip. pulite"],
+    ["1 clean attempt", "1 tentativo pulito"],
     ["4 x 4-5 reps (+15-20% bodyweight)", "4 × 4-5 rip. (+15-20% peso corporeo)"],
   ];
   for (const [en, it] of cases) assert.equal(localizeDetail(en, "it"), it, en);

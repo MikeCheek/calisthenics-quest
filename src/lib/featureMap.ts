@@ -81,7 +81,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     label: "Settings",
     features: [
       { id: "body", label: "Body & schedule", hint: "Age, weight, training days", href: "/profile?tab=settings#body", icon: "ruler", keywords: "giorni età altezza" },
-      { id: "equipment", label: "Where you train", hint: "The equipment you have", href: "/profile?tab=settings#equipment", icon: "dumbbell", keywords: "attrezzatura sbarra anelli equipment" },
+      { id: "equipment", label: "Your kit", hint: "Vest, bands, a bar at home — and your usual spot", href: "/profile?tab=settings#equipment", icon: "dumbbell", keywords: "attrezzatura sbarra anelli elastici zavorra parallettes casa equipment kit" },
       { id: "reminders", label: "Reminders", hint: "A daily nudge to train", href: "/profile?tab=settings#reminders", icon: "bell", keywords: "notifiche promemoria notifications push" },
       { id: "language", label: "Language", hint: "English or Italiano", href: "/profile?tab=settings#language", icon: "globe", keywords: "lingua italiano english" },
       { id: "prefs", label: "Vibration and sharing", hint: "Haptics and what friends see", href: "/profile?tab=settings#preferences", icon: "vibrate", keywords: "vibrazione condivisione haptics" },

@@ -7,7 +7,7 @@ import { adaptSession } from "@/lib/adaptation";
 import { addSkillCheck, pickSkillCheck, syncClaims } from "@/lib/verification";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { balanceSession, effortCapacity } from "@/lib/effort";
-import { readTodayEquipment, onTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
+import { atHome, readTodayEquipment, onTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
 import { applyDeload, blockWeek, focusWithBlock, isActive, phaseOf } from "@/lib/trainingBlock";
 import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { SPORTS, activeSportOf, isExtraSport, type SportId } from "@/lib/sports";
@@ -52,7 +52,8 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     read();
     return onTodayEquipment(read);
   }, []);
-  const equipment = today_?.equipment ?? userDoc?.equipment;
+  // at home it's always your current kit (it may have changed since you chose home)
+  const equipment = today_ && userDoc && today_.kind !== "park" ? atHome(userDoc.equipment) : (today_?.equipment ?? userDoc?.equipment);
   const options = useMemo(() => (equipment ? availableFocuses(equipment) : []), [equipment]);
   // a training block steers the focus (two days in three on its skill)
   const block = userDoc?.trainingBlock ?? undefined;

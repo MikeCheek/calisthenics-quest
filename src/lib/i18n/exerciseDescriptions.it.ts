@@ -3,6 +3,13 @@
 // description is translated, keyed by the exercise's exact English name.
 // Looked up via `localizedDescription()` in `lib/exerciseTiming.ts`.
 const it: Record<string, string> = {
+  // at home, without a bar
+  "Door frame rows": "Mettiti in una porta aperta e afferra i due lati dello stipite all'altezza del petto, piedi vicini alla soglia. Inclinati indietro a braccia e corpo tesi, poi porta il petto allo stipite e torna giù con controllo.",
+  "Towel door rows": "Fai passare un asciugamano attorno alle due maniglie di una porta chiusa, dal lato in cui si apre lontano da te così tirando si chiude ancora di più. Tieni i capi, avvicina i piedi, inclinati indietro a braccia tese, poi porta il petto alla porta.",
+  "Table rows": "Sdraiati sotto un tavolo robusto e afferra il bordo alla larghezza delle spalle. Con i talloni a terra e il corpo dritto, porta il petto al bordo, poi scendi con controllo.",
+  "Table rows (feet elevated)": "Table row con i talloni rialzati su una sedia, così il corpo è orizzontale: il rematore più difficile da fare a casa. Porta il petto al bordo del tavolo e scendi lentamente.",
+  "Single-arm door frame rows": "Afferra un lato dello stipite con una mano, piedi vicini, e inclinati indietro con il corpo dritto. Tirati verso lo stipite con quel braccio, tenendo anche e spalle frontali, poi scendi lentamente.",
+  "Chair dips": "Mani sul bordo anteriore di una sedia o panca robusta dietro di te, dita in avanti, gambe davanti; piega i gomiti per abbassare le anche finché le braccia sono circa al livello della seduta, poi spingi di nuovo su.",
   "Scapula pulls (hang)": "Appenditi a una sbarra con le braccia tese, poi senza piegare i gomiti, tira le scapole in basso e verso il centro per sollevare leggermente il corpo, quindi torna giù.",
   "Tuck negatives": "Tirati su fino a una posizione di tuck front lever (ginocchia al petto, schiena orizzontale) e scendi il più lentamente possibile fino alla sospensione, in circa 4 secondi.",
   "Tuck hold from support": "Partendo da una posizione di supporto sopra la sbarra, scendi in un tuck front lever (ginocchia al petto, schiena parallela al suolo) e mantieni la posizione.",

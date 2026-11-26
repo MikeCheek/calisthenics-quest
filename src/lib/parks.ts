@@ -434,13 +434,15 @@ export function equipmentAt(status: KitStatus[], own: TrainingEquipment): Traini
   const has = (k: ParkKit) => status.find((s) => s.kit === k)?.state === "yes";
   return {
     pullUpBar: has("pullUpBar") || has("monkeyBars"),
-    parallelBars: has("parallelBars"),
+    parallelBars: has("parallelBars") || !!own.parallettes, // parallettes travel too
     rings: has("rings") || own.rings, // rings travel with you
     wallSpace: has("wallSpace"),
     verticalPole: has("verticalPole"),
     monkeyBars: has("monkeyBars"),
     weights: own.weights,
     resistanceBands: own.resistanceBands,
+    homeBar: own.homeBar,
+    parallettes: own.parallettes,
   };
 }
 

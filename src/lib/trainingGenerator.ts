@@ -19,6 +19,7 @@ import {
   muscleUpTrack,
   handstandTrack,
   pullStrengthTrack,
+  homePullTrack,
   pushStrengthTrack,
 } from "./trainingData";
 import { pickWarmup, pickWarmupFor, pickFinisher } from "./warmupFinisher";
@@ -193,6 +194,16 @@ function buildSets(
       track: accessory,
       title: `Accessory — ${FOCUS_LABEL[accessory]}`,
       exercises: exercisesForTrack(accessory, skills, equipment).slice(0, accessoryCount),
+    });
+  }
+
+  // no bar and no rings (home): pulling would vanish from the session —
+  // keep it with door, towel and table rows
+  if (!equipment.pullUpBar && !equipment.rings && focus !== "pullStrength") {
+    sets.push({
+      track: "pullStrength",
+      title: `Accessory — ${FOCUS_LABEL.pullStrength}`,
+      exercises: homePullTrack(skills, equipment).slice(0, accessoryCount),
     });
   }
 

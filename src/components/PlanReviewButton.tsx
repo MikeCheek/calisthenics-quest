@@ -39,6 +39,8 @@ const EQUIPMENT_LABEL: Record<keyof TrainingEquipment, string> = {
   monkeyBars: "monkey bars",
   weights: "weights",
   resistanceBands: "resistance bands",
+  homeBar: "pull-up bar at home",
+  parallettes: "parallettes",
 };
 
 function summarizeEquipment(equipment: TrainingEquipment): string {

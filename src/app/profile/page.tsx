@@ -17,6 +17,7 @@ import { levelProgress } from "@/lib/levelPath";
 import { Locale } from "@/lib/types";
 import ReminderSettings from "@/components/ReminderSettings";
 import AskParkToggle from "@/components/AskParkToggle";
+import KitCard from "@/components/KitCard";
 import ShareActivityToggle from "@/components/ShareActivityToggle";
 import HapticsToggle from "@/components/HapticsToggle";
 import { updateProgress } from "@/lib/store";
@@ -45,19 +46,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "account", label: "Account" },
 ];
 
-const EQUIPMENT_LABEL: [
-  keyof import("@/lib/types").TrainingEquipment,
-  string,
-][] = [
-  ["pullUpBar", "Pull-up bar"],
-  ["parallelBars", "Dip bars"],
-  ["rings", "Rings"],
-  ["wallSpace", "Wall"],
-  ["verticalPole", "Pole"],
-  ["monkeyBars", "Monkey bars"],
-  ["weights", "Weights"],
-  ["resistanceBands", "Bands"],
-];
 
 export default function ProfilePage() {
   const { user, userDoc, loading, refreshUserDoc } = useAuth();
@@ -223,7 +211,7 @@ export default function ProfilePage() {
           <SectionNav
             sections={[
               { id: "body", label: "Body & schedule" },
-              { id: "equipment", label: "Where you train" },
+              ...(userDoc.calisthenicsPending ? [] : [{ id: "equipment", label: "Your kit" }]),
               { id: "language", label: "Language" },
               { id: "reminders", label: "Reminders" },
               { id: "preferences", label: "Vibration and sharing" },
@@ -295,35 +283,8 @@ export default function ProfilePage() {
               </div>
             </Link>
 
-            <Link
-              id="equipment"
-              href="/onboarding?step=1&return=/profile?tab=settings"
-              className="panel p-4 block hover:border-orange-500/60 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="heading text-base text-zinc-100 flex items-center gap-2">
-                  <MapPin size={16} className="text-orange-400" />{" "}
-                  {tx("Where you train")}
-                </h2>
-                <span className="text-xs text-zinc-400 flex items-center gap-1">
-                  <Pencil size={12} /> {tx("Edit")}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {EQUIPMENT_LABEL.map(([k, label]) => (
-                  <span
-                    key={k}
-                    className={`text-xs px-2.5 py-1 rounded-full border ${
-                      userDoc.equipment[k]
-                        ? "border-emerald-600 text-emerald-400 bg-emerald-600/10"
-                        : "border-zinc-800 text-muted line-through"
-                    }`}
-                  >
-                    {tx(label)}
-                  </span>
-                ))}
-              </div>
-            </Link>
+            {/* yoga and Pilates only need a mat: the kit is for calisthenics */}
+            <div id="equipment">{!userDoc.calisthenicsPending && <KitCard />}</div>
 
             <div className="panel p-4" id="language">
               <h2 className="heading text-base text-zinc-100 mb-1 flex items-center gap-2">

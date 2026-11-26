@@ -120,6 +120,17 @@ export function estimateSessionMinutes(session: TrainingSession): number {
 // nothing) if a given exercise isn't in the Italian dictionary yet.
 export function localizedDescription(exercise: Exercise, locale: Locale): string | undefined {
   if (locale === "it") {
+    // a skill check: one set that verifies a claimed level
+    const c = exercise.check;
+    if (c) {
+      if (c.kind === "hold")
+        return `Verifica la tua dichiarazione. Ben riscaldato, entra in una ${c.label} pulita e mantienila per ${c.target} secondi, una volta sola. Il timer la misura; puoi anche inserirla a mano.`;
+      if (/max reps/i.test(exercise.detail))
+        return `Verifica la tua dichiarazione di ${c.target}. Ben riscaldato, fai una sola serie rigorosa fino a cedimento e registra quante ripetizioni pulite hai fatto.`;
+      return c.kind === "reps"
+        ? `Verifica la tua dichiarazione. Ben riscaldato, fai una sola serie pulita di ${c.label} da ${c.target} rip. e registra se ci sei riuscito.`
+        : `Verifica la tua dichiarazione. Ben riscaldato, esegui una ${c.label} pulita, una volta sola, e registra se ci sei riuscito.`;
+    }
     return itExerciseDescriptions[exercise.name] ?? SPORT_DESCRIPTIONS_IT[exercise.name] ?? exercise.description;
   }
   return exercise.description;

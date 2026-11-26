@@ -182,8 +182,21 @@ test("Me shows the achievements grid", async ({ page }) => {
   await page.goto("/profile");
   const grid = page.locator("#achievements");
   await expect(grid.getByRole("heading", { name: "Achievements" })).toBeVisible();
-  await grid.getByRole("button", { name: /Century/ }).click();
-  await expect(grid.getByText(/of 100 so far/)).toBeVisible();
+  const badge = grid.getByRole("button", { name: /Century/ });
+  await badge.click();
+  // its card opens right at the badge, not under the whole grid
+  const card = page.getByRole("dialog", { name: "Century" });
+  await expect(card.getByText(/of 100 so far/)).toBeVisible();
+  const [b, c] = [await badge.boundingBox(), await card.boundingBox()];
+  expect(Math.abs(c!.y - (b!.y + b!.height)) < 20 || Math.abs(c!.y + c!.height - b!.y) < 20).toBe(true);
+  expect(c!.x).toBeGreaterThanOrEqual(0);
+  expect(c!.x + c!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+  await expect(badge).toBeFocused();
+  await badge.click();
+  await page.mouse.click(5, 5);
+  await expect(card).toHaveCount(0);
 });
 
 test("library: search, open an exercise, do it now", async ({ page }) => {
@@ -366,8 +379,28 @@ test("weather: a rainy week offers the home plan", async ({ page, context }) => 
   await page.getByRole("button", { name: /Use the home plan until/ }).click();
   await expect(page.getByText(/Home plan until .* \(rainy days\)/)).toBeVisible();
   await expectNoA11yViolations(page);
-  await page.getByRole("button", { name: "My usual kit" }).click();
+  await page.getByRole("button", { name: "Usual spot" }).click();
   await expect(page.getByText(/Home plan until/)).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("where today: train at home any day, with your own kit", async ({ page }) => {
+  const errors = collectErrors(page);
+  await page.goto("/dashboard");
+  const where = page.getByRole("group", { name: "Where today?" });
+  await expect(where.getByRole("button", { name: "Usual spot" })).toHaveAttribute("aria-pressed", "true");
+  await where.getByRole("button", { name: "At home" }).click();
+  await expect(where.getByRole("button", { name: "At home" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/At home: floor/)).toBeVisible();
+  await expectNoA11yViolations(page);
+  // the kit lives in settings, next to the usual spot
+  await page.goto("/profile?tab=settings");
+  await expect(page.getByRole("heading", { name: "Your kit" })).toBeVisible();
+  await page.getByRole("switch", { name: /Pull-up bar at home/ }).click();
+  await expect(page.getByRole("switch", { name: /Pull-up bar at home/ })).toHaveAttribute("aria-checked", "true");
+  // back to Today inside the app (the demo profile is in memory)
+  await page.getByRole("link", { name: "Today" }).first().click();
+  await expect(page.getByText(/At home: floor, a wall and your pull-up bar/)).toBeVisible();
   expect(errors).toEqual([]);
 });
 

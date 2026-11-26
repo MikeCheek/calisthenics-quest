@@ -9,6 +9,8 @@ import {
   muscleUpStageTable,
   handstandStageTable,
   legsStageTable,
+  HOME_PULL_LADDER,
+  CHAIR_DIPS,
 } from "./trainingData";
 import { advancedSkillTable } from "./advancedSkills";
 
@@ -63,6 +65,8 @@ function skillHierarchy(skill: StagedSkillKey, equipment: TrainingEquipment): Ex
 }
 
 function pullStrengthHierarchy(equipment: TrainingEquipment): Exercise[] {
+  // no bar and no rings (home): the home rows, easiest to hardest
+  if (!equipment.pullUpBar && !equipment.rings) return HOME_PULL_LADDER;
   const list: Exercise[] = [
     { name: "Dead hangs", detail: "3 x max hold", restSeconds: 90, description: "Hang from a pull-up bar with straight arms and an active grip, holding for as long as you can without your shoulders fully collapsing." },
     { name: "Australian / inverted rows", detail: "3 x 10-12 reps", restSeconds: 90, description: "Lie under a low bar with your body straight and heels on the ground, then pull your chest up to the bar by driving your elbows back, and lower with control." },
@@ -118,6 +122,7 @@ function pushStrengthHierarchy(equipment: TrainingEquipment): Exercise[] {
     return list;
   }
   return [
+    CHAIR_DIPS,
     { name: "Decline push-ups", detail: "3 x 8-10 reps", restSeconds: 90, description: "With your feet elevated on a step or bench, perform a push-up by bending your elbows to lower your chest toward the ground and pressing back up." },
     { name: "Push-ups", detail: "4 x max reps", restSeconds: 90, description: "Starting in a plank with hands under your shoulders, lower your chest toward the ground by bending your elbows, keeping your body in a straight line, then press back up." },
     { name: "Pike push-ups", detail: "3 x 8-10 reps", restSeconds: 75, description: "Start in a pike position with hips high and hands on the ground, then bend your elbows to lower your head toward the floor, and press back up." },

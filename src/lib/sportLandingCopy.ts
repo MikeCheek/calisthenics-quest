@@ -12,12 +12,12 @@ const T = (en: string, it: string): Text => ({ en, it });
 export const SPORTS_SECTION = {
   eyebrow: T("Not only calisthenics", "Non solo calisthenics"),
   title: T(
-    "Rainy day? Train yoga or Pilates",
-    "Giornata di pioggia? Allenati con yoga o Pilates",
+    "Rainy day? Train at home — or try yoga and Pilates",
+    "Giornata di pioggia? Allenati a casa — o prova yoga e Pilates",
   ),
   body: T(
-    "Calisthenics is the heart of BarQuests. For the days indoors there are two more tracks, yoga and Pilates: each with its own skills and level, and the same streak. Switch whenever you like — nothing is lost.",
-    "Il calisthenics è il cuore di BarQuests. Per i giorni al chiuso ci sono altri due percorsi, yoga e Pilates: ognuno con le sue skill e il suo livello, e la stessa streak. Cambi quando vuoi, senza perdere nulla.",
+    "Calisthenics is the heart of BarQuests, and it doesn't stop when it rains: pick “At home” and the session uses the floor, a wall and your own kit — a doorway bar, bands, parallettes. Want a change? Yoga and Pilates are two more tracks, each with its own skills and level, and the same streak. Switch whenever you like — nothing is lost.",
+    "Il calisthenics è il cuore di BarQuests, e non si ferma quando piove: scegli “A casa” e la sessione usa il pavimento, un muro e la tua attrezzatura — una sbarra da porta, elastici, parallettes. Vuoi cambiare? Yoga e Pilates sono altri due percorsi, ognuno con le sue skill e il suo livello, e la stessa streak. Cambi quando vuoi, senza perdere nulla.",
   ),
   more: T("Discover {sport}", "Scopri {sport}"),
 };

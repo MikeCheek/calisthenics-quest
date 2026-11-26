@@ -2,6 +2,7 @@
 
 import { askParkFirst } from "@/components/parks/ParkPrompt";
 import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
+import { SPORT_META } from "@/lib/sports";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -50,7 +51,7 @@ export default function TrainingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf } = useTodaysSession(userDoc);
+  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -89,7 +90,7 @@ export default function TrainingPage() {
       <main id="main" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4">
         <TrainSwitcher active="today" />
         <h1 className="heading text-2xl text-zinc-100">{tx("Today's session")}</h1>
-        <TodayEquipmentBanner value={todayEquipment} />
+        {userDoc && !SPORT_META[sport].indoor && <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} />}
 
         {/* focus — collapsed to a single line by default; expand only to change it */}
         <button

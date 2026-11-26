@@ -206,6 +206,8 @@ const SPORT_RULES: Rule[] = [
 // Exercises that need a specific drawing — checked before the general
 // rules, which would match them by a word in their name
 const SPECIFIC_RULES: Rule[] = [
+  { test: /door frame rows|towel door rows/i, family: "row", build: () => T4.doorRow() },
+  { test: /chair dips/i, family: "dip", build: () => T4.chairDip() },
   { test: /one-arm pull-up, other hand on wrist/i, family: "pullUp", build: () => T2.pullUpFront({ oneArm: true }) },
   { test: /nordic curl (with push-up catch|to push-up)/i, family: "nordic", build: () => T.nordic() },
   { test: /side plank hip dips/i, family: "plank", build: () => T4.sidePlank({ dips: true }) },

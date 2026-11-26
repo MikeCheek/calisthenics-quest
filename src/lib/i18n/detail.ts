@@ -11,6 +11,8 @@ import type { Locale } from "../types";
 const IT: [RegExp, string][] = [
   [/^Up to 3 attempts at (\d+) clean reps?$/i, "Fino a 3 tentativi per $1 rip. pulite"],
   [/^Up to 3 attempts$/i, "Fino a 3 tentativi"],
+  [/^1 × (\d+) clean reps?$/i, "1 × $1 rip. pulite"],
+  [/^1 clean attempt$/i, "1 tentativo pulito"],
   [/\bmax unbroken reps\b/gi, "rip. max senza pause"],
   [/\brest-pause (\d+s) between\b/gi, "rest-pause di $1"],
   [/\bmax reps\b/gi, "rip. max"],

@@ -5,7 +5,7 @@ import { CalendarRange, CloudRain, CloudSun, Home, MapPin, Sun, Snowflake, X } f
 import type { UserDoc } from "@/lib/types";
 import { useLanguage } from "@/context/LanguageContext";
 import { advise, fetchForecast, locate, localDay, rainyStretch, savedPlace, savePlace, trainingHour, type Advice, type Place } from "@/lib/weather";
-import { floorOnly, setIndoorPlan, setTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
+import { atHome, setIndoorPlan, setTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
 
 const OFF_KEY = "barquests:weatherOff";
 const clock = (h: number) => `${String(h).padStart(2, "0")}:00`;
@@ -97,7 +97,7 @@ export default function WeatherCard({ userDoc, override }: { userDoc: UserDoc; o
 
   if (!advice && !stretch) return null;
   const onPlan = override?.kind === "indoorPlan";
-  const startPlan = () => stretch && setIndoorPlan({ until: stretch.until, equipment: floorOnly(userDoc.equipment) });
+  const startPlan = () => stretch && setIndoorPlan({ until: stretch.until, equipment: atHome(userDoc.equipment) });
   const untilDay = (iso: string) => {
     const [y, m, d] = iso.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long" });
@@ -119,7 +119,7 @@ export default function WeatherCard({ userDoc, override }: { userDoc: UserDoc; o
   const at = advice.at;
   const tip = advice.kind === "indoors" ? undefined : advice.tip;
   const indoorsNow = override?.kind === "indoors" || onPlan;
-  const goIndoors = () => setTodayEquipment({ kind: "indoors", label: "Indoors", equipment: floorOnly(userDoc.equipment) });
+  const goIndoors = () => setTodayEquipment({ kind: "indoors", label: "Indoors", equipment: atHome(userDoc.equipment) });
 
   const Icon = advice.kind === "dry" ? (tip === "cold" ? Snowflake : Sun) : CloudRain;
   const tone = advice.kind === "dry" ? "text-amber-300" : "text-sky-300";
@@ -152,7 +152,7 @@ export default function WeatherCard({ userDoc, override }: { userDoc: UserDoc; o
       {planOffer}
       {advice.kind !== "dry" && !indoorsNow && !planOffer && (
         <button onClick={goIndoors} className="mt-3 w-full py-2.5 rounded-xl text-sm border border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20 flex items-center justify-center gap-2">
-          <Home size={15} /> {tx("Train indoors today")}
+          <Home size={15} /> {tx("Train at home today")}
         </button>
       )}
     </section>

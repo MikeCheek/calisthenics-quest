@@ -32,6 +32,8 @@ export const EQUIPMENT_LABEL: Record<keyof TrainingEquipment, string> = {
   monkeyBars: "Monkey bars",
   weights: "Weights",
   resistanceBands: "Bands",
+  homeBar: "Pull-up bar at home",
+  parallettes: "Parallettes",
 };
 
 const KINDS: { id: LibraryKind | "all"; label: string }[] = [

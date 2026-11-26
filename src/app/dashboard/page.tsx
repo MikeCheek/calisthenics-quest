@@ -134,7 +134,7 @@ export default function TodayPage() {
             {/* weather and bar-park kit are for outdoor calisthenics */}
             {outdoor && !doneToday && !(activeSession && !activeCompleted) && (
               <>
-                <TodayEquipmentBanner value={todayEquipment} />
+                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} />
                 <WeatherCard userDoc={userDoc} override={todayEquipment} />
               </>
             )}
