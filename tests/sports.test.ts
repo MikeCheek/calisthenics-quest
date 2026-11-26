@@ -114,7 +114,7 @@ test("every string in the sport screens has Italian", async () => {
     const src = readFileSync(`${dir}/${f}`, "utf8");
     for (const m of src.matchAll(/(?:tx\(|tx\(goal \? |label: |hint: )"([^"]{2,})"/g)) if (/[a-z]{3}/.test(m[1]) && !/^(text|bg|border|px|py|flex|h-|w-|grid|rounded)/.test(m[1])) strings.add(m[1]);
   }
-  const missing = [...strings].filter((s) => translate("it", s) === s && !["Calisthenics", "Yoga", "Pilates", "{n} min"].includes(s));
+  const missing = [...strings].filter((s) => translate("it", s) === s && !["Calisthenics", "Yoga", "Pilates", "{n} min", "Skill", "{skill} → {stage}"].includes(s));
   assert.deepEqual(missing, []);
 });
 
@@ -248,4 +248,60 @@ test("trackView: every sport in one shape, and stats saved back where they belon
   assert.equal(recordFor(u, "pull_ups")?.reps, 12);
   assert.equal(sportOfSession({}), "calisthenics");
   assert.equal(sportOfSession({ sport: "pilates" }), "pilates");
+});
+
+test("yoga extras: stage-ups from the start, stage checks once nearly mastered, blocks that finish themselves, the road", async () => {
+  const X = await import("../src/lib/sports/extras");
+  const { pickSportFocus } = await import("../src/lib/sports/generator");
+  const { applySportSession } = await import("../src/lib/sports/progress");
+  const def = SPORTS.yoga;
+  const t0 = newTrack(def, "some", []); // every skill starts at stage 1
+  assert.equal(X.sportStageUps(def, t0), 0);
+  // a stage check needs mastery 4 of 5, and isn't offered at the last stage
+  assert.equal(X.canCheckStage(def, t0, "crow"), false);
+  const ready = { ...t0, mastery: { ...t0.mastery, crow: 4 } };
+  assert.equal(X.canCheckStage(def, ready, "crow"), true);
+  const blocked = X.startBlock(def, ready, "crow", 4, new Date(2026, 10, 1));
+  assert.deepEqual({ skill: blocked.block!.skill, target: blocked.block!.target, weeks: blocked.block!.weeks }, { skill: "crow", target: 2, weeks: 4 });
+  assert.equal(X.blockStatus(blocked, new Date(2026, 10, 10))!.week, 2);
+  assert.equal(X.blockStatus(blocked, new Date(2026, 11, 10))!.overdue, true);
+  // passing the check: up a stage, XP, and the block on that skill is done
+  const { track: up, xp } = X.passStageCheck(def, blocked, "crow", new Date(2026, 10, 12));
+  assert.equal(up.stage.crow, 2);
+  assert.equal(up.mastery.crow, 2.5);
+  assert.ok(xp > 0 && up.xp === blocked.xp + xp);
+  assert.equal(up.block, undefined);
+  assert.equal(up.blocksReached, 1);
+  assert.equal(X.sportStageUps(def, up), 1);
+  // the road marks reached and current stages
+  const road = X.sportRoad(def, up);
+  const crow = road.flatMap((r) => r.nodes).filter((n) => n.skill === "crow");
+  assert.deepEqual(crow.map((n) => [n.reached, n.current]), crow.map((_, i) => [i <= 2, i === 2]));
+  // a block's skill comes up most often in the rotation
+  const days = Array.from({ length: 60 }, (_, i) => new Date(2026, 0, 1 + i));
+  const crowGroup = def.skills.find((s) => s.key === "crow")!.group;
+  const share = (t: typeof t0) => days.filter((d) => pickSportFocus(def, t, d) === crowGroup).length;
+  assert.ok(share(X.startBlock(def, t0, "crow", 4)) > share(t0));
+  // a block also finishes when a regular session moves the skill up
+  const nearly = X.startBlock(def, { ...t0, mastery: { ...t0.mastery, crow: 4.5 } }, "crow", 2);
+  const crowEx = def.skills.find((s) => s.key === "crow")!.stages[1].exercises[0].name;
+  const after = applySportSession(def, nearly, [{ name: crowEx, setTitle: "Arm balances & inversions", outcome: "done" }] as never).track;
+  assert.equal(after.stage.crow, 2);
+  assert.equal(after.block, undefined);
+  assert.equal(after.blocksReached, 1);
+});
+
+test("yoga and Pilates count toward badges", async () => {
+  const { ACHIEVEMENTS, isEarned } = await import("../src/lib/achievements");
+  const X = await import("../src/lib/sports/extras");
+  const def = SPORTS.yoga;
+  let t = { ...newTrack(def, "new", []), sessions: 26 };
+  for (let i = 0; i < 5; i++) t = X.passStageCheck(def, { ...t, mastery: { ...t.mastery, crow: 4 } }, "crow").track;
+  const u = { totalSessionsCompleted: 30, streak: 0, xp: 0, skills: {}, sports: { yoga: t } } as never;
+  const earned = (id: string) => isEarned(ACHIEVEMENTS.find((a) => a.id === id)!, u);
+  assert.equal(earned("sport-first"), true);
+  assert.equal(earned("sport-sessions-25"), true);
+  assert.equal(earned("sport-stage-5"), X.sportStageUps(def, t) >= 5);
+  assert.equal(earned("stage-up-1"), true);
+  assert.equal(earned("all-sports"), false); // no Pilates yet
 });

@@ -15,6 +15,10 @@ import {
 } from "@/lib/sports";
 import { MASTERY_MAX } from "@/lib/sports/types";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
+import SportBlockCard from "@/components/sports/SportBlockCard";
+import SportRoad from "@/components/sports/SportRoad";
+import StageCheck from "@/components/sports/StageCheck";
+import { canCheckStage } from "@/lib/sports/extras";
 import type { Exercise } from "@/lib/types";
 
 // Skills screen for a non-calisthenics sport: every skill as a ladder of
@@ -23,6 +27,7 @@ export default function SportSkills() {
   const { userDoc, refreshUserDoc } = useAuth();
   const { tx } = useLanguage();
   const [detail, setDetail] = useState<Exercise | null>(null);
+  const [checking, setChecking] = useState<string | null>(null);
   const sport = activeSportOf(userDoc);
   if (!userDoc || !isExtraSport(sport)) return null;
   const track = userDoc.sports?.[sport];
@@ -44,7 +49,10 @@ export default function SportSkills() {
 
   const setMinutes = async (sessionLengthMinutes: number) => {
     await updateProgress(userDoc.uid, {
-      sports: { ...userDoc.sports, [sport]: { ...track, sessionLengthMinutes } },
+      sports: {
+        ...userDoc.sports,
+        [sport]: { ...track, sessionLengthMinutes },
+      },
     }).catch(() => {});
     await refreshUserDoc();
   };
@@ -67,8 +75,14 @@ export default function SportSkills() {
           </p>
         </div>
         {/* this sport's session length (set when it was started) */}
-        <div className="w-full flex items-center gap-1.5 flex-wrap" role="group" aria-label={tx("Session length")}>
-          <span className="text-xs text-zinc-400 mr-1">{tx("Session length")}</span>
+        <div
+          className="w-full flex items-center gap-1.5 flex-wrap"
+          role="group"
+          aria-label={tx("Session length")}
+        >
+          <span className="text-xs text-zinc-400 mr-1">
+            {tx("Session length")}
+          </span>
           {[15, 25, 40, 60].map((m) => (
             <button
               key={m}
@@ -81,6 +95,7 @@ export default function SportSkills() {
           ))}
         </div>
       </section>
+      <SportBlockCard sport={sport} />
       {def.groups.map((g) => {
         const skills = def.skills.filter((s) => s.group === g.key);
         if (!skills.length) return null;
@@ -146,6 +161,7 @@ export default function SportSkills() {
                           {i === cur && (
                             <span
                               className="flex gap-0.5 w-16"
+                              role="img"
                               aria-label={tx("Mastery {n} of {m}", {
                                 n: Math.floor(m),
                                 m: MASTERY_MAX,
@@ -173,6 +189,14 @@ export default function SportSkills() {
                         </button>
                       ))}
                     </div>
+                    {canCheckStage(def, track, sk.key) && (
+                      <button
+                        onClick={() => setChecking(sk.key)}
+                        className="mt-2 w-full text-xs py-2 rounded-lg border border-orange-500/60 text-orange-200 hover:bg-orange-500/10"
+                      >
+                        {tx("Stage check")} → {sk.stages[cur + 1]?.label}
+                      </button>
+                    )}
                   </article>
                 );
               })}
@@ -180,6 +204,12 @@ export default function SportSkills() {
           </section>
         );
       })}
+      <SportRoad sport={sport} />
+      <StageCheck
+        sport={sport}
+        skill={checking}
+        onClose={() => setChecking(null)}
+      />
       <ExerciseDetailModal
         exercise={detail}
         open={!!detail}

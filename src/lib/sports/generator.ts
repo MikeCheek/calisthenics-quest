@@ -30,8 +30,10 @@ export function pickSportFocus(
   const goalGroups = new Set(
     def.skills.filter((s) => track.goals.includes(s.key)).map((s) => s.group),
   );
+  // a training block's skill leans hardest: its group comes up three times
+  const blockGroup = track.block ? def.skills.find((s) => s.key === track.block!.skill)?.group : undefined;
   const cycle = def.groups.flatMap((g) =>
-    goalGroups.has(g.key) ? [g.key, g.key] : [g.key],
+    g.key === blockGroup ? [g.key, g.key, g.key] : goalGroups.has(g.key) ? [g.key, g.key] : [g.key],
   );
   // spread repeats apart: interleave in order of appearance
   const order = [

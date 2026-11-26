@@ -59,6 +59,17 @@ export interface SportTrack {
   sessions: number;
   lastSessionISO?: string;
   sessionLengthMinutes?: number;
+  block?: SportBlock; // a stage you're aiming for, by a date
+  blocksReached?: number; // blocks finished on time or early
+}
+
+// A training block in a sport: reach `target` (a stage index) of one skill
+// within `weeks` weeks. Sessions lean on that skill's group meanwhile.
+export interface SportBlock {
+  skill: string;
+  target: number;
+  startISO: string;
+  weeks: number;
 }
 
 export const MASTERY_MAX = 5;
