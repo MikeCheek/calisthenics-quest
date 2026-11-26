@@ -1,5 +1,6 @@
 "use client";
 
+import { SPORT_META } from "@/lib/sports";
 import SportProgressCard from "@/components/sports/SportProgressCard";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
 import { shownStreak } from "@/lib/weekStreak";
@@ -74,7 +75,7 @@ export default function TodayPage() {
     return <PageLoading variant="today" />;
 
   const level = levelProgress(userDoc.xp).level;
-  const outdoor = sport === "calisthenics";
+  const outdoor = !SPORT_META[sport].indoor; // weather, parks and the park question
   const missions = ensureCurrentWeekMissions(userDoc.missions ?? []);
   // the week's plan, moved if a training day was skipped (weekShift.ts)
   const baseDays = userDoc.body?.trainingDaysOfWeek ?? [];

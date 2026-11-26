@@ -216,3 +216,36 @@ test("an invite opened before signing in is kept once, then cleared", async () =
   assert.equal(takeInvitePath(), null); // only real codes come back
   delete (globalThis as { localStorage?: unknown }).localStorage;
 });
+
+test("trackView: every sport in one shape, and stats saved back where they belong", async () => {
+  const { trackView, allRecords, recordFor, sportOfSession } = await import("../src/lib/sports/trackView");
+  const yoga = { ...newTrack(SPORTS.yoga, "some", []), xp: 300, sessions: 4, mastery: { crow: 4.5 }, exerciseStats: { crow_pose: { p: 0, done: 3 } }, records: { crow_pose: { name: "Crow pose", hold: 20, dateISO: "2026-11-20" } } };
+  const u = {
+    xp: 1000, totalSessionsCompleted: 10, activeSport: "yoga" as const,
+    exerciseStats: { pull_ups: { p: -3, done: 9 } },
+    records: { pull_ups: { name: "Pull-ups", reps: 12, dateISO: "2026-11-01" } },
+    skillProgress: { frontLever: { score: 3 } },
+    sports: { yoga },
+  } as never;
+  const y = trackView(u);
+  assert.equal(y.sport, "yoga");
+  assert.equal(y.xp, 300);
+  assert.equal(y.sessions, 4);
+  assert.deepEqual(Object.keys(y.exerciseStats), ["crow_pose"]);
+  assert.deepEqual(y.rising, ["Crow"]);
+  const c = trackView(u, "calisthenics");
+  assert.equal(c.xp, 700); // the rest of the total
+  assert.equal(c.sessions, 6);
+  assert.deepEqual(Object.keys(c.exerciseStats), ["pull_ups"]);
+  assert.deepEqual(c.rising, ["Front Lever"]);
+  // stats go back to the right place, and nothing else is touched
+  const ys = y.statsPatch({}) as { sports: { yoga: { exerciseStats: object; xp: number } } };
+  assert.deepEqual(ys.sports.yoga.exerciseStats, {});
+  assert.equal(ys.sports.yoga.xp, 300);
+  assert.deepEqual(c.statsPatch({}), { exerciseStats: {} });
+  assert.equal(allRecords(u).length, 2);
+  assert.equal(recordFor(u, "crow_pose")?.hold, 20);
+  assert.equal(recordFor(u, "pull_ups")?.reps, 12);
+  assert.equal(sportOfSession({}), "calisthenics");
+  assert.equal(sportOfSession({ sport: "pilates" }), "pilates");
+});

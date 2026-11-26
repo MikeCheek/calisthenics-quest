@@ -1,6 +1,6 @@
 "use client";
 
-import { activeSportOf } from "@/lib/sports";
+import { SPORT_META, activeSportOf } from "@/lib/sports";
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -57,7 +57,7 @@ export default function QuickActions() {
   // the two don't stack in the same corner
   if (!userDoc?.onboarded || HIDDEN_ON.includes(pathname) || expanded || live)
     return null;
-  const outdoor = activeSportOf(userDoc) === "calisthenics";
+  const outdoor = !SPORT_META[activeSportOf(userDoc)].indoor; // parks are for outdoor sports
 
   const actions: {
     label: string;

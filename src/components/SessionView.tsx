@@ -1,5 +1,6 @@
 "use client";
 
+import { sportOfSession, trackView } from "@/lib/sports/trackView";
 import { useState } from "react";
 import { TrainingSession, TrainingEquipment, Exercise, ExerciseFeedback } from "@/lib/types";
 import { adjustDetail, estimateSessionMinutes } from "@/lib/exerciseTiming";
@@ -81,7 +82,8 @@ export default function SessionView({
   const markStarted = () => setStartedAt((t) => t ?? Date.now());
   const { userDoc } = useAuth();
   const lastTimeFor = (name: string): string | undefined => {
-    const st = userDoc?.exerciseStats?.[statKey(name)];
+    // from the session's own sport (yoga's history for a yoga session)
+    const st = userDoc ? trackView(userDoc, sportOfSession(session)).exerciseStats[statKey(name)] : undefined;
     if (!st?.lastSets || !st.lastAt) return undefined;
     const when = new Date(st.lastAt).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short" });
     return `${localizeDetail(st.lastSets, locale)} · ${when}`;

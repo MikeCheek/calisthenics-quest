@@ -1,5 +1,6 @@
 "use client";
 
+import { sportOfSession, trackView } from "@/lib/sports/trackView";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Exercise, ExerciseFeedback } from "@/lib/types";
 import { useTrainingSession } from "@/context/TrainingSessionContext";
@@ -238,6 +239,9 @@ export default function FocusTrainingMode() {
     () => (rawCurrent ? { ...rawCurrent, exercise: overrides[index] ?? rawCurrent.exercise } : undefined),
     [rawCurrent, overrides, index]
   );
+  // what you did last time, from this session's sport
+  const lastSets =
+    current && userDoc ? trackView(userDoc, sportOfSession(session)).exerciseStats[statKey(current.exercise.name)]?.lastSets : undefined;
   const rawNext = steps[index + 1];
   const next = useMemo(
     () => (rawNext ? { ...rawNext, exercise: overrides[index + 1] ?? rawNext.exercise } : undefined),
@@ -686,10 +690,10 @@ export default function FocusTrainingMode() {
                 )
               )}
               <div className="text-sm text-zinc-400 mt-1">{localizeDetail(current.exercise.detail, locale)}</div>
-              {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && userDoc?.exerciseStats?.[statKey(current.exercise.name)]?.lastSets && (
+              {!HIERARCHY_EXEMPT_SETS.has(current.setTitle) && lastSets && (
                 <div className="text-xs text-muted mt-0.5">
                   {tx("Last time:")}{" "}
-                  <span className="text-zinc-300 stat-mono">{localizeDetail(userDoc.exerciseStats[statKey(current.exercise.name)].lastSets ?? "", locale)}</span>
+                  <span className="text-zinc-300 stat-mono">{localizeDetail(lastSets, locale)}</span>
                 </div>
               )}
               {current.exercise.cue && (

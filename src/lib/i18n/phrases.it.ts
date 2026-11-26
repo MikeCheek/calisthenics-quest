@@ -1965,6 +1965,8 @@ const IT_PHRASES: [string, string][] = [
   ["Make {name} a goal", "Rendi {name} un obiettivo"],
   ["Remove {name} from goals", "Togli {name} dagli obiettivi"],
   ["New stages", "Nuovi livelli"],
+  ["What your {sport} training has taught the coach so far.", "Cosa ha imparato il coach dai tuoi allenamenti di {sport} finora."],
+  ["What your {sport} training has taught the coach so far.", "Cosa ha imparato il coach dai tuoi allenamenti di {sport} finora."],
   ["You're offline — the AI coach needs a connection. Your training still saves and syncs when you're back.", "Sei offline: il coach AI ha bisogno della connessione. L'allenamento si salva comunque e si sincronizza quando torni online."],
   ["Your {sport} plan, from your schedule and goals.", "Il tuo piano di {sport}, dai tuoi giorni e obiettivi."],
   ["You've been invited to train together. Save your progress with Google to accept — the invite opens right after, and nothing you've done so far is lost.", "Ti hanno invitato ad allenarvi insieme. Salva i progressi con Google per accettare: l'invito si apre subito dopo, e non perdi nulla di quello che hai fatto."],
