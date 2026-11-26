@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, Play, Plus, Check, Minus, ChevronRight } from "lucide-react";
 import Modal from "./Modal";
+import FormGuide from "@/components/FormGuide";
 import ExerciseDemo from "./ExerciseDemo";
 import ExerciseHistory from "./ExerciseHistory";
 import { useAuth } from "@/context/AuthContext";
@@ -230,6 +231,7 @@ export function ExerciseSheet({ entry, onClose }: { entry: LibraryEntry | null; 
         <p className="text-base text-zinc-200">{localizeDetail(e.detail, locale)}</p>
         {e.description && <p className="text-sm text-zinc-300">{localizedDescription(e, locale)}</p>}
         {e.cue && <p className="text-sm text-orange-300/90 italic">{tx(e.cue)}</p>}
+        <FormGuide exerciseName={e.name} />
         <p className="text-xs text-zinc-400">
           {tx("Needs")}:{" "}
           {entry.needs.length ? entry.needs.map((alts) => alts.map((k) => tx(EQUIPMENT_LABEL[k])).join(tx(" or "))).join(" + ") : tx("nothing but the floor")}

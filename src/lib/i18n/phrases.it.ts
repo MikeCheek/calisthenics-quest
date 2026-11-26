@@ -449,6 +449,13 @@ const IT_PHRASES: [string, string][] = [
 
   // ---- exercise demos: common mistakes ----
   ["Common mistakes", "Errori comuni"],
+  ["Setup", "Preparazione"],
+  ["Step by step", "Passo dopo passo"],
+  ["This version", "Questa variante"],
+  ["What to aim for", "Posizioni corrette"],
+  ["Breathing", "Respirazione"],
+  ["Fix", "Correzione"],
+  ["Loading the guide…", "Caricamento della guida…"],
   ["Kipping or swinging to get up", "Usare lo slancio o oscillare per salire"],
   ["Half reps — not starting from a full hang", "Mezze ripetizioni — senza partire da braccia distese"],
   ["Shrugging: shoulders up by the ears at the bottom", "Spalle alle orecchie in basso"],

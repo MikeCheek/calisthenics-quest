@@ -21,6 +21,25 @@ export const PILATES3: GuideTable = {
     ],
     breath: "Exhale to roll back, inhale at the bottom, exhale to roll up.",
   },
+  rollUp: {
+    setup: ["Lie on your back, legs straight and together, feet flexed; arms overhead."],
+    steps: [
+      "Inhale: lift the arms towards the ceiling and nod the chin.",
+      "Exhale: peel the spine off the mat one vertebra at a time, reaching forward over the legs.",
+      "Inhale, then exhale and roll back down the same way.",
+    ],
+    targets: [
+      "One vertebra at a time — no jerk.",
+      "Legs stay on the mat; heels reaching away.",
+      "At the top a C curve over the legs, belly drawn in.",
+    ],
+    mistakes: [
+      ["Jerking up with momentum", "Bend the knees or use a band."],
+      ["Legs lifting", "Press the heels into the mat."],
+      ["Shoulders tensing", "Let the shoulders relax down."],
+    ],
+    breath: "Exhale to roll up, exhale to roll down.",
+  },
   rollOver: {
     setup: ["Lie on your back, arms by the sides, palms down, legs together and straight up to the ceiling."],
     steps: [
