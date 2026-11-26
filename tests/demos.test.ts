@@ -120,3 +120,13 @@ test("joints move smoothly: nothing jumps between two frames 20 ms apart", async
   }
   assert.deepEqual(bad, []);
 });
+
+test("an open skill card animates the stage you're on, or the first one", async () => {
+  const { skillDemoName } = await import("../src/lib/demos/skillDemo");
+  assert.equal(skillDemoName("planche", "advancedTuck"), "Adv. tuck Planche");
+  assert.equal(demoFor(skillDemoName("planche", "advancedTuck")!)?.family, "planche");
+  // not started: the first stage
+  assert.equal(demoFor(skillDemoName("frontLever", "none")!)?.family, "frontLever");
+  // no animation for this one: nothing to show
+  assert.equal(skillDemoName("kipUp" as never, "none"), null);
+});
