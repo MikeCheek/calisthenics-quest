@@ -20,7 +20,7 @@ import {
   User,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { DEMO_MODE, DEMO_UID } from "@/lib/demoMode/flag";
+import { DEMO_MODE, DEMO_UID, demoScenario } from "@/lib/demoMode/flag";
 import { fetchUserDoc, createUserDoc, ensureFriendCode, updateProgress, fetchSessionsBetween } from "@/lib/store";
 import { streakFromSessions } from "@/lib/weekStreak";
 import { useToast } from "@/context/ToastContext";
@@ -144,14 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // example athlete, no Firebase (see lib/demoMode)
       const demoUser = {
         uid: DEMO_UID,
-        // sessionStorage "barquests:demo-guest" = "1": a guest, to try what guests see
-        isAnonymous: (() => {
-          try {
-            return sessionStorage.getItem("barquests:demo-guest") === "1";
-          } catch {
-            return false;
-          }
-        })(),
+        // a guest in the "guest" scenario (see demoMode/flag.ts)
+        isAnonymous: demoScenario("guest"),
         displayName: "Alex Demo",
         email: "demo@example.com",
         photoURL: null,

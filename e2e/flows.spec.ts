@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { collectErrors, expectNoA11yViolations } from "./helpers";
+import { collectErrors, demoScenario, expectNoA11yViolations } from "./helpers";
 
 test("the skip link jumps to the page content", async ({ page }) => {
   await page.goto("/dashboard");
@@ -524,15 +524,7 @@ test("sports: starting from the yoga page opens yoga's setup in the app", async 
 
 test.describe("first login: pick a sport", () => {
   test.beforeEach(async ({ page }) => {
-    // runs in every document, some of which (opaque-origin frames) refuse
-    // storage access: guard it like the app does
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-fresh", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "fresh");
   });
 
   test("start with yoga: its three questions, then Today is yoga; calisthenics asks for its check when added", async ({ page }) => {
@@ -582,13 +574,7 @@ const go = (page: import("@playwright/test").Page, route: string) =>
 
 test.describe("started with yoga", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-fresh", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "fresh");
     await page.goto("/onboarding");
     await page.getByRole("button", { name: /Yoga/ }).click();
     await page.getByRole("button", { name: "Start Yoga" }).click();
@@ -627,13 +613,7 @@ test.describe("started with yoga", () => {
 
 test.describe("yoga extras", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-fresh", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "fresh");
     await page.goto("/onboarding");
     await page.getByRole("button", { name: /Yoga/ }).click();
     await page.getByRole("button", { name: "Start Yoga" }).click();
@@ -685,13 +665,7 @@ test("offline, the AI coach says it needs a connection", async ({ page, context 
 
 test.describe("as a guest", () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      try {
-        sessionStorage.setItem("barquests:demo-guest", "1");
-      } catch {
-        /* not this document */
-      }
-    });
+    await demoScenario(page, "guest");
   });
 
   test("Crew shows the community event and asks to save; an invite link says so", async ({ page }) => {

@@ -7,3 +7,19 @@ export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "1" && process.en
 // kept here (not in fixture.ts) so code that only checks the flag doesn't
 // pull the example data into production bundles
 export const DEMO_UID = "demo-athlete";
+
+// Demo scenarios: variations of the example athlete, for trying (and
+// testing) other situations. sessionStorage "barquests:demo-scenario" holds
+// a comma-separated list — e2e/helpers.ts sets it with demoScenario():
+//   fresh — a brand-new user: not set up, nothing logged (the first login)
+//   guest — signed in as a guest (no Google account)
+export type DemoScenario = "fresh" | "guest";
+export const DEMO_SCENARIO_KEY = "barquests:demo-scenario";
+
+export function demoScenario(name: DemoScenario): boolean {
+  try {
+    return typeof window !== "undefined" && (sessionStorage.getItem(DEMO_SCENARIO_KEY) ?? "").split(",").includes(name);
+  } catch {
+    return false; // storage blocked: the usual example athlete
+  }
+}

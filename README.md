@@ -623,6 +623,11 @@ screen without a Firebase project. A "DEMO" tab on the left edge marks it. It on
 the development server: production builds never include it. The AI features answer with
 canned, clearly labelled demo replies, so no OpenRouter key is needed either.
 
+To try other situations, set a scenario in the browser console before loading the page:
+`sessionStorage.setItem("barquests:demo-scenario", "fresh")` starts as a brand-new user
+(the sport picker and setup), `"guest"` as a guest account, `"fresh,guest"` both. The
+browser tests use the same switch (`demoScenario()` in `e2e/helpers.ts`).
+
 On a phone (or any production build) the app can be installed from the browser's
 *Add to Home Screen* / install prompt — it ships a web manifest and a service worker.
 

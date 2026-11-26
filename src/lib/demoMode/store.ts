@@ -10,6 +10,7 @@ import type { BodyProfile, Friend, Ping, PublicProfile, SessionRecord, SkillMast
 import type { GlobalBoardRow, GlobalBoardWrite, PairingDoc } from "../store";
 import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
+import { demoScenario } from "./flag";
 import { DEMO_FRIEND_PROFILES, DEMO_FRIENDS, DEMO_GLOBAL_BOARD, DEMO_UID, demoSessions, demoUserDoc } from "./fixture";
 import { pickNudge, renderNudge } from "../nudges";
 import type { CachedPark, OsmCell, ParkReport, ParkStats, Reaction, UserParkDoc } from "../parks";
@@ -20,15 +21,8 @@ export type { GlobalBoardRow, PairingDoc };
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const pause = () => new Promise((r) => setTimeout(r, 120)); // feel like a network
 
-// sessionStorage "barquests:demo-fresh" = "1": start as a brand-new user
-// (not onboarded, nothing logged), to try the first login
-const fresh = (() => {
-  try {
-    return typeof window !== "undefined" && sessionStorage.getItem("barquests:demo-fresh") === "1";
-  } catch {
-    return false;
-  }
-})();
+// a brand-new user (not set up, nothing logged) in the "fresh" scenario
+const fresh = demoScenario("fresh");
 const firstUser = (): UserDoc => (fresh ? { ...demoUserDoc(), onboarded: false, totalSessionsCompleted: 0, xp: 0, streak: 0, xpHistory: [] } : demoUserDoc());
 
 const state = {

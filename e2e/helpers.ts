@@ -35,3 +35,16 @@ export function collectErrors(page: Page, ignore: RegExp = /^$/): string[] {
   page.on("pageerror", (e) => !ignore.test(e.message) && errors.push(e.message));
   return errors;
 }
+
+// Demo scenarios (src/lib/demoMode/flag.ts): start the example app as a
+// brand-new user ("fresh") and/or a guest ("guest"). Set before the first
+// page load; it lasts for the tab.
+export async function demoScenario(page: Page, ...names: ("fresh" | "guest")[]) {
+  await page.addInitScript((value) => {
+    try {
+      sessionStorage.setItem("barquests:demo-scenario", value);
+    } catch {
+      /* documents without storage (opaque-origin frames): nothing to set */
+    }
+  }, names.join(","));
+}
