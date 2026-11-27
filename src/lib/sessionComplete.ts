@@ -8,6 +8,9 @@ import { earnedXp, xpRules } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
 import { LENGTH_HISTORY, lengthSample } from "./sessionLength";
 import { addLoad, sessionLoad } from "./muscleLoad";
+import { trackPlateaus } from "./plateau";
+import { READINESS_HISTORY, nextLighterWeek, readReadiness } from "./readiness";
+import { isActive } from "./trainingBlock";
 import { estimateSessionMinutes } from "./exerciseTiming";
 import { ExerciseFeedback, PersonalRecord, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
@@ -112,8 +115,11 @@ export async function completeSession(
     report = { masteryChanges: [], suggestions: [], verifications: [], ignoredTimingSamples, records: newRecords, feedbackCounts: counts, stageUps: applied.stageUps };
   } else {
     // Learn from what actually happened in this session (see adaptation.ts).
-    const exerciseStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
+    const learnedStats = recordLastTimes(applyExerciseFeedback(userDoc.exerciseStats ?? {}, feedback), feedback);
     const detected = detectRecords(userDoc.records ?? {}, feedback);
+    // stuck for three weeks: switch the stimulus for two (plateau.ts)
+    const improved = new Set(Object.keys(detected.records).filter((k) => detected.records[k] !== (userDoc.records ?? {})[k]));
+    const exerciseStats = trackPlateaus(learnedStats, detected.records, feedback, improved, new Date().toISOString());
     newRecords = detected.newRecords;
     const learned = applySkillFeedback(userDoc.skills, userDoc.skillMastery ?? {}, userDoc.skillProgress ?? {}, feedback);
     // Verify (or question) what the athlete claimed, from any Skill Check.
@@ -164,19 +170,23 @@ export async function completeSession(
   const load = sessionLoad(feedback, session.sport);
   const loadLog = Object.keys(load).length ? addLoad(userDoc.loadLog, localDay(), load) : undefined;
 
+  // how you said you felt, and whether a lighter week is due (readiness.ts)
+  const effortHistory =
+    opts.effort && opts.effort.planned > 0
+      ? [...(userDoc.effortHistory ?? []), { at: new Date().toISOString(), planned: opts.effort.planned, done: opts.effort.done, tired: opts.effort.tired }].slice(-EFFORT_HISTORY)
+      : undefined;
+  const felt = readReadiness();
+  const readinessLog = felt ? [...(userDoc.readinessLog ?? []), { d: localDay(), r: felt }].slice(-READINESS_HISTORY) : undefined;
+  const lighterWeek = nextLighterWeek(userDoc.lighterWeek, effortHistory ?? userDoc.effortHistory, readinessLog ?? userDoc.readinessLog, localDay(), isActive(userDoc.trainingBlock ?? undefined));
+
   const patch: Partial<UserDoc> = {
     ...learnPatch,
     week,
+    lighterWeek,
+    ...(readinessLog ? { readinessLog } : {}),
     ...(loadLog ? { loadLog } : {}),
     ...(length && !opts.isPaired ? { lengthHistory: [...(userDoc.lengthHistory ?? []), length].slice(-LENGTH_HISTORY) } : {}),
-    ...(opts.effort && opts.effort.planned > 0
-      ? {
-          effortHistory: [
-            ...(userDoc.effortHistory ?? []),
-            { at: new Date().toISOString(), planned: opts.effort.planned, done: opts.effort.done, tired: opts.effort.tired },
-          ].slice(-EFFORT_HISTORY),
-        }
-      : {}),
+    ...(effortHistory ? { effortHistory } : {}),
     xp: totalXp,
     streak: newStreak,
     streakUnit: "week",

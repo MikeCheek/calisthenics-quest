@@ -1,5 +1,6 @@
 "use client";
 
+import TodayReadiness from "@/components/TodayReadiness";
 import UsualLengthNote from "@/components/UsualLengthNote";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
 import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
@@ -52,7 +53,7 @@ export default function TrainingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf, usualLength, fullLengthToday } = useTodaysSession(userDoc);
+  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -166,6 +167,8 @@ export default function TrainingPage() {
         )}
 
         {displayedSession.why && !completed && <div className="text-xs text-sky-400/90 px-1">{tx(displayedSession.why)}</div>}
+
+        {!aiAppliedSession && !completed && <TodayReadiness readiness={readiness} onReadiness={setReadiness} lighterWeek={lighterWeek} className="px-1" />}
 
         {!aiAppliedSession && !completed && <UsualLengthNote usual={usualLength} onFull={fullLengthToday} className="px-1" />}
 

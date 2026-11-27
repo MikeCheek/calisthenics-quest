@@ -10,6 +10,8 @@ import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, R
 import { localizeDetail } from "@/lib/i18n/detail";
 import { plannedXp } from "@/lib/sessionXp";
 import UsualLengthNote from "@/components/UsualLengthNote";
+import TodayReadiness from "@/components/TodayReadiness";
+import type { LighterWeek, Readiness } from "@/lib/readiness";
 import type { HabitualLength } from "@/lib/sessionLength";
 
 const PREVIEW = 5;
@@ -23,6 +25,9 @@ export default function TodaySessionCard({
   lighterBy = 0,
   usualLength = null,
   onFullLength,
+  readiness = null,
+  onReadiness,
+  lighterWeek = null,
   onStart,
   onResume,
 }: {
@@ -33,6 +38,9 @@ export default function TodaySessionCard({
   lighterBy?: number; // % trimmed to fit recent energy (effort.ts)
   usualLength?: HabitualLength | null; // planned shorter, to what you usually get through
   onFullLength?: () => void;
+  readiness?: Readiness | null;
+  onReadiness?: (r: Readiness | null) => void;
+  lighterWeek?: LighterWeek | null;
   onStart: () => void;
   onResume: () => void;
 }) {
@@ -98,6 +106,8 @@ export default function TodaySessionCard({
           {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}
         </p>
       )}
+
+      {!inProgress && onReadiness && <TodayReadiness readiness={readiness} onReadiness={onReadiness} lighterWeek={lighterWeek} className="mt-3" />}
 
       {!doneToday && onFullLength && <UsualLengthNote usual={usualLength} onFull={onFullLength} className="mt-2" />}
 

@@ -47,7 +47,7 @@ export default function TodayPage() {
     startSession,
     expand,
   } = useTrainingSession();
-  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf, usualLength, fullLengthToday } = useTodaysSession(userDoc);
+  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek } = useTodaysSession(userDoc);
   const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
@@ -147,6 +147,9 @@ export default function TodayPage() {
               lighterBy={lighterBy}
               usualLength={usualLength}
               onFullLength={fullLengthToday}
+              readiness={readiness}
+              onReadiness={setReadiness}
+              lighterWeek={lighterWeek}
               onStart={() =>
                 outdoor
                   ? askParkFirst(userDoc).then(() => startSession(fitted.session))

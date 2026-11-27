@@ -14,6 +14,8 @@ import { SPORTS, activeSportOf, isExtraSport, type SportId } from "@/lib/sports"
 import { focusOptions, generateSportSession, groupLabel, pickSportFocus } from "@/lib/sports/generator";
 import { habitualMinutes, type HabitualLength } from "@/lib/sessionLength";
 import { restAwareFocus } from "@/lib/muscleLoad";
+import { applyReadiness, lighterActive, lighterDay, readReadiness, saveReadiness, scaleSets, type Readiness } from "@/lib/readiness";
+import type { TrainingSession } from "@/lib/types";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -56,6 +58,26 @@ function useFullLength(sport: string) {
   return [full, fullToday] as const;
 }
 
+// how you said you feel today (readiness.ts), remembered for the day
+function useReadiness() {
+  const [readiness, setR] = useState<Readiness | null>(null);
+  useEffect(() => setR(readReadiness()), []);
+  const setReadiness = useCallback((r: Readiness | null) => {
+    setR(r);
+    saveReadiness(r);
+  }, []);
+  return [readiness, setReadiness] as const;
+}
+
+const LIGHTER_FACTOR = 0.6;
+const CHECKS_FROM_DAY = 6; // a lighter week's skill checks wait for its last two days
+
+/** a running lighter week, then how you feel today */
+function forToday(session: TrainingSession, userDoc: UserDoc | null, readiness: Readiness | null): TrainingSession {
+  const lighter = lighterActive(userDoc?.lighterWeek) ? scaleSets(session, LIGHTER_FACTOR, "Lighter week: recovering on purpose") : session;
+  return applyReadiness(lighter, readiness);
+}
+
 /** the length to plan for: your chosen one, or what you usually get through */
 function planLength(chosen: number | undefined, userDoc: UserDoc | null, sport: SportId, full: boolean): HabitualLength | null {
   const h = habitualMinutes(chosen, userDoc?.lengthHistory, sport);
@@ -96,6 +118,9 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
   const focusWhy = focus === rested?.focus ? rested?.why : undefined;
 
   const [fullLength, setFullToday] = useFullLength("calisthenics");
+  const [readiness, setReadiness] = useReadiness();
+  const lighter = lighterActive(userDoc?.lighterWeek) ? userDoc!.lighterWeek! : null;
+  const checksWait = !!lighter && lighterDay(lighter as typeof lighter & { from: string }) < CHECKS_FROM_DAY;
   const length = planLength(userDoc?.body?.sessionLengthMinutes, userDoc, "calisthenics", fullLength);
   const minutes = length?.minutes;
   // what you usually get through, offered as a shorter plan (sessionLength.ts)
@@ -115,26 +140,29 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
       generateSession(trainSkills, equipment!, focus, new Date(), minutes, { stats: userDoc.exerciseStats, records: userDoc.records, load: userDoc.loadLog }),
       userDoc.exerciseStats,
       equipment!,
-      trainSkills
+      trainSkills,
+      userDoc.records
     );
     // a Skill Check (two while much is unchecked), verifying what the athlete claimed
-    const checks = pickSkillChecks(claims, equipment!, focus, checksPerSession(claims));
+    // a lighter week saves its skill checks for its last days, when you're fresh
+    const checks = checksWait ? [] : pickSkillChecks(claims, equipment!, focus, checksPerSession(claims));
     const check = checks[0] ?? null;
     // fit everything to the athlete's chosen session length…
     const fitted = fitSessionToMinutes(addSkillChecks(adapted, checks), minutes);
     // …and within the effort they've had energy for lately (effort.ts)
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc.effortHistory));
     // a block's deload week: lighter on purpose
-    const lighter = deload ? applyDeload(balanced.session) : balanced.session;
-    const session = focusWhy ? { ...lighter, why: focusWhy } : lighter;
+    // a block's deload week, or else a lighter week; then how you feel today
+    const eased = deload ? applyReadiness(applyDeload(balanced.session), readiness) : forToday(balanced.session, userDoc, readiness);
+    const session = focusWhy ? { ...eased, why: focusWhy } : eased;
     return { fitted: { ...fitted, session }, check, lighterBy: balanced.trimmed };
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy]);
+  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy, readiness, lighter?.from, checksWait]);
 
-  return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: usual, fullLengthToday: setFullToday };
+  return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: usual, fullLengthToday: setFullToday, readiness, setReadiness, lighterWeek: lighter };
 }
 
 // ---- another sport (sports/): today's session from its own track ----
@@ -168,6 +196,8 @@ function useSportSession(userDoc: UserDoc | null, sport: SportId) {
   const options = useMemo(() => (def ? focusOptions(def) : []), [def]);
   const focus = def && track ? (override && options.includes(override) ? override : pickSportFocus(def, track, new Date())) : null;
   const [fullLength, setFullToday] = useFullLength(sport);
+  const [readiness, setReadiness] = useReadiness();
+  const lighter = lighterActive(userDoc?.lighterWeek) ? userDoc!.lighterWeek! : null;
   const length = planLength(track?.sessionLengthMinutes ?? userDoc?.body?.sessionLengthMinutes, userDoc, sport, fullLength);
   const minutes = length?.minutes;
   const trackKey = JSON.stringify(track ? { stage: track.stage, mastery: track.mastery, minutes } : null);
@@ -178,10 +208,10 @@ function useSportSession(userDoc: UserDoc | null, sport: SportId) {
     const adapted = adaptSession(generateSportSession(def, track, focus), track.exerciseStats, userDoc!.equipment);
     const fitted = fitSessionToMinutes(adapted, minutes);
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc?.effortHistory));
-    return { fitted: { ...fitted, session: { ...balanced.session, sport: def.id } }, lighterBy: balanced.trimmed };
+    return { fitted: { ...fitted, session: { ...forToday(balanced.session, userDoc, readiness), sport: def.id } }, lighterBy: balanced.trimmed };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackKey, focus, def]);
-  return { focus, options, fitted: built?.fitted ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: length?.shorter ? length : null, fullLengthToday: setFullToday, labelOf: (f: string) => (def ? groupLabel(def, f) : f) };
+  }, [trackKey, focus, def, readiness, lighter?.from]);
+  return { focus, options, fitted: built?.fitted ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: length?.shorter ? length : null, fullLengthToday: setFullToday, readiness, setReadiness, lighterWeek: lighter, labelOf: (f: string) => (def ? groupLabel(def, f) : f) };
 }
 
 // Today's session in the sport you're following now (calisthenics unless

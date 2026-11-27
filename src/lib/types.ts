@@ -362,6 +362,8 @@ export interface ExerciseStat {
   up?: number; // reps (or seconds) added after hitting the top of the range (progression.ts)
   miss?: number; // sessions in a row below the bottom of the range
   sk?: number; // skipped on purpose while fresh — a sign you'd rather not (variety.ts)
+  sb?: number; // sessions since its last best (plateau.ts)
+  pl?: string; // when its plateau-breaking fortnight started (plateau.ts)
 }
 
 // Rolling per-skill signal from every exercise belonging to that skill —
@@ -514,6 +516,9 @@ export interface UserDoc {
   lengthHistory?: import("./sessionLength").LengthSample[];
   // hard sets per muscle group, per day, for two weeks — recovery and weekly volume (muscleLoad.ts)
   loadLog?: import("./muscleLoad").LoadDay[];
+  // how you said you felt before recent sessions, and the lighter week (readiness.ts)
+  readinessLog?: import("./readiness").ReadinessSample[];
+  lighterWeek?: import("./readiness").LighterWeek;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

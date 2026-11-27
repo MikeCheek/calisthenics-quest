@@ -79,7 +79,7 @@ export function generatePlan(
     const focus = focusWithBlock(date, equipment, goalTracks, block ?? undefined, trainingCounter);
     // planned sessions reflect what training has already learned
     const fitted = fitSessionToMinutes(
-      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes, { stats: seen, records }), stats, equipment, skills),
+      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes, { stats: seen, records }), stats, equipment, skills, records),
       body.sessionLengthMinutes
     ).session;
     // the next planned days rotate away from what this one does

@@ -9,6 +9,7 @@ import { SKILL_HISTORY_MAX } from "../src/lib/skillHistory";
 import { EFFORT_HISTORY } from "../src/lib/effort";
 import { LENGTH_HISTORY } from "../src/lib/sessionLength";
 import { LOAD_DAYS } from "../src/lib/muscleLoad";
+import { READINESS_HISTORY } from "../src/lib/readiness";
 import { MAX_SAVED_WORKOUTS, MAX_ITEMS } from "../src/lib/customSession";
 import { MAX_FAVS } from "../src/lib/parks";
 import { SKILL_FIELD_LABEL, type ExerciseStat, type ExerciseBest, type UserDoc } from "../src/lib/types";
@@ -50,6 +51,8 @@ test("a user document at every cap stays under half of Firestore's 1 MiB", () =>
     sports,
     weightLog: Array.from({ length: WEIGHT_LOG_MAX }, (_, i) => ({ date: day(i), kg: 72.4 })),
     skillHistory: Array.from({ length: SKILL_HISTORY_MAX }, () => ({ at: iso, skills: everySkill })),
+    readinessLog: Array.from({ length: READINESS_HISTORY }, (_, i) => ({ d: day(i), r: "strong" as const })),
+    lighterWeek: { from: iso, sessions: 99, why: "tired" },
     loadLog: Array.from({ length: LOAD_DAYS }, (_, i) => ({ d: day(i), g: { pull: 24.5, push: 22.5, wrists: 12.5, core: 18.5, legs: 16.5 } })),
     lengthHistory: Array.from({ length: LENGTH_HISTORY }, () => ({ at: iso, planned: 120, done: 0.67, sport: "pilates" as const })),
     effortHistory: Array.from({ length: EFFORT_HISTORY }, () => ({ at: iso, planned: 120, done: 110, tired: false })),

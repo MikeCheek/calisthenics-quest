@@ -71,6 +71,19 @@ test("the session says why each block is there today", async ({ page }) => {
   await expect(why.filter({ hasText: /^Builds the strength .+ needs/ })).toHaveCount(1);
 });
 
+test("how you feel today changes the session before you start", async ({ page }) => {
+  await page.goto("/dashboard");
+  const minutes = async () => Number((await page.getByText(/^\s*~\d+ min\s*$/).first().textContent())!.replace(/\D/g, ""));
+  const usual = await minutes();
+  const feel = page.getByRole("group", { name: "How do you feel today?" });
+  await feel.getByRole("button", { name: /Tired/ }).click();
+  await expect(feel.getByRole("button", { name: /Tired/ })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(minutes).toBeLessThan(usual);
+  // tapping it again: back to the usual session
+  await feel.getByRole("button", { name: /Tired/ }).click();
+  await expect.poll(minutes).toBe(usual);
+});
+
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
   await page.goto("/dashboard");
   const card = page.locator("section[aria-labelledby=event-title]");

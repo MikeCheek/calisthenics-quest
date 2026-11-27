@@ -1,6 +1,7 @@
 import { feedbackWeight } from "./effort";
 import {
   Exercise,
+  ExerciseBest,
   ExerciseFeedback,
   ExerciseStat,
   SkillMastery,
@@ -22,6 +23,7 @@ import {
 } from "./exerciseHierarchy";
 import { adjustDetail } from "./exerciseTiming";
 import { applyProgression, easeProgression, learnProgression, progressionNote } from "./progression";
+import { inSwitch, plateauVariant } from "./plateau";
 import { STAGE_ORDER, STAGE_LABEL, stageIndex } from "./stageOrder";
 import { median, scaleHoldDetail, round5 } from "./timingLearning";
 import type { VerificationEvent } from "./verification";
@@ -258,7 +260,8 @@ function adaptOne(
   equipment: TrainingEquipment,
   taken: Set<string>,
   nowISO: string,
-  skills?: SkillProfile
+  skills?: SkillProfile,
+  records?: Record<string, { hold?: number; reps?: number }>
 ): Exercise {
   const s = statFor(stats, ex.name);
   if (!s) return ex;
@@ -309,6 +312,12 @@ function adaptOne(
     }
   }
 
+  // stuck for three weeks: a different stimulus for two (plateau.ts)
+  if (inSwitch(s, nowISO)) {
+    const v = plateauVariant(ex, equipment, records?.[statKey(ex.name)]);
+    if (v) return v;
+  }
+
   let delta = s.rd ?? 0;
   const notes: string[] = [];
   // more reps (or seconds) first, from the numbers you logged…
@@ -331,7 +340,8 @@ export function adaptSession(
   session: TrainingSession,
   stats: Record<string, ExerciseStat> | undefined,
   equipment: TrainingEquipment,
-  skills?: SkillProfile
+  skills?: SkillProfile,
+  records?: Record<string, { hold?: number; reps?: number }>
 ): TrainingSession {
   if (!stats || Object.keys(stats).length === 0) return session;
   const now = `${session.dateISO}T12:00:00.000Z`; // the session's own day: same input, same result
@@ -343,7 +353,7 @@ export function adaptSession(
       if (HIERARCHY_EXEMPT_SETS.has(set.title)) return set;
       const exercises = set.exercises.map((ex) => {
         if (ex.check) return ex;
-        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now, skills), stats);
+        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now, skills, records), stats);
         taken.add(adapted.name);
         return adapted;
       });
