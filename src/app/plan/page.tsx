@@ -1,5 +1,6 @@
 "use client";
 
+import { habitDays, habitHour, weekdayNames } from "@/lib/trainingHabits";
 import { SPORTS, SPORT_META, activeSportOf, isExtraSport } from "@/lib/sports";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -73,15 +74,21 @@ export default function PlanPage() {
   // a plan made for another sport is cleared when the sport changes
   useEffect(() => setPlan([]), [active]);
 
+  // the weekdays and time you actually train (trainingHabits.ts), unless you picked days yourself
+  const ownDays = !!userDoc?.body.trainingDaysOfWeek?.length;
+  const usualDays = userDoc && !ownDays ? habitDays(userDoc.trainTimes, userDoc.body.trainingDaysPerWeek ?? 3) : null;
+  const usualHour = userDoc ? habitHour(userDoc.trainTimes) : null;
+  const body = userDoc && usualDays ? { ...userDoc.body, trainingDaysOfWeek: usualDays } : userDoc?.body;
+
   const handleGenerate = async () => {
-    if (!userDoc) return;
+    if (!userDoc || !body) return;
     const newPlan = sportTrack
-      ? generateSportPlan(SPORTS[sportTrack.id], sportTrack.track, userDoc.body, userDoc.equipment, range)
+      ? generateSportPlan(SPORTS[sportTrack.id], sportTrack.track, body, userDoc.equipment, range)
       : generatePlan(
       userDoc.skills,
       userDoc.equipment,
       userDoc.goalTracks ?? [],
-      userDoc.body,
+      body,
       range,
       new Date(),
       userDoc.exerciseStats,
@@ -163,6 +170,12 @@ export default function PlanPage() {
           <p className="text-zinc-400 text-sm">
             {tx("Lay out sessions ahead of time instead of just today's.")}
           </p>
+          {usualDays && (
+            <p className="text-xs text-sky-300 mt-1" data-testid="usual-days">
+              {tx("Planned on the days you usually train: {days}", { days: weekdayNames(usualDays).map((d) => tx(d)).join(" / ") })}
+              {usualHour !== null && ` · ${tx("usually around {t}", { t: `${String(usualHour).padStart(2, "0")}:00` })}`}
+            </p>
+          )}
           {sportTrack && (
             <p className="text-sm text-zinc-300 mt-2">
               <span aria-hidden="true">{SPORT_META[sportTrack.id].emoji}</span>{" "}

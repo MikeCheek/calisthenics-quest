@@ -11,6 +11,8 @@ import { addLoad, sessionLoad } from "./muscleLoad";
 import { trackPlateaus } from "./plateau";
 import { READINESS_HISTORY, nextLighterWeek, readReadiness } from "./readiness";
 import { isActive } from "./trainingBlock";
+import { BLOCK_HISTORY, WHERE_HISTORY, addTrainTime, blockSample, habitHour, habitReminder, trainTime } from "./trainingHabits";
+import { readTodayEquipment, readWetToday } from "./todayEquipment";
 import { estimateSessionMinutes } from "./exerciseTiming";
 import { ExerciseFeedback, PersonalRecord, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
@@ -179,10 +181,34 @@ export async function completeSession(
   const readinessLog = felt ? [...(userDoc.readinessLog ?? []), { d: localDay(), r: felt }].slice(-READINESS_HISTORY) : undefined;
   const lighterWeek = nextLighterWeek(userDoc.lighterWeek, effortHistory ?? userDoc.effortHistory, readinessLog ?? userDoc.readinessLog, localDay(), isActive(userDoc.trainingBlock ?? undefined));
 
+  // when and where you trained, and what you left out (trainingHabits.ts)
+  const started = new Date(Date.now() - (opts.durationMin ?? 0) * 60_000);
+  const trainTimes = addTrainTime(userDoc.trainTimes, trainTime(started));
+  const n = userDoc.notifications;
+  const usualHour = habitHour(trainTimes);
+  const followTime = n?.enabled && !n.timeSet && n.followHabit !== false && usualHour !== null ? habitReminder(usualHour) : null;
+  const here = sport ? null : readTodayEquipment();
+  const whereLog = sport
+    ? undefined
+    : [
+        ...(userDoc.whereLog ?? []),
+        {
+          w: started.getDay(),
+          wet: readWetToday(),
+          k: !here ? ("usual" as const) : here.kind === "park" ? ("park" as const) : ("home" as const),
+          ...(here?.kind === "park" && here.parkId ? { park: { id: here.parkId, label: here.label, equipment: here.equipment } } : {}),
+        },
+      ].slice(-WHERE_HISTORY);
+  const blocks = blockSample(session, feedback);
+
   const patch: Partial<UserDoc> = {
     ...learnPatch,
     week,
     lighterWeek,
+    trainTimes,
+    ...(followTime && followTime !== n?.time ? { notifications: { ...n!, time: followTime } } : {}),
+    ...(whereLog ? { whereLog } : {}),
+    ...(blocks ? { blockLog: [...(userDoc.blockLog ?? []), blocks].slice(-BLOCK_HISTORY) } : {}),
     ...(readinessLog ? { readinessLog } : {}),
     ...(loadLog ? { loadLog } : {}),
     ...(length && !opts.isPaired ? { lengthHistory: [...(userDoc.lengthHistory ?? []), length].slice(-LENGTH_HISTORY) } : {}),

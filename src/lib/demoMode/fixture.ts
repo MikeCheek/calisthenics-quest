@@ -143,6 +143,14 @@ export function demoUserDoc(): UserDoc {
       { d: iso(4).slice(0, 10), g: { pull: 9, core: 4 } },
       { d: iso(2).slice(0, 10), g: { push: 7, wrists: 5, pull: 3 } },
     ],
+    // the finisher skipped in four of the last five sessions: Today asks once (trainingHabits.ts)
+    blockLog: [
+      { wu: false, fin: true },
+      { wu: false, fin: true },
+      { wu: false, fin: false },
+      { wu: false, fin: true },
+      { wu: false, fin: true },
+    ],
     // the last few sessions ended about two thirds of the way in (sessionLength.ts)
     lengthHistory: [
       { at: iso(6), planned: 45, done: 0.7 },

@@ -16,6 +16,7 @@ import { habitualMinutes, type HabitualLength } from "@/lib/sessionLength";
 import { restAwareFocus } from "@/lib/muscleLoad";
 import { applyReadiness, lighterActive, lighterDay, readReadiness, saveReadiness, scaleSets, type Readiness } from "@/lib/readiness";
 import type { TrainingSession } from "@/lib/types";
+import { applyBlockPrefs } from "@/lib/trainingHabits";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -75,7 +76,8 @@ const CHECKS_FROM_DAY = 6; // a lighter week's skill checks wait for its last tw
 /** a running lighter week, then how you feel today */
 function forToday(session: TrainingSession, userDoc: UserDoc | null, readiness: Readiness | null): TrainingSession {
   const lighter = lighterActive(userDoc?.lighterWeek) ? scaleSets(session, LIGHTER_FACTOR, "Lighter week: recovering on purpose") : session;
-  return applyReadiness(lighter, readiness);
+  // and the blocks you've chosen to shorten (trainingHabits.ts)
+  return applyBlockPrefs(applyReadiness(lighter, readiness), userDoc?.blockPrefs);
 }
 
 /** the length to plan for: your chosen one, or what you usually get through */
@@ -153,14 +155,14 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc.effortHistory));
     // a block's deload week: lighter on purpose
     // a block's deload week, or else a lighter week; then how you feel today
-    const eased = deload ? applyReadiness(applyDeload(balanced.session), readiness) : forToday(balanced.session, userDoc, readiness);
+    const eased = deload ? applyBlockPrefs(applyReadiness(applyDeload(balanced.session), readiness), userDoc.blockPrefs) : forToday(balanced.session, userDoc, readiness);
     const session = focusWhy ? { ...eased, why: focusWhy } : eased;
     return { fitted: { ...fitted, session }, check, lighterBy: balanced.trimmed };
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy, readiness, lighter?.from, checksWait]);
+  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy, readiness, lighter?.from, checksWait, JSON.stringify(userDoc?.blockPrefs ?? null)]);
 
   return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: usual, fullLengthToday: setFullToday, readiness, setReadiness, lighterWeek: lighter };
 }
@@ -210,7 +212,7 @@ function useSportSession(userDoc: UserDoc | null, sport: SportId) {
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc?.effortHistory));
     return { fitted: { ...fitted, session: { ...forToday(balanced.session, userDoc, readiness), sport: def.id } }, lighterBy: balanced.trimmed };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackKey, focus, def, readiness, lighter?.from]);
+  }, [trackKey, focus, def, readiness, lighter?.from, JSON.stringify(userDoc?.blockPrefs ?? null)]);
   return { focus, options, fitted: built?.fitted ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: length?.shorter ? length : null, fullLengthToday: setFullToday, readiness, setReadiness, lighterWeek: lighter, labelOf: (f: string) => (def ? groupLabel(def, f) : f) };
 }
 

@@ -421,6 +421,9 @@ export interface XPHistoryPoint {
 export interface NotificationPrefs {
   enabled: boolean;
   time: string; // "HH:MM", 24h local time
+  // the time follows your usual training time (an hour before) until you set one (trainingHabits.ts)
+  followHabit?: boolean;
+  timeSet?: boolean;
 }
 
 export const DEFAULT_NOTIFICATIONS: NotificationPrefs = {
@@ -519,6 +522,11 @@ export interface UserDoc {
   // how you said you felt before recent sessions, and the lighter week (readiness.ts)
   readinessLog?: import("./readiness").ReadinessSample[];
   lighterWeek?: import("./readiness").LighterWeek;
+  // when and where you train, and the blocks you leave out (trainingHabits.ts)
+  trainTimes?: import("./trainingHabits").TrainTime[];
+  whereLog?: import("./trainingHabits").WhereSample[];
+  blockLog?: import("./trainingHabits").BlockSample[];
+  blockPrefs?: import("./trainingHabits").BlockPrefs;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockQuestion } from "@/components/BlockPrefs";
 import SportWeekSummary from "@/components/sports/SportWeekSummary";
 import { SPORT_META } from "@/lib/sports";
 import SportProgressCard from "@/components/sports/SportProgressCard";
@@ -134,10 +135,12 @@ export default function TodayPage() {
             {/* weather and bar-park kit are for outdoor calisthenics */}
             {outdoor && !doneToday && !(activeSession && !activeCompleted) && (
               <>
-                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} />
+                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} whereLog={userDoc.whereLog} />
                 <WeatherCard userDoc={userDoc} override={todayEquipment} />
               </>
             )}
+
+            <BlockQuestion />
 
             <TodaySessionCard
               session={fitted.session}

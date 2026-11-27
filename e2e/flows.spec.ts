@@ -84,6 +84,19 @@ test("how you feel today changes the session before you start", async ({ page })
   await expect.poll(minutes).toBe(usual);
 });
 
+test("a finisher you keep skipping: asked once, then left out", async ({ page }) => {
+  await page.goto("/dashboard");
+  const ask = page.getByTestId("block-question");
+  await expect(ask).toContainText("skipped the finisher");
+  await ask.getByRole("button", { name: "Leave it out" }).click();
+  await expect(ask).toBeHidden();
+  // the full session (a link, not a reload: the demo lives in memory) has no finisher now
+  await page.locator('a[href="/training"]:visible').first().click();
+  await expect(page).toHaveURL(/\/training/);
+  await expect(page.getByRole("button", { name: /^Warm-Up/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Final Hits/ })).toHaveCount(0);
+});
+
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
   await page.goto("/dashboard");
   const card = page.locator("section[aria-labelledby=event-title]");
