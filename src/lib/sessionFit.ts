@@ -23,6 +23,7 @@ const XP_PER_EXERCISE = 8; // mirrors trainingGenerator's estXp formula
 type Kind = TrainingSet["track"];
 const isMain = (s: TrainingSet) => s.title.startsWith("Main Focus");
 const isAccessory = (s: TrainingSet) => s.title.startsWith("Accessory");
+const isStrength = (s: TrainingSet) => s.title.startsWith("Strength for");
 const kindIs = (s: TrainingSet, k: Kind) => s.track === k;
 
 export interface FitResult {
@@ -66,6 +67,7 @@ export function fitSessionToMinutes(session: TrainingSession, targetMinutes: num
     () => dropSet((s) => kindIs(s, "finisher")),
     () => trimTo(isAccessory, 1),
     () => dropSet(isAccessory),
+    () => trimTo(isStrength, 1),
     () => trimTo((s) => kindIs(s, "warmup"), MIN_WARMUP_EXERCISES),
     () => trimTo(isMain, MIN_MAIN_EXERCISES),
   ];

@@ -192,7 +192,7 @@ export function balanceSession(session: TrainingSession, capacity: number | null
   const sets = session.sets.map((s) => ({ ...s, exercises: [...s.exercises] }));
   const order = sets
     // the bonus skill block goes first, then the finisher, then accessories
-    .map((s, si) => ({ s, si, rank: s.track === "warmup" || s.track === "skillCheck" ? -1 : s.title.startsWith("Bonus") ? 0 : s.track === "finisher" ? 0.5 : s.title.startsWith("Accessory") ? 1 : 2 }))
+    .map((s, si) => ({ s, si, rank: s.track === "warmup" || s.track === "skillCheck" ? -1 : s.title.startsWith("Bonus") ? 0 : s.track === "finisher" ? 0.5 : s.title.startsWith("Accessory") ? 1 : s.title.startsWith("Strength for") ? 1.5 : 2 }))
     .filter((x) => x.rank >= 0)
     .sort((a, b) => a.rank - b.rank);
   const effortNow = () => totalEffort(sets.flatMap((s) => s.exercises.map((exercise) => ({ setTitle: s.title, exercise }))));
@@ -211,7 +211,8 @@ export function balanceSession(session: TrainingSession, capacity: number | null
   if (effortNow() > limit) {
     const bonus = sets.findIndex((s) => s.title.startsWith("Bonus"));
     if (bonus >= 0) sets.splice(bonus, 1);
-    for (const s of sets.filter((x) => x.title.startsWith("Accessory"))) {
+    // accessories give way before the work that builds the skill
+    for (const s of [...sets.filter((x) => x.title.startsWith("Accessory")), ...sets.filter((x) => x.title.startsWith("Strength for"))]) {
       while (s.exercises.length > 1 && effortNow() > limit) s.exercises.pop();
     }
     const fin = sets.findIndex((s) => s.track === "finisher");

@@ -54,12 +54,15 @@ test("completing the easier rung brings the original back", () => {
   assert.equal(back.name, target.name);
 });
 
-test("many clean sessions add volume and step up only the last rung", () => {
+test("many clean sessions add volume or step up, never onto something already there", () => {
   let stats = {};
   for (let i = 0; i < 8; i++) stats = applyExerciseFeedback(stats, feedbackFor(adaptSession(base, stats, DEFAULT_EQUIPMENT)));
-  const out = adaptSession(base, stats, DEFAULT_EQUIPMENT).sets[1].exercises;
-  assert.ok(out.slice(0, -1).every((e) => /\+1 set/.test(e.adaptNote ?? "")));
-  assert.equal(out[out.length - 1].adaptDir, "harder");
+  const adapted = adaptSession(base, stats, DEFAULT_EQUIPMENT);
+  const out = adapted.sets[1].exercises;
+  assert.ok(out.every((e) => e.adaptDir === "harder" || /\+1 set/.test(e.adaptNote ?? "")), "every exercise progresses");
+  assert.ok(out.some((e) => e.adaptDir === "harder"), "and something steps up a rung");
+  const all = adapted.sets.flatMap((st) => st.exercises.map((e) => e.name));
+  assert.equal(new Set(all).size, all.length);
 });
 
 test("a struggled 'done' earns no progression credit", () => {

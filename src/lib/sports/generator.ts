@@ -1,5 +1,6 @@
 import type { Exercise, TrainingSession, TrainingSet } from "../types";
 import type { SportDef, SportTrack } from "./types";
+import { freshest } from "../variety";
 
 // ---------------------------------------------------------------------------
 // Today's session in a sport: a warm-up, the focus of the day (its skills at
@@ -54,27 +55,32 @@ export function generateSportSession(
   focus: string,
   date = new Date(),
 ): TrainingSession {
+  const history = { stats: track.exerciseStats };
+  const seed = date.toISOString().slice(0, 10);
   const main: Exercise[] = [];
   for (const sk of def.skills.filter((s) => s.group === focus)) {
     const i = Math.min(track.stage[sk.key] ?? 0, sk.stages.length - 1);
     // a stage that isn't solid yet starts with one exercise from the one before
     if (i > 0 && (track.mastery[sk.key] ?? 2) <= 2)
       main.push(copy(sk.stages[i - 1].exercises[0]));
-    for (const e of sk.stages[i].exercises) main.push(copy(e));
+    // the stage's key pose stays; the rest rotate with the stage below, so a
+    // focus that comes round again isn't the same session
+    const [key, ...rest] = sk.stages[i].exercises;
+    const pool = [...rest, ...(i > 0 ? sk.stages[i - 1].exercises : [])].filter((e, j, a) => e.name !== key.name && !main.some((m) => m.name === e.name) && a.findIndex((x) => x.name === e.name) === j);
+    main.push(copy(key), ...freshest(pool, rest.length, history, `${seed}:${sk.key}`).map(copy));
   }
-  // one exercise from another part of the sport, rotating
+  // two exercises from the other parts of the sport, whichever were done least recently
   const others = def.skills.filter((s) => s.group !== focus);
   const sets: TrainingSet[] = [
     { track: "warmup", title: "Warm-Up", exercises: def.warmup.map(copy) },
     { track: "sport", title: groupLabel(def, focus), exercises: main },
   ];
   if (others.length) {
-    const sk = others[dayOfYear(date) % others.length];
-    const i = Math.min(track.stage[sk.key] ?? 0, sk.stages.length - 1);
+    const options = others.flatMap((sk) => sk.stages[Math.min(track.stage[sk.key] ?? 0, sk.stages.length - 1)].exercises).filter((e, j, a) => !main.some((m) => m.name === e.name) && a.findIndex((x) => x.name === e.name) === j);
     sets.push({
       track: "sport",
       title: "Supporting work",
-      exercises: [copy(sk.stages[i].exercises[0])],
+      exercises: freshest(options, 2, history, `${seed}:support`).map(copy),
     });
   }
   sets.push({

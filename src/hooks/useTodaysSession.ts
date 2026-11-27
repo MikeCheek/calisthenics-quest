@@ -71,7 +71,8 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     const claims = syncClaims(userDoc.claims, userDoc.skills);
     const trainSkills = skillsForTraining(userDoc.skills, claims);
     const adapted = adaptSession(
-      generateSession(trainSkills, equipment!, focus, new Date(), userDoc.body?.sessionLengthMinutes),
+      // rotates away from what you did most recently, so the same focus isn't the same session
+      generateSession(trainSkills, equipment!, focus, new Date(), userDoc.body?.sessionLengthMinutes, { stats: userDoc.exerciseStats, records: userDoc.records }),
       userDoc.exerciseStats,
       equipment!,
       trainSkills

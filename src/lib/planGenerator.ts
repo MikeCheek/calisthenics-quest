@@ -1,4 +1,4 @@
-import { adaptSession } from "./adaptation";
+import { adaptSession, statKey } from "./adaptation";
 import type { ExerciseStat } from "./types";
 import {
   BodyProfile,
@@ -53,12 +53,15 @@ export function generatePlan(
   range: PlanRange,
   startDate: Date = new Date(),
   stats?: Record<string, ExerciseStat>,
-  block?: TrainingBlock | null
+  block?: TrainingBlock | null,
+  records?: Record<string, { hold?: number; reps?: number }>
 ): PlanDay[] {
   const totalDays = RANGE_DAYS[range];
 
   const days: PlanDay[] = [];
   let trainingCounter = 0;
+  // what's been done (and when), updated as the plan goes, so the days vary
+  const seen: Record<string, ExerciseStat> = { ...(stats ?? {}) };
 
   for (let i = 0; i < totalDays; i++) {
     const date = new Date(startDate);
@@ -76,9 +79,14 @@ export function generatePlan(
     const focus = focusWithBlock(date, equipment, goalTracks, block ?? undefined, trainingCounter);
     // planned sessions reflect what training has already learned
     const fitted = fitSessionToMinutes(
-      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes), stats, equipment, skills),
+      adaptSession(generateSession(skills, equipment, focus, date, body.sessionLengthMinutes, { stats: seen, records }), stats, equipment, skills),
       body.sessionLengthMinutes
     ).session;
+    // the next planned days rotate away from what this one does
+    for (const e of fitted.sets.flatMap((st) => st.exercises)) {
+      const k = statKey(e.name);
+      seen[k] = { ...(seen[k] ?? { p: 0, done: 0, skipped: 0, tooHard: 0, last: "" }), lastAt: date.toISOString(), last: date.toISOString(), done: (seen[k]?.done ?? 0) + 1 };
+    }
     const session = block && isActive(block, date) && phaseOf(block, blockWeek(block, date)) === "deload" ? applyDeload(fitted) : fitted;
     trainingCounter++;
     days.push({ dateISO, weekday, isRestDay: false, session });
