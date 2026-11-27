@@ -69,13 +69,14 @@ export default function TodaySessionCard({
         <div className="grid grid-cols-2 gap-2 mt-4">
           <Link
             href="/wheel"
-            className="py-2.5 rounded-xl text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950 font-medium flex items-center justify-center gap-1.5"
+            // extras after training: the cool-down below is the step that helps
+            className="min-h-11 rounded-xl text-sm border border-zinc-700 text-zinc-300 hover:border-orange-500 flex items-center justify-center gap-1.5"
           >
             <Dices size={15} /> {tx("Bonus wheel")}
           </Link>
           <button
             onClick={onStart}
-            className="py-2.5 rounded-xl text-sm border border-zinc-700 text-zinc-300 hover:border-zinc-500 flex items-center justify-center gap-1.5"
+            className="min-h-11 rounded-xl text-sm border border-zinc-700 text-zinc-300 hover:border-zinc-500 flex items-center justify-center gap-1.5"
           >
             <RotateCcw size={14} /> {tx("Train again")}
           </button>

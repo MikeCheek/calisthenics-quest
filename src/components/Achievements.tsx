@@ -1,5 +1,6 @@
 "use client";
 
+import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { useBelowTopBar } from "@/hooks/useBelowTopBar";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -68,7 +69,11 @@ export function AchievementWatcher() {
     }
   }, [userDoc, toast, tx]);
 
-  const current = queue[0] ? achievementById(queue[0]) : undefined;
+  // one celebration at a time: an achievement waits until the session's
+  // summary sheet (with its level-up) is closed
+  const { report } = useTrainingSession();
+  const held = !!report;
+  const current = queue[0] && !held ? achievementById(queue[0]) : undefined;
   useEffect(() => {
     if (!current) return;
     const t = setTimeout(() => setQueue((q) => q.slice(1)), 6500);

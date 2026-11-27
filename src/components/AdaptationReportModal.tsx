@@ -16,6 +16,31 @@ import type { ClaimKey, StagedSkillKey } from "@/lib/types";
 const isStaged = (k: ClaimKey): k is StagedSkillKey => !(BASELINE_KEYS as string[]).includes(k);
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
+import { focusWithBlock } from "@/lib/trainingBlock";
+import { FOCUS_LABEL } from "@/lib/trainingGenerator";
+import { habitDays } from "@/lib/trainingHabits";
+import { CalendarDays } from "lucide-react";
+import type { UserDoc } from "@/lib/types";
+
+// Where you stand and what's next, so every session ends with both: this
+// week's sessions, and the next training day with its focus.
+function nextUp(u: UserDoc, locale: string): { week: string | null; next: { day: string; focus: string } | null } {
+  const perWeek = u.body?.trainingDaysOfWeek?.length || u.body?.trainingDaysPerWeek || 0;
+  const done = u.week?.sessions ?? 0;
+  const days = u.body?.trainingDaysOfWeek?.length ? u.body.trainingDaysOfWeek : habitDays(u.trainTimes, perWeek || 3);
+  let next: { day: string; focus: string } | null = null;
+  if (days?.length) {
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      if (!days.includes(d.getDay())) continue;
+      const focus = focusWithBlock(d, u.equipment, u.goalTracks ?? [], u.trainingBlock ?? undefined);
+      next = { day: d.toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long" }), focus: FOCUS_LABEL[focus] };
+      break;
+    }
+  }
+  return { week: perWeek ? `${done}/${perWeek}` : null, next };
+}
 
 // Shown after a session when what the athlete did actually changed
 // something: a skill's mastery moved, or the engine thinks a stage change
@@ -25,8 +50,9 @@ export default function AdaptationReportModal() {
   const [busy, setBusy] = useState<string | null>(null);
   const [shareCard, setShareCard] = useState<ShareCard | null>(null);
   const { userDoc } = useAuth();
-  const { tx } = useLanguage();
+  const { tx, locale } = useLanguage();
   if (!report) return null;
+  const ahead = userDoc && !report.stageUps ? nextUp(userDoc, locale) : null; // (another sport's track has its own rhythm)
   const lines = summary ? summaryLines(summary.celebration, summary.xpGained) : null;
   const hasCoachNews =
     report.masteryChanges.length + (report.stageUps?.length ?? 0) + report.suggestions.length + report.verifications.length + report.records.length > 0;
@@ -58,6 +84,22 @@ export default function AdaptationReportModal() {
               {lines.detail && <div className="text-xs text-zinc-400">{tx(lines.detail.text, lines.detail.vars)}</div>}
             </div>
             <div className="stat-mono text-sm text-orange-400 shrink-0">{tx(lines.xp.text, lines.xp.vars)}</div>
+          </div>
+        )}
+        {ahead && (ahead.week || ahead.next) && (
+          <div className="rounded-xl border border-zinc-800 p-3 text-sm space-y-1" data-testid="next-up">
+            {ahead.week && (
+              <p className="text-zinc-300 flex items-center gap-2">
+                <Flame size={15} className="text-orange-400 shrink-0" aria-hidden />
+                {tx("This week: {a} of {b} sessions", { a: ahead.week.split("/")[0], b: ahead.week.split("/")[1] })}
+              </p>
+            )}
+            {ahead.next && (
+              <p className="text-zinc-300 flex items-center gap-2">
+                <CalendarDays size={15} className="text-sky-300 shrink-0" aria-hidden />
+                {tx("Next: {focus} · {day}", { focus: tx(ahead.next.focus), day: ahead.next.day })}
+              </p>
+            )}
           </div>
         )}
         {report.sessionRecord && (

@@ -7,6 +7,7 @@
 // does, so the swap can't break a screen.
 
 import type { BodyProfile, Friend, Ping, PublicProfile, SessionRecord, SkillMastery, SkillProfile, SkillTrack, StagedSkillKey, TrainingEquipment, UserDoc } from "../types";
+import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_NOTIFICATIONS, DEFAULT_SKILLS } from "../types";
 import type { GlobalBoardRow, GlobalBoardWrite, PairingDoc } from "../store";
 import { boardName } from "../leaderboard";
 import type { Metric } from "../leaderboard";
@@ -23,7 +24,31 @@ const pause = () => new Promise((r) => setTimeout(r, 120)); // feel like a netwo
 
 // a brand-new user (not set up, nothing logged) in the "fresh" scenario
 const fresh = demoScenario("fresh");
-const firstUser = (): UserDoc => (fresh ? { ...demoUserDoc(), onboarded: false, totalSessionsCompleted: 0, xp: 0, streak: 0, xpHistory: [], achievements: undefined } : demoUserDoc());
+// — really new: no skills, history or habits of the example athlete
+// (no "22% lighter" or "2 of 12 verified" on a first visit)
+const freshUser = (): UserDoc => {
+  const d = demoUserDoc();
+  return {
+    uid: d.uid,
+    displayName: demoScenario("guest") ? "Guest" : d.displayName,
+    email: demoScenario("guest") ? "" : d.email,
+    photoURL: d.photoURL,
+    friendCode: d.friendCode,
+    body: { ...DEFAULT_BODY },
+    skills: { ...DEFAULT_SKILLS },
+    skillMastery: {},
+    equipment: { ...DEFAULT_EQUIPMENT },
+    goalTracks: [],
+    notifications: { ...DEFAULT_NOTIFICATIONS },
+    onboarded: false,
+    totalSessionsCompleted: 0,
+    xp: 0,
+    streak: 0,
+    xpHistory: [],
+    missions: [],
+  } as unknown as UserDoc;
+};
+const firstUser = (): UserDoc => (fresh ? freshUser() : demoUserDoc());
 
 const state = {
   users: new Map<string, UserDoc>([[DEMO_UID, firstUser()]]),

@@ -28,7 +28,7 @@ import { useLanguage } from "@/context/LanguageContext";
 type Phase = "intro" | "area" | "summary" | "manual";
 
 const SIDE_STATE: { label: string; cls: string }[] = [
-  { label: "Not yet", cls: "border-zinc-700 text-muted" },
+  { label: "Not yet", cls: "border-zinc-500 bg-zinc-800 text-zinc-100" },
   { label: "Working on it", cls: "border-sky-500/60 bg-sky-500/10 text-sky-200" },
   { label: "Can do it", cls: "border-emerald-500 bg-emerald-500/10 text-emerald-200" },
 ];
@@ -40,6 +40,9 @@ export default function SkillAssessmentStep({
   currentXp,
   onChange,
   onInProgressChange,
+  onAtIntro,
+  onSkip,
+  skipLabel,
 }: {
   skills: SkillProfile;
   mastery: Partial<Record<StagedSkillKey, SkillMastery>>;
@@ -47,6 +50,10 @@ export default function SkillAssessmentStep({
   currentXp: number;
   onChange: (skills: SkillProfile, mastery: Partial<Record<StagedSkillKey, SkillMastery>>) => void;
   onInProgressChange?: (inProgress: boolean) => void;
+  // onboarding: the intro is a choice — assess, or skip on purpose
+  onAtIntro?: (atIntro: boolean) => void;
+  onSkip?: () => void;
+  skipLabel?: string;
 }) {
   const { tx } = useLanguage();
   const [phase, setPhase] = useState<Phase>("intro");
@@ -58,7 +65,8 @@ export default function SkillAssessmentStep({
 
   useEffect(() => {
     onInProgressChange?.(phase === "area");
-  }, [phase, onInProgressChange]);
+    onAtIntro?.(phase === "intro");
+  }, [phase, onInProgressChange, onAtIntro]);
 
   const areas = useMemo(
     () => ASSESSMENT_AREAS.filter((a) => areaHasContent(a, answers, equipment)),
@@ -117,10 +125,20 @@ export default function SkillAssessmentStep({
         </button>
         <button
           onClick={() => setPhase("manual")}
-          className="text-xs text-muted hover:text-orange-400 flex items-center gap-1"
+          className="min-h-11 text-sm text-zinc-300 hover:text-orange-400 flex items-center gap-1.5"
         >
-          <Settings2 size={12} /> {tx("Prefer to set every skill yourself?")}
+          <Settings2 size={14} /> {tx("Prefer to set every skill yourself?")}
         </button>
+        {onSkip && (
+          <div className="border-t border-zinc-800 pt-2">
+            <button onClick={onSkip} className="min-h-11 text-sm text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+              {tx(skipLabel ?? "Skip — start me as a beginner")}
+            </button>
+            <p className="text-xs text-muted">
+              {tx(skipLabel === "Keep my current levels" ? "Your levels stay as they are." : "Sessions start at the easiest stage of every skill and step up as you go.")}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -253,35 +271,41 @@ export default function SkillAssessmentStep({
           <div className="space-y-2">
             <div>
               <div className="text-sm text-zinc-100 font-medium">{tx("Side skills")}</div>
-              <div className="text-xs text-muted">{tx("tap to cycle: not yet → working → can do")}</div>
+              <div className="text-xs text-muted">{tx("For each: not yet, working on it, or can do it.")}</div>
             </div>
             {ladders.length + baselines.length > 0 && (
               <div className="text-xs text-muted">
                 {tx("Shown for your level here:")} <span className="text-orange-400">{tx(TIER_LABEL[tier])}</span>
               </div>
             )}
-            <div className="flex flex-wrap gap-1.5">
+            {/* one row per skill, its three answers side by side: nothing to discover by tapping */}
+            <ul className="space-y-2">
               {sides.map((s) => {
                 const lvl = sideLevel(area, s, answers, equipment);
                 const assumed = answers.sides[s.skill] === undefined && lvl === 2;
                 return (
-                  <button
-                    key={s.skill}
-                    type="button"
-                    onClick={() =>
-                      update({ ...answers, sides: { ...answers.sides, [s.skill]: ((lvl + 1) % 3) as SideLevel } })
-                    }
-                    className={`px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${SIDE_STATE[lvl].cls}`}
-                  >
-                    {tx(s.label)}
-                    <span className="block text-xs opacity-70">
-                      {tx(SIDE_STATE[lvl].label)}
-                      {assumed ? ` (${tx("assumed")})` : ""}
-                    </span>
-                  </button>
+                  <li key={s.skill} className="rounded-lg border border-zinc-800 p-2">
+                    <div className="text-sm text-zinc-200 mb-1.5" id={`side-${s.skill}`}>
+                      {tx(s.label)}
+                      {assumed && <span className="text-xs text-muted"> · {tx("assumed from your level")}</span>}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1" role="group" aria-labelledby={`side-${s.skill}`}>
+                      {SIDE_STATE.map((st, i) => (
+                        <button
+                          key={st.label}
+                          type="button"
+                          aria-pressed={lvl === i}
+                          onClick={() => update({ ...answers, sides: { ...answers.sides, [s.skill]: i as SideLevel } })}
+                          className={`min-h-11 px-1 rounded-md border text-xs transition-colors ${lvl === i ? st.cls : "border-zinc-800 text-zinc-400 hover:border-zinc-600"}`}
+                        >
+                          {tx(st.label)}
+                        </button>
+                      ))}
+                    </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
         )}
 

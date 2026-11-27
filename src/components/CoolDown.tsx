@@ -50,7 +50,8 @@ export default function CoolDownCard({ exercises, className = "" }: { exercises:
           </li>
         ))}
       </ol>
-      <button onClick={() => setOpen(true)} className="w-full mt-4 h-12 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 text-base font-semibold flex items-center justify-center gap-2">
+      {/* after a session, the main next step */}
+      <button onClick={() => setOpen(true)} className="w-full mt-4 h-12 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-base font-semibold flex items-center justify-center gap-2">
         <Wind size={18} /> {tx("Start cool-down")}
       </button>
       <CoolDownFlow plan={plan} open={open} onClose={() => setOpen(false)} />

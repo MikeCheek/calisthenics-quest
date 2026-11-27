@@ -16,7 +16,7 @@ import { playRestSound, playGoSound } from "@/lib/sound";
 import { MIN_BETWEEN_EXERCISE_REST, MAX_BETWEEN_EXERCISE_REST, estimateExercisesMinutes } from "@/lib/exerciseTiming";
 import { findEasierExercise, HIERARCHY_EXEMPT_SETS } from "@/lib/exerciseHierarchy";
 import { easierForAthlete, gentlerFor } from "@/lib/adaptation";
-import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle, Vibrate, HeartCrack } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Info, Check, Pause, Play, SkipForward, BatteryLow, ArrowDownCircle, Sparkles, Volume2, VolumeX, Smartphone, MoreHorizontal, XCircle, Vibrate, HeartCrack, Flag } from "lucide-react";
 import Modal from "@/components/Modal";
 import CancelSessionDialog from "@/components/CancelSessionDialog";
 import { useHaptics } from "@/components/HapticsToggle";
@@ -51,6 +51,8 @@ const EASE_LOOKUP_EQUIPMENT = {
   pullUpBar: true, parallelBars: true, rings: true, wallSpace: true,
   verticalPole: true, monkeyBars: true, weights: true, resistanceBands: true,
 };
+
+const TIP_KEY = "barquests:guidedTipSeen";
 
 export default function FocusTrainingMode() {
   const { session, expanded, paused, minimize, togglePause, reportCurrentExercise, finishSession } =
@@ -119,6 +121,25 @@ export default function FocusTrainingMode() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [canVibrate, vibrateOn, setVibrate] = useHaptics();
   const [allDoneScreen, setAllDoneScreen] = useState(false);
+  // "Finish now and log": the end screen, with what's left counted as not reached
+  const [endedEarly, setEndedEarly] = useState(false);
+  // a brand-new athlete's first exercise gets a two-line tip, once
+  const [tipSeen, setTipSeen] = useState(true);
+  useEffect(() => {
+    try {
+      setTipSeen(localStorage.getItem(TIP_KEY) === "1");
+    } catch {
+      setTipSeen(true);
+    }
+  }, []);
+  const dismissTip = () => {
+    setTipSeen(true);
+    try {
+      localStorage.setItem(TIP_KEY, "1");
+    } catch {
+      /* shown again next time: harmless */
+    }
+  };
   const [restSecondsLeft, setRestSecondsLeft] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Exercise>>({});
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
@@ -397,6 +418,8 @@ export default function FocusTrainingMode() {
   if (!session || !current) return null;
 
   const isLastStep = index === steps.length - 1;
+  // a set of this exercise has been logged (or it's already done)
+  const started = completedSteps.has(index) || (timerLogs[index]?.sets.length ?? 0) > 0;
 
   const markCompleteAndAdvance = () => {
     setCompletedSteps((prev) => new Set(prev).add(index));
@@ -428,7 +451,24 @@ export default function FocusTrainingMode() {
     setIndex((i) => i + 1);
   };
 
+  // end here and log what was done; what's left isn't reached (not skipped
+  // on purpose, not done) — no tapping Next through it, no losing it all
+  const finishNow = () => {
+    if (restSecondsLeft !== null) {
+      closeRestMeter(false);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setRestSecondsLeft(null);
+    }
+    setEndedEarly(true);
+    setAllDoneScreen(true);
+  };
+
   const goBack = () => {
+    if (allDoneScreen && endedEarly) {
+      setEndedEarly(false);
+      setAllDoneScreen(false);
+      return;
+    }
     if (index === 0 && restSecondsLeft === null) return;
     setAllDoneScreen(false);
     setRestSecondsLeft(null);
@@ -658,12 +698,17 @@ export default function FocusTrainingMode() {
         </div>
       ) : allDoneScreen ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mb-4">
-            <Check size={28} className="text-emerald-400" />
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${endedEarly ? "bg-zinc-800" : "bg-emerald-500/15"}`}>
+            {endedEarly ? <Flag size={26} className="text-zinc-200" /> : <Check size={28} className="text-emerald-400" />}
           </div>
-          <div className="heading text-2xl text-zinc-100 mb-2">{tx("Session complete!")}</div>
+          <div className="heading text-2xl text-zinc-100 mb-2">{endedEarly ? tx("Finish here?") : tx("Session complete!")}</div>
           <p className="text-sm text-zinc-400 mb-6">
-            {skippedSteps.size === 0
+            {endedEarly
+              ? tx("{a} done, {b} not reached. Log what you did — the rest is left out of today.", {
+                  a: completedSteps.size,
+                  b: Math.max(0, steps.length - completedSteps.size - skippedSteps.size),
+                })
+              : skippedSteps.size === 0
               ? tx("Every exercise is done. Log it to bank your XP and streak.")
               : tx("{a} done, {b} skipped. Log it to bank your XP. Your next sessions adapt to what you skipped.", { a: completedSteps.size, b: skippedSteps.size })}
           </p>
@@ -676,11 +721,11 @@ export default function FocusTrainingMode() {
             }
             className="w-full max-w-xs py-3 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
           >
-            {tx("Finish & log session")}
+            {endedEarly ? tx("Log {n} done", { n: completedSteps.size }) : tx("Finish & log session")}
           </button>
           <SessionCoolDown exercises={doneExercises} />
-          <button onClick={goBack} className="text-xs text-muted hover:text-zinc-300 mt-3 py-2">
-            {tx("Go back and review")}
+          <button onClick={goBack} className="text-sm text-zinc-300 hover:text-zinc-100 mt-3 min-h-11 px-4">
+            {endedEarly ? tx("Keep training") : tx("Go back and review")}
           </button>
 
         </div>
@@ -726,8 +771,25 @@ export default function FocusTrainingMode() {
             </div>
 
             {paused && (
-              <div className="max-w-sm w-full mx-auto mb-3 text-center text-xs text-orange-400 flex items-center justify-center gap-1.5">
-                <Pause size={12} /> {tx("Training paused — your spot is saved")}
+              <div className="max-w-sm w-full mx-auto mb-3 text-center text-xs text-orange-400">
+                <span className="flex items-center justify-center gap-1.5">
+                  <Pause size={12} /> {tx("Training paused — your spot is saved")}
+                </span>
+                <button onClick={finishNow} className="mt-1 min-h-11 px-3 text-sm text-zinc-200 underline underline-offset-2">
+                  {tx("Finish now and log what you did")}
+                </button>
+              </div>
+            )}
+
+            {!tipSeen && (userDoc?.totalSessionsCompleted ?? 0) === 0 && (
+              <div className="max-w-sm w-full mx-auto mb-3 rounded-xl border border-sky-700/50 bg-sky-500/10 p-3 text-xs text-sky-100 flex items-start gap-2" role="note">
+                <Sparkles size={14} className="shrink-0 mt-0.5 text-sky-300" aria-hidden />
+                <p className="flex-1">
+                  {tx("Start the timer and follow along. Done moves on when you've finished; Skip if you won't do it. More has “Too hard”, “This hurts” and “I'm tired”.")}
+                </p>
+                <button onClick={dismissTip} className="shrink-0 -m-2 min-h-11 px-2 text-sky-200 underline underline-offset-2">
+                  {tx("Got it")}
+                </button>
               </div>
             )}
 
@@ -767,12 +829,22 @@ export default function FocusTrainingMode() {
             >
               <ChevronLeft size={24} />
             </button>
+            {/* until a set has been logged, say what moving on records: done, or skipped */}
+            {!started && (
+              <button
+                onClick={handleSkip}
+                disabled={paused}
+                className="h-14 shrink-0 px-4 rounded-xl border border-zinc-700 text-zinc-200 text-base flex items-center justify-center gap-1 disabled:opacity-40"
+              >
+                {tx("Skip")}
+              </button>
+            )}
             <button
               onClick={goNext}
               disabled={paused}
               className="flex-1 h-14 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-base font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40"
             >
-              {tx("Next")} <ChevronRight size={20} />
+              {started ? tx("Next") : tx("Done")} <ChevronRight size={20} />
             </button>
             <button
               onClick={() => setMenuOpen(true)}
@@ -800,6 +872,9 @@ export default function FocusTrainingMode() {
                 </>
               )}
             </>
+          )}
+          {!allDoneScreen && (
+            <MenuRow icon={Flag} label={tx("Finish now and log what you did")} hint={tx("What's left counts as not reached — nothing is logged as done that wasn't.")} onClick={() => { setMenuOpen(false); finishNow(); }} />
           )}
           {!allDoneScreen && (
             <MenuRow icon={BatteryLow} label={tx("I'm tired — ease up what's left")} hint={tx("Easier swaps or fewer sets for the rest of the session.")} onClick={() => { setMenuOpen(false); handleTired(); }} />
