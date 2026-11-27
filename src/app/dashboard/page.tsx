@@ -100,7 +100,7 @@ export default function TodayPage() {
       <main
         id="main"
         tabIndex={-1}
-        className="max-w-xl lg:max-w-6xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4"
+        className="max-w-xl md:max-w-6xl mx-auto px-4 py-6 pb-24 sm:pb-6 space-y-4"
       >
         <header className="flex items-end justify-between gap-3">
           <div className="min-w-0">
@@ -127,21 +127,9 @@ export default function TodayPage() {
 
         {/* a dashboard on wide screens: today's session and what goes with it on the
             left, the week, goals and missions on the right; one column on a phone */}
-        <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-5 lg:items-start">
-          <div className="space-y-4 lg:col-span-7">
-            <SaveProgressPrompt compact />
-            <NotificationPrompt />
-
-            {/* weather and bar-park kit are for outdoor calisthenics */}
-            {outdoor && !doneToday && !(activeSession && !activeCompleted) && (
-              <>
-                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} whereLog={userDoc.whereLog} />
-                <WeatherCard userDoc={userDoc} override={todayEquipment} />
-              </>
-            )}
-
-            <BlockQuestion />
-
+        {/* two columns from a tablet up */}
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-12 md:gap-5 md:items-start">
+          <div className="space-y-4 md:col-span-7">
             <TodaySessionCard
               session={fitted.session}
               focusLabel={labelOf(focus)}
@@ -153,6 +141,7 @@ export default function TodayPage() {
               readiness={readiness}
               onReadiness={setReadiness}
               lighterWeek={lighterWeek}
+              where={outdoor && !doneToday ? tx(!todayEquipment ? "Usual spot" : todayEquipment.kind === "park" ? todayEquipment.label : "At home") : undefined}
               onStart={() =>
                 outdoor
                   ? askParkFirst(userDoc).then(() => startSession(fitted.session))
@@ -160,6 +149,18 @@ export default function TodayPage() {
               }
               onResume={expand}
             />
+
+            {/* the session comes first; where, the weather and one-off questions after it */}
+            {outdoor && !doneToday && !(activeSession && !activeCompleted) && (
+              <>
+                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} whereLog={userDoc.whereLog} />
+                <WeatherCard userDoc={userDoc} override={todayEquipment} />
+              </>
+            )}
+
+            <BlockQuestion />
+            <SaveProgressPrompt compact />
+            <NotificationPrompt />
 
             {baseDays.length > 0 && !doneToday && !inSession && (
               <WeekShiftCard plan={plan} canSkipToday={plan.todayPlanned} />
@@ -186,7 +187,7 @@ export default function TodayPage() {
               days.some((d) => d.isToday && !d.planned) && <RestDayCard />}
           </div>
 
-          <div className="space-y-4 lg:col-span-5">
+          <div className="space-y-4 md:col-span-5">
             <WeekStrip days={days} planned={plannedCount} />
             <SportWeekSummary userDoc={userDoc} weekSessions={weekSessions} />
 

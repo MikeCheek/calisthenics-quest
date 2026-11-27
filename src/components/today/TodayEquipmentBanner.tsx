@@ -58,7 +58,7 @@ export default function TodayEquipmentBanner({ value, own, whereLog }: { value: 
           : null;
 
   return (
-    <section className="panel p-3" aria-label={tx("Where today?")}>
+    <section id="where-today" className="panel p-3 scroll-mt-4" aria-label={tx("Where today?")}>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs uppercase tracking-wide text-zinc-400">{tx("Where today?")}</h2>
       </div>

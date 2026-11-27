@@ -1,5 +1,6 @@
 "use client";
 
+import { useBelowTopBar } from "@/hooks/useBelowTopBar";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Crown, Dumbbell, Flame, Lock, Moon, Star, Sunrise, TrendingUp, Trophy, Users, X, type LucideIcon } from "lucide-react";
@@ -74,9 +75,10 @@ export function AchievementWatcher() {
     return () => clearTimeout(t);
   }, [current]);
 
+  const top = useBelowTopBar(!!current);
   if (!current) return null;
   return (
-    <div className="fixed left-1/2 -translate-x-1/2 z-[210] w-[calc(100%-2rem)] max-w-sm" style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}>
+    <div className="fixed left-1/2 -translate-x-1/2 z-[210] w-[calc(100%-2rem)] max-w-sm" style={{ top }}>
       <section role="status" aria-label={tx("Achievement unlocked")} className="panel border border-yellow-400/60 shadow-2xl p-4 animate-slide-down-in">
         <div className="flex items-center gap-3">
           <span className="animate-pop-in">
@@ -102,11 +104,13 @@ export function AchievementWatcher() {
 // The badge grid in Me. Tapping a badge opens its card right there, pointing
 // at it — not a panel under the whole grid.
 const POP_W = 240;
+const NEXT_UP = 3;
 const GAP = 8;
 export function AchievementsCard() {
   const { userDoc } = useAuth();
   const { tx, locale } = useLanguage();
   const [open, setOpen] = useState<Achievement | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number; arrow: number; above: boolean } | null>(null);
   const anchor = useRef<HTMLButtonElement | null>(null);
   const pop = useRef<HTMLDivElement | null>(null);
@@ -153,7 +157,15 @@ export function AchievementsCard() {
   }, [open]);
 
   if (!userDoc) return null;
-  const earnedCount = ACHIEVEMENTS.filter((a) => userDoc.achievements?.[a.id] || isEarned(a, userDoc)).length;
+  const isMine = (a: Achievement) => !!userDoc.achievements?.[a.id] || isEarned(a, userDoc);
+  const earnedCount = ACHIEVEMENTS.filter(isMine).length;
+  // what you've earned and the three closest to it; the rest on request
+  const share = (a: Achievement) => {
+    const [v, t] = a.progress(userDoc);
+    return t > 0 ? v / t : 0;
+  };
+  const nextUp = ACHIEVEMENTS.filter((a) => !isMine(a)).sort((a, b) => share(b) - share(a)).slice(0, NEXT_UP);
+  const shown = showAll ? ACHIEVEMENTS : [...ACHIEVEMENTS.filter(isMine), ...nextUp];
   const fmt = (iso: string) => new Date(iso).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
 
   return (
@@ -165,7 +177,7 @@ export function AchievementsCard() {
         <span className="text-xs text-zinc-400">{tx("{a} of {b}", { a: earnedCount, b: ACHIEVEMENTS.length })}</span>
       </div>
       <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
-        {ACHIEVEMENTS.map((a) => {
+        {shown.map((a) => {
           const earned = !!userDoc.achievements?.[a.id] || isEarned(a, userDoc);
           return (
             <li key={a.id}>
@@ -186,6 +198,16 @@ export function AchievementsCard() {
           );
         })}
       </ul>
+      {ACHIEVEMENTS.length > shown.length || showAll ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((s) => !s)}
+          aria-expanded={showAll}
+          className="w-full mt-2 min-h-11 rounded-lg text-sm text-zinc-300 border border-zinc-800 hover:border-zinc-600"
+        >
+          {showAll ? tx("Show fewer") : tx("See all {n} achievements", { n: ACHIEVEMENTS.length })}
+        </button>
+      ) : null}
       {open && (
         <div
           ref={(el) => {

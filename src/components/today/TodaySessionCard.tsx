@@ -6,15 +6,15 @@ import Link from "next/link";
 import { TrainingSession } from "@/lib/types";
 import { estimateSessionMinutes } from "@/lib/exerciseTiming";
 import { useLanguage } from "@/context/LanguageContext";
-import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, RotateCcw } from "lucide-react";
+import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, RotateCcw, MapPin } from "lucide-react";
 import { localizeDetail } from "@/lib/i18n/detail";
 import { plannedXp } from "@/lib/sessionXp";
-import UsualLengthNote from "@/components/UsualLengthNote";
+import TodayAdjustments from "@/components/TodayAdjustments";
 import TodayReadiness from "@/components/TodayReadiness";
 import type { LighterWeek, Readiness } from "@/lib/readiness";
 import type { HabitualLength } from "@/lib/sessionLength";
 
-const PREVIEW = 5;
+const PREVIEW = 4;
 
 // The hero of the Today screen: the session itself, startable in one tap.
 export default function TodaySessionCard({
@@ -28,6 +28,7 @@ export default function TodaySessionCard({
   readiness = null,
   onReadiness,
   lighterWeek = null,
+  where,
   onStart,
   onResume,
 }: {
@@ -41,6 +42,7 @@ export default function TodaySessionCard({
   readiness?: Readiness | null;
   onReadiness?: (r: Readiness | null) => void;
   lighterWeek?: LighterWeek | null;
+  where?: string; // where today's session is planned for ("Usual spot", "At home", a park)
   onStart: () => void;
   onResume: () => void;
 }) {
@@ -48,7 +50,8 @@ export default function TodaySessionCard({
   const { tx, locale } = useLanguage();
   // warm-up and finisher are always there; the preview shows what's specific to today
   const main = session.sets.filter((s) => s.track !== "warmup" && s.track !== "finisher");
-  const exercises = main.flatMap((s) => s.exercises.map((e) => ({ name: e.name, detail: e.detail, check: s.track === "skillCheck" })));
+  const exercises = main.filter((s) => s.track !== "skillCheck").flatMap((s) => s.exercises.map((e) => ({ name: e.name, detail: e.detail, check: false })));
+  const checks = main.filter((s) => s.track === "skillCheck").reduce((n, s) => n + s.exercises.length, 0);
   const shown = exercises.slice(0, PREVIEW);
   const total = session.sets.reduce((n, s) => n + s.exercises.length, 0);
   const minutes = estimateSessionMinutes(session);
@@ -99,19 +102,31 @@ export default function TodaySessionCard({
         </span>
       </div>
 
-      {session.why && <p className="text-xs text-sky-400/90 mt-2" data-testid="session-why">{tx(session.why)}</p>}
-
-      {lighterBy > 0 && (
-        <p className="text-xs text-sky-400/90 mt-2">
-          {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}
-        </p>
+      {where && (
+        <a href="#where-today" className="mt-2 inline-flex items-center gap-1 min-h-11 -my-2 text-xs text-zinc-300 hover:text-orange-400">
+          <MapPin size={13} aria-hidden /> {where} · <span className="underline underline-offset-2">{tx("change")}</span>
+        </a>
       )}
 
-      {!inProgress && onReadiness && <TodayReadiness readiness={readiness} onReadiness={onReadiness} lighterWeek={lighterWeek} className="mt-3" />}
+      <TodayAdjustments
+        why={session.why}
+        lighterBy={lighterBy}
+        usualLength={doneToday ? null : usualLength}
+        onFullLength={onFullLength}
+        lighterWeek={lighterWeek}
+        className="mt-2"
+      />
 
-      {!doneToday && onFullLength && <UsualLengthNote usual={usualLength} onFull={onFullLength} className="mt-2" />}
+      {!inProgress && onReadiness && <TodayReadiness readiness={readiness} onReadiness={onReadiness} className="mt-3" />}
 
-      <ol className="mt-4 space-y-2">
+      {/* the workout itself; the skill checks are a line of their own */}
+      {checks > 0 && (
+        <p className="mt-4 text-xs text-sky-300 flex items-center gap-1.5">
+          <BadgeCheck size={14} className="shrink-0" aria-hidden />
+          {tx(checks === 1 ? "Starts with a one-set skill check" : "Starts with {n} one-set skill checks", { n: checks })}
+        </p>
+      )}
+      <ol className="mt-3 space-y-2">
         {shown.map((e, i) => (
           <li key={i} className="flex items-baseline gap-2.5">
             <span className="stat-mono text-xs text-muted w-4 shrink-0 text-right">{i + 1}</span>

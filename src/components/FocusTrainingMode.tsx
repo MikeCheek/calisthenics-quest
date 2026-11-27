@@ -770,7 +770,7 @@ export default function FocusTrainingMode() {
             <button
               onClick={goNext}
               disabled={paused}
-              className="flex-1 h-14 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 text-base font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40"
+              className="flex-1 h-14 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 text-base font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40"
             >
               {tx("Next")} <ChevronRight size={20} />
             </button>

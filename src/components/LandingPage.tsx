@@ -209,7 +209,8 @@ export default function LandingPage({ locale }: { locale: Locale }) {
         </section>
 
         {/* the app, screen by screen */}
-        <div className="max-w-5xl mx-auto space-y-20 mb-20">
+        {/* on a phone: closer together, and each screen shows its top part (fading out) */}
+        <div className="max-w-5xl mx-auto space-y-14 md:space-y-20 mb-20">
           {LANDING.showcase.map((s, i) => (
             <section key={s.id} className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
               <div className={i % 2 ? "md:order-2" : ""}>
@@ -225,7 +226,7 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                   ))}
                 </ul>
               </div>
-              <Phone src={shot(s.id)} alt={p(s.alt)} />
+              <Phone src={shot(s.id)} alt={p(s.alt)} className="max-md:w-[min(60vw,240px)] max-md:max-h-[340px] max-md:overflow-hidden max-md:[mask-image:linear-gradient(to_bottom,#000_75%,transparent)]" />
             </section>
           ))}
         </div>

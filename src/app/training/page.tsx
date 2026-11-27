@@ -1,7 +1,7 @@
 "use client";
 
 import TodayReadiness from "@/components/TodayReadiness";
-import UsualLengthNote from "@/components/UsualLengthNote";
+import TodayAdjustments from "@/components/TodayAdjustments";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
 import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
 import { SPORT_META } from "@/lib/sports";
@@ -154,37 +154,21 @@ export default function TrainingPage() {
           </div>
         )}
 
-        {fitted?.changed && !usualLength && !aiAppliedSession && !completed && (
-          <div className="text-xs text-muted px-1">
-            {tx("Fitted to your {n} min sessions (was ~{m} min).", {
-              n: userDoc.body?.sessionLengthMinutes ?? 45,
-              m: fitted.minutesBefore,
-            })}{" "}
-            <Link href="/profile?tab=settings" className="text-orange-400 underline underline-offset-2">
-              {tx("Change")}
-            </Link>
-          </div>
+        {/* what changed from the plain plan, in one line that opens to the reasons */}
+        {!completed && (
+          <TodayAdjustments
+            why={displayedSession.why}
+            lighterBy={aiAppliedSession ? 0 : lighterBy}
+            usualLength={aiAppliedSession ? null : usualLength}
+            onFullLength={fullLengthToday}
+            lighterWeek={lighterWeek}
+            adapted={adaptedCount(displayedSession)}
+            fittedTo={fitted?.changed && !aiAppliedSession ? { minutes: userDoc.body?.sessionLengthMinutes ?? 45, was: fitted.minutesBefore } : undefined}
+            className="px-1"
+          />
         )}
 
-        {displayedSession.why && !completed && <div className="text-xs text-sky-400/90 px-1">{tx(displayedSession.why)}</div>}
-
-        {!aiAppliedSession && !completed && <TodayReadiness readiness={readiness} onReadiness={setReadiness} lighterWeek={lighterWeek} className="px-1" />}
-
-        {!aiAppliedSession && !completed && <UsualLengthNote usual={usualLength} onFull={fullLengthToday} className="px-1" />}
-
-        {lighterBy > 0 && !aiAppliedSession && !completed && (
-          <div className="text-xs text-sky-400/90 px-1">
-            {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}
-          </div>
-        )}
-
-        {adaptedCount(displayedSession) > 0 && !completed && (
-          <div className="text-xs text-sky-400/90 px-1">
-            {tx("{n} adapted from your recent sessions — based on what you completed, skipped or found too hard.", {
-              n: adaptedCount(displayedSession),
-            })}
-          </div>
-        )}
+        {!aiAppliedSession && !completed && <TodayReadiness readiness={readiness} onReadiness={setReadiness} className="px-1" />}
 
         <SessionView
           session={displayedSession}

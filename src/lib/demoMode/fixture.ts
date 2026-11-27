@@ -1,4 +1,5 @@
 import { plannedXp } from "../sessionXp";
+import { newlyEarned } from "../achievements";
 import type { Friend, PublicProfile, SessionRecord, SkillProfile, SkillTrack, StagedSkillKey, SkillMastery, UserDoc } from "../types";
 import type { GlobalBoardRow } from "../store";
 import { DEFAULT_BODY, DEFAULT_EQUIPMENT, DEFAULT_NOTIFICATIONS, DEFAULT_SKILLS } from "../types";
@@ -89,7 +90,7 @@ export function demoUserDoc(): UserDoc {
     dateISO: iso(20 - i).slice(0, 10),
     xp: Math.round(XP - (20 - i) * 95 - ((20 - i) % 3) * 20),
   }));
-  return {
+  const doc: UserDoc = {
     uid: DEMO_UID,
     displayName: "Alex Demo",
     email: "demo@example.com",
@@ -158,6 +159,9 @@ export function demoUserDoc(): UserDoc {
       { at: iso(2), planned: 45, done: 0.75 },
     ],
   };
+  // what the example athlete has earned counts as already seen: no "you've
+  // already earned 7 achievements" note on every visit to the demo
+  return { ...doc, achievements: Object.fromEntries(newlyEarned(doc).map((id) => [id, iso(30)])) };
 }
 
 const friend = (uid: string, name: string, level: number, streak: number, week: [number, number, number, number]): PublicProfile => ({

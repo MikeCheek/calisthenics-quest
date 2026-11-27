@@ -1,5 +1,6 @@
 "use client";
 
+import { useBelowTopBar } from "@/hooks/useBelowTopBar";
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { Info, CheckCircle2, AlertTriangle, AlertCircle, X } from "lucide-react";
 import { useOptionalLanguage } from "@/context/LanguageContext";
@@ -88,11 +89,12 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: 
   // the region stays on the page even when empty: screen readers only
   // announce changes to a live region that was already there
   const it = typeof document !== "undefined" && document.documentElement.lang === "it";
+  const top = useBelowTopBar(toasts.length > 0);
   return (
     <div
       aria-live="polite"
       className="fixed left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 w-[calc(100%-2rem)] max-w-sm pointer-events-none"
-      style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      style={{ top }}
     >
       {toasts.map((t) => {
         const { icon: Icon, classes, iconClass } = KIND_STYLE[t.kind];
@@ -106,7 +108,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: 
             <div className="flex-1 text-sm text-zinc-100 leading-snug">{t.message}</div>
             <button
               onClick={() => onDismiss(t.id)}
-              className="text-muted hover:text-zinc-300 shrink-0 -mt-1.5 -mr-1.5 p-1.5"
+              className="text-muted hover:text-zinc-300 shrink-0 -mt-3 -mr-3 w-11 h-11 flex items-center justify-center"
               aria-label={it ? "Chiudi" : "Dismiss"}
             >
               <X size={15} />

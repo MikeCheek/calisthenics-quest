@@ -55,6 +55,11 @@ test("today's session opens in guided mode and keeps its place", async ({ page }
 
 test("Today plans around how much of your sessions you get through, with the full length a tap away", async ({ page }) => {
   await page.goto("/dashboard");
+  // one line says the session was adjusted; it opens to the reasons
+  const adjusted = page.getByRole("button", { name: /Adjusted for today/ });
+  await expect(adjusted).toContainText("~30 min");
+  await adjusted.click();
+  await expect(adjusted).toHaveAttribute("aria-expanded", "true");
   const note = page.getByTestId("usual-length");
   await expect(note).toContainText("Planned for ~30 min");
   const minutes = async () => Number((await page.getByText(/^\s*~\d+ min\s*$/).first().textContent())!.replace(/\D/g, ""));
@@ -253,6 +258,8 @@ test("Me shows the achievements grid", async ({ page }) => {
   await page.goto("/profile");
   const grid = page.locator("#achievements");
   await expect(grid.getByRole("heading", { name: "Achievements" })).toBeVisible();
+  // earned ones and the next three first; the rest one tap away
+  await grid.getByRole("button", { name: /^See all \d+ achievements/ }).click();
   const badge = grid.getByRole("button", { name: /Century/ });
   await badge.click();
   // its card opens right at the badge, not under the whole grid
@@ -703,13 +710,14 @@ test.describe("started with yoga", () => {
     const errors = collectErrors(page);
     await go(page, "/plan");
     await expect(page.getByText(/Your Yoga plan/)).toBeVisible();
-    await page.getByRole("button", { name: "Generate plan" }).click();
     await expect(page.getByText(/training days?/).first()).toBeVisible();
     await expect(page.getByText(/Flow|Balance|Arm balances|Backbends|Flexibility/).first()).toBeVisible();
     expect(errors).toEqual([]);
   });
 
   test("quick actions don't offer bar parks for an indoor sport; session length can change", async ({ page }) => {
+    // (not on Today: it has its own start button)
+    await go(page, "/skills");
     await page.getByRole("button", { name: "Quick actions" }).click();
     await expect(page.getByRole("navigation", { name: "Quick actions" }).getByRole("link", { name: "Do an exercise" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Find a bar park" })).toHaveCount(0);
@@ -750,11 +758,14 @@ test.describe("yoga extras", () => {
 });
 
 test("during a session the resume bubble replaces the quick-actions button", async ({ page }) => {
-  await page.goto("/dashboard");
+  await page.goto("/coach");
   await expect(page.getByRole("button", { name: "Quick actions" })).toBeVisible();
+  // Today has its own start button instead
+  await page.getByRole("link", { name: "Today", exact: true }).first().click();
+  await expect(page.getByRole("button", { name: "Quick actions" })).toHaveCount(0);
   await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
   await expect(page.getByText(/^1 \/ \d+/)).toBeVisible();
-  await page.reload();
+  await page.goto("/coach");
   await expect(page.getByRole("button", { name: "Resume training" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Quick actions" })).toHaveCount(0);
 });

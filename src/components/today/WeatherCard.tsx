@@ -81,19 +81,22 @@ export default function WeatherCard({ userDoc, override }: { userDoc: UserDoc; o
   if (!place) {
     if (off) return null;
     return (
-      <section className="panel p-3 flex items-center gap-3" aria-label={tx("Weather")}>
-        <CloudSun size={22} className="text-sky-300 shrink-0" />
-        <p className="flex-1 text-sm text-zinc-300">
-          {denied ? tx("Location is blocked — allow it in your browser settings to see the weather.") : tx("See the weather at your training time?")}
-        </p>
+      // text on one line, the button under it: no four-line squeeze on a phone
+      <section className="panel p-3" aria-label={tx("Weather")}>
+        <div className="flex items-start gap-3">
+          <CloudSun size={22} className="text-sky-300 shrink-0 mt-0.5" />
+          <p className="flex-1 text-sm text-zinc-300 pt-0.5">
+            {denied ? tx("Location is blocked — allow it in your browser settings to see the weather.") : tx("See the weather at your training time?")}
+          </p>
+          <button onClick={hide} className="shrink-0 w-11 h-11 -m-2.5 rounded-lg text-zinc-400 hover:text-zinc-100 flex items-center justify-center" aria-label={tx("Not now")}>
+            <X size={16} />
+          </button>
+        </div>
         {!denied && (
-          <button onClick={useLocation} disabled={asking} className="shrink-0 px-3 py-2 rounded-lg text-sm bg-sky-500/15 border border-sky-500/40 text-sky-200 hover:bg-sky-500/25 flex items-center gap-1.5">
+          <button onClick={useLocation} disabled={asking} className="mt-2 w-full min-h-11 rounded-lg text-sm border border-zinc-700 text-zinc-200 hover:border-zinc-500 flex items-center justify-center gap-1.5">
             <MapPin size={14} /> {asking ? tx("Locating…") : tx("Use location")}
           </button>
         )}
-        <button onClick={hide} className="shrink-0 p-2 rounded-lg text-zinc-400 hover:text-zinc-100" aria-label={tx("Not now")}>
-          <X size={16} />
-        </button>
       </section>
     );
   }

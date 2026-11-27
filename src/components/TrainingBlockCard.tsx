@@ -52,7 +52,8 @@ export default function TrainingBlockCard({ invite = false }: { invite?: boolean
           <Target size={16} className="text-orange-400" /> {tx("Training blocks")}
         </h2>
         <p className="text-sm text-zinc-400 mt-1">{tx("Aim for a stage in a few weeks: sessions lean on that skill, with a lighter deload week and a test at the end.")}</p>
-        <button onClick={() => setSetup(true)} className="w-full mt-3 h-12 rounded-xl bg-orange-500 hover:bg-orange-400 text-zinc-950 font-semibold">
+        {/* an invitation, not the page's main action: outlined */}
+        <button onClick={() => setSetup(true)} className="w-full mt-3 h-12 rounded-xl border border-orange-500/60 text-orange-300 hover:bg-orange-500/10 font-semibold">
           {tx("Start a block")}
         </button>
         <BlockSetup open={setup} onClose={() => setSetup(false)} />

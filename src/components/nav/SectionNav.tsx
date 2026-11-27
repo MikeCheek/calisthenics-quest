@@ -58,7 +58,7 @@ export default function SectionNav({ sections }: { sections: { id: string; label
                 go(s.id);
               }}
               aria-current={current === s.id ? "location" : undefined}
-              className={`block px-3 py-1.5 rounded-full text-xs border transition-colors ${
+              className={`flex items-center px-3 py-1.5 [@media(pointer:coarse)]:min-h-11 rounded-full text-xs border transition-colors ${
                 current === s.id ? "border-orange-500 bg-orange-500/15 text-orange-100" : "border-zinc-700 text-zinc-300 hover:text-zinc-100"
               }`}
             >

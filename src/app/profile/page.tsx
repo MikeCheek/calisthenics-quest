@@ -185,7 +185,7 @@ export default function ProfilePage() {
                 role="tab"
                 aria-selected={tab === x.id}
                 onClick={() => selectTab(x.id)}
-                className={`py-2 rounded-lg text-xs sm:text-sm transition-colors ${
+                className={`min-h-11 py-2 rounded-lg text-sm transition-colors ${
                   tab === x.id
                     ? "bg-zinc-800 text-zinc-100 shadow"
                     : "text-muted hover:text-zinc-300"

@@ -6,7 +6,8 @@ import ExerciseTimer from "@/components/ExerciseTimer";
 import ExerciseDetailModal from "@/components/ExerciseDetailModal";
 import SkillCheckPanel from "@/components/SkillCheckPanel";
 import { TimerLog, bestHoldFromLog } from "@/lib/timingLearning";
-import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles, History, HeartCrack } from "lucide-react";
+import { Check, Clock, Play, Minus, Plus, RotateCcw, ArrowDownCircle, Info, SkipForward, Sparkles, History, HeartCrack, MoreHorizontal } from "lucide-react";
+import RowMenu from "@/components/RowMenu";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizeDetail } from "@/lib/i18n/detail";
 
@@ -145,14 +146,20 @@ export default function ExerciseRow({
         className={`relative p-2.5 bg-zinc-900 ${isDone ? "bg-emerald-600/10" : ""}`}
       >
         <div className="flex items-start gap-3">
+          {/* a 22px box inside a 44px tap area */}
           <button
             onClick={onToggleDone}
-            className={`mt-0.5 w-5 h-5 shrink-0 rounded-lg border flex items-center justify-center ${
-              isDone ? "bg-emerald-500 border-emerald-500" : "border-zinc-600"
-            }`}
+            className="-m-2.5 p-2.5 shrink-0 rounded-lg"
             aria-label={isDone ? tx("Mark not done") : tx("Mark done")}
+            aria-pressed={isDone}
           >
-            {isDone && <Check size={14} className="text-zinc-950" />}
+            <span
+              className={`w-[22px] h-[22px] rounded-md border flex items-center justify-center ${
+                isDone ? "bg-emerald-500 border-emerald-500" : "border-zinc-500"
+              }`}
+            >
+              {isDone && <Check size={15} className="text-zinc-950" />}
+            </span>
           </button>
 
           <div className="flex-1 min-w-0">
@@ -177,7 +184,7 @@ export default function ExerciseRow({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="text-muted hover:text-orange-400 p-0.5 -m-0.5"
+                  className="text-muted hover:text-orange-400 p-3 -m-3"
                   aria-label={tx("How to do {ex}, with an AI tip", { ex: exercise.name })}
                   title={tx("How to · AI tip")}
                 >
@@ -207,67 +214,57 @@ export default function ExerciseRow({
             )}
             {isSkipped && <div className="text-xs text-muted mt-0.5">{tx("Skipped")}</div>}
 
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            {/* one action up front, the set count, and the rest in a menu */}
+            <div className="flex items-center gap-2 mt-2">
               <button
                 onClick={onToggleTimer}
-                className={`text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1 font-medium ${
+                className={`text-sm min-h-11 px-4 rounded-lg flex items-center gap-1.5 font-medium ${
                   timerOpen ? "bg-zinc-800 text-zinc-200" : "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25"
                 }`}
               >
-                <Play size={11} /> {timerOpen ? tx("Hide") : tx("Start")}
+                <Play size={13} /> {timerOpen ? tx("Hide") : tx("Start")}
               </button>
-              {onSkip && !isDone && (
-                <button
-                  onClick={onSkip}
-                  className={`text-xs px-2 py-1.5 rounded-lg flex items-center gap-1 ${
-                    isSkipped ? "bg-zinc-700 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                  }`}
-                >
-                  <SkipForward size={11} /> {isSkipped ? tx("Undo") : tx("Skip")}
-                </button>
-              )}
-              {onCantDo && !isDone && (
-                <button
-                  onClick={onCantDo}
-                  className="text-xs px-2 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-orange-400 flex items-center gap-1 whitespace-nowrap"
-                >
-                  <ArrowDownCircle size={11} /> {tx("Too hard")}
-                </button>
-              )}
-              {onHurts && !isDone && (
-                <button
-                  onClick={onHurts}
-                  title={tx("A gentler version now; it rests for two weeks.")}
-                  className="text-xs px-2 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-rose-300 flex items-center gap-1 whitespace-nowrap"
-                >
-                  <HeartCrack size={11} /> {tx("Hurts")}
+              {isSkipped && onSkip && (
+                <button onClick={onSkip} className="text-sm min-h-11 px-3 rounded-lg bg-zinc-800 text-zinc-100 flex items-center gap-1.5">
+                  <SkipForward size={13} /> {tx("Undo skip")}
                 </button>
               )}
               <div className="flex items-center ml-auto shrink-0 rounded-lg border border-zinc-700 overflow-hidden" title={tx("Sets — or swipe the card")}>
                 <button
                   onClick={() => onBump(-1)}
                   aria-label={tx("One set fewer")}
-                  className="w-7 h-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
+                  className="w-11 h-11 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
                 >
-                  <Minus size={11} />
+                  <Minus size={15} />
                 </button>
                 {isAdjusted && (
                   <button
                     onClick={onResetAdjust}
                     aria-label={tx("Reset to default")}
-                    className="w-6 h-7 text-orange-400 hover:bg-zinc-800 flex items-center justify-center border-x border-zinc-700"
+                    className="w-11 h-11 text-orange-400 hover:bg-zinc-800 flex items-center justify-center border-x border-zinc-700"
                   >
-                    <RotateCcw size={10} />
+                    <RotateCcw size={14} />
                   </button>
                 )}
                 <button
                   onClick={() => onBump(1)}
                   aria-label={tx("One set more")}
-                  className="w-7 h-7 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
+                  className="w-11 h-11 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 flex items-center justify-center"
                 >
-                  <Plus size={11} />
+                  <Plus size={15} />
                 </button>
               </div>
+              {!isDone && (onSkip || onCantDo || onHurts) && (
+                <RowMenu
+                  label={tx("More for {ex}", { ex: exercise.name })}
+                  icon={<MoreHorizontal size={18} />}
+                  items={[
+                    ...(onSkip && !isSkipped ? [{ label: tx("Skip"), icon: <SkipForward size={15} />, onClick: onSkip }] : []),
+                    ...(onCantDo ? [{ label: tx("Too hard — an easier version"), icon: <ArrowDownCircle size={15} />, onClick: onCantDo }] : []),
+                    ...(onHurts ? [{ label: tx("This hurts — a gentler version"), icon: <HeartCrack size={15} />, onClick: onHurts, tone: "rose" as const }] : []),
+                  ]}
+                />
+              )}
             </div>
 
             {timerMounted && (

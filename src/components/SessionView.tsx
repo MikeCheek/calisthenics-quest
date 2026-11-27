@@ -262,7 +262,7 @@ export default function SessionView({
           <div className="heading text-2xl text-zinc-100">{tx(session.focusLabel)}</div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-zinc-400">{tx("Est. reward")}</div>
+          <div className="text-xs text-zinc-400">{tx("You'll earn")}</div>
           <div className="stat-mono text-orange-400">+{plannedXp(session)} XP</div>
           <div className="text-xs text-muted mt-0.5 flex items-center justify-end gap-1">
             <Clock size={11} /> ~{estimateSessionMinutes(session)} min
@@ -372,7 +372,11 @@ export default function SessionView({
               : "bg-zinc-700 hover:bg-zinc-600 text-zinc-100"
           }`}
         >
-          {completed ? tx("Session Logged") : allDone ? tx("Complete Session — Claim XP") : tx("Mark Complete Anyway")}
+          {completed
+            ? tx("Session logged")
+            : allDone
+              ? tx("Finish and claim XP")
+              : tx("Finish now — {n} not done count as skipped", { n: totalExercises - done.size - skipped.size })}
         </button>
       )}
 
