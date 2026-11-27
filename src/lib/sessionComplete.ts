@@ -7,6 +7,7 @@ import { skillHistoryPatch } from "./skillHistory";
 import { earnedXp, xpRules } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
 import { LENGTH_HISTORY, lengthSample } from "./sessionLength";
+import { addLoad, sessionLoad } from "./muscleLoad";
 import { estimateSessionMinutes } from "./exerciseTiming";
 import { ExerciseFeedback, PersonalRecord, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
@@ -53,6 +54,9 @@ export async function awardXp(userDoc: UserDoc, amount: number): Promise<XpAward
   const newLevel = levelFromXp(newXp);
   return { newXp, leveledUp: newLevel > oldLevel, newLevel };
 }
+
+// the day as sessions are generated (UTC, like a session's dateISO)
+const localDay = () => new Date().toISOString().slice(0, 10);
 
 export async function completeSession(
   userDoc: UserDoc,
@@ -156,9 +160,14 @@ export async function completeSession(
   // how much of it you got through, to plan the next ones (sessionLength.ts)
   const length = lengthSample(session, feedback, estimateSessionMinutes(session));
 
+  // hard sets per muscle group, for tomorrow's recovery and the week's balance (muscleLoad.ts)
+  const load = sessionLoad(feedback, session.sport);
+  const loadLog = Object.keys(load).length ? addLoad(userDoc.loadLog, localDay(), load) : undefined;
+
   const patch: Partial<UserDoc> = {
     ...learnPatch,
     week,
+    ...(loadLog ? { loadLog } : {}),
     ...(length && !opts.isPaired ? { lengthHistory: [...(userDoc.lengthHistory ?? []), length].slice(-LENGTH_HISTORY) } : {}),
     ...(opts.effort && opts.effort.planned > 0
       ? {

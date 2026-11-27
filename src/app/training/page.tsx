@@ -165,6 +165,8 @@ export default function TrainingPage() {
           </div>
         )}
 
+        {displayedSession.why && !completed && <div className="text-xs text-sky-400/90 px-1">{tx(displayedSession.why)}</div>}
+
         {!aiAppliedSession && !completed && <UsualLengthNote usual={usualLength} onFull={fullLengthToday} className="px-1" />}
 
         {lighterBy > 0 && !aiAppliedSession && !completed && (

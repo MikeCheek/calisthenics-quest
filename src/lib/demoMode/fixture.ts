@@ -137,6 +137,12 @@ export function demoUserDoc(): UserDoc {
       ];
     })(),
     transitionRest: [1.3, 1.2, 1.35],
+    // hard sets per muscle group this week: plenty of pushing, legs behind (muscleLoad.ts)
+    loadLog: [
+      { d: iso(6).slice(0, 10), g: { push: 10, wrists: 6, core: 3 } },
+      { d: iso(4).slice(0, 10), g: { pull: 9, core: 4 } },
+      { d: iso(2).slice(0, 10), g: { push: 7, wrists: 5, pull: 3 } },
+    ],
     // the last few sessions ended about two thirds of the way in (sessionLength.ts)
     lengthHistory: [
       { at: iso(6), planned: 45, done: 0.7 },

@@ -13,6 +13,7 @@ import { FOCUS_LABEL } from "@/lib/trainingGenerator";
 import { SPORTS, activeSportOf, isExtraSport, type SportId } from "@/lib/sports";
 import { focusOptions, generateSportSession, groupLabel, pickSportFocus } from "@/lib/sports/generator";
 import { habitualMinutes, type HabitualLength } from "@/lib/sessionLength";
+import { restAwareFocus } from "@/lib/muscleLoad";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -89,7 +90,10 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
   const block = userDoc?.trainingBlock ?? undefined;
   const picked = equipment ? focusWithBlock(new Date(), equipment, userDoc?.goalTracks ?? [], block) : null;
   const deload = isActive(block) && phaseOf(block, blockWeek(block)) === "deload";
-  const focus = focusOverride && options.includes(focusOverride) ? focusOverride : picked;
+  // a muscle group that had a hard day yesterday rests: the day moves to a goal that trains something else
+  const rested = picked && !focusOverride ? restAwareFocus(picked, options, userDoc?.goalTracks ?? [], userDoc?.loadLog, today(), (t) => FOCUS_LABEL[t]) : null;
+  const focus = focusOverride && options.includes(focusOverride) ? focusOverride : (rested?.focus ?? picked);
+  const focusWhy = focus === rested?.focus ? rested?.why : undefined;
 
   const [fullLength, setFullToday] = useFullLength("calisthenics");
   const length = planLength(userDoc?.body?.sessionLengthMinutes, userDoc, "calisthenics", fullLength);
@@ -108,7 +112,7 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     const trainSkills = skillsForTraining(userDoc.skills, claims);
     const adapted = adaptSession(
       // rotates away from what you did most recently, so the same focus isn't the same session
-      generateSession(trainSkills, equipment!, focus, new Date(), minutes, { stats: userDoc.exerciseStats, records: userDoc.records }),
+      generateSession(trainSkills, equipment!, focus, new Date(), minutes, { stats: userDoc.exerciseStats, records: userDoc.records, load: userDoc.loadLog }),
       userDoc.exerciseStats,
       equipment!,
       trainSkills
@@ -121,13 +125,14 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     // …and within the effort they've had energy for lately (effort.ts)
     const balanced = balanceSession(fitted.session, effortCapacity(userDoc.effortHistory));
     // a block's deload week: lighter on purpose
-    const session = deload ? applyDeload(balanced.session) : balanced.session;
+    const lighter = deload ? applyDeload(balanced.session) : balanced.session;
+    const session = focusWhy ? { ...lighter, why: focusWhy } : lighter;
     return { fitted: { ...fitted, session }, check, lighterBy: balanced.trimmed };
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes]);
+  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy]);
 
   return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: usual, fullLengthToday: setFullToday };
 }

@@ -302,6 +302,8 @@ export default function SessionView({
                 </span>
                 {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </button>
+              {/* why this block today (trainingGenerator.ts, muscleLoad.ts) */}
+              {set.why && !isCollapsed && <p className="text-xs text-zinc-400 -mt-1 mb-2" data-testid="block-why">{tx(set.why)}</p>}
               {!isCollapsed && (
                 <ul className="space-y-2">
                   {set.exercises.map((originalEx, i) => {

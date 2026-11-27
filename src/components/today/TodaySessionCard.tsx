@@ -91,6 +91,8 @@ export default function TodaySessionCard({
         </span>
       </div>
 
+      {session.why && <p className="text-xs text-sky-400/90 mt-2" data-testid="session-why">{tx(session.why)}</p>}
+
       {lighterBy > 0 && (
         <p className="text-xs text-sky-400/90 mt-2">
           {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}

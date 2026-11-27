@@ -64,6 +64,13 @@ test("Today plans around how much of your sessions you get through, with the ful
   await expect.poll(minutes).toBeGreaterThan(short);
 });
 
+test("the session says why each block is there today", async ({ page }) => {
+  await page.goto("/training");
+  const why = page.getByTestId("block-why");
+  await expect(why.first()).toContainText("The key exercise every time; the rest rotate");
+  await expect(why.filter({ hasText: /^Builds the strength .+ needs/ })).toHaveCount(1);
+});
+
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
   await page.goto("/dashboard");
   const card = page.locator("section[aria-labelledby=event-title]");

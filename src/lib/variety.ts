@@ -23,6 +23,7 @@ import { statKey } from "./adaptation";
 export interface History {
   stats?: Record<string, ExerciseStat>;
   records?: Record<string, { hold?: number; reps?: number }>;
+  load?: import("./muscleLoad").LoadDay[]; // hard sets per muscle group, per day
 }
 
 type Gate = (s: SkillProfile) => boolean;
@@ -235,6 +236,24 @@ export function rotateScheme(e: Exercise, turn: number, history: History | undef
     if (k === 2 && sets > 2) return { ...e, detail: `${sets - 1} x ${range(lo + 1, hi + 1)} reps${tail}` };
   }
   return e;
+}
+
+/** whole days since an exercise was last done, or null if never */
+export function daysSinceDone(history: History | undefined, name: string, day: string): number | null {
+  const s = history?.stats?.[statKey(name)];
+  const at = s?.lastAt ?? (s && s.done > 0 ? s.last : undefined);
+  if (!at) return null;
+  return Math.max(0, Math.round((Date.parse(`${day}T12:00:00Z`) - Date.parse(at)) / DAY));
+}
+
+/** why a rotated block holds what it holds: the drill longest away, or a new one */
+export function rotationWhy(names: string[], history: History | undefined, day: string): string | undefined {
+  if (!history?.stats) return undefined;
+  const ages = names.map((n) => ({ n, d: daysSinceDone(history, n, day) }));
+  const fresh = ages.find((a) => a.d === null);
+  if (fresh) return `${fresh.n}: new for you`;
+  const oldest = ages.sort((a, b) => b.d! - a.d!)[0];
+  return oldest && oldest.d! >= 5 ? `${oldest.n}: last done ${oldest.d} days ago` : undefined;
 }
 
 /** how many times an exercise has been done, to turn its scheme */

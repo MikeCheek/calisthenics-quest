@@ -377,6 +377,7 @@ export interface TrainingSet {
   track: TrainingSetKind;
   title: string;
   exercises: Exercise[];
+  why?: string; // why this block today, in a line ("Pushing: 4 of 12 hard sets this week")
 }
 
 export interface TrainingSession {
@@ -388,6 +389,7 @@ export interface TrainingSession {
   forUid?: string; // present in paired sessions
   sport?: import("./sports/types").SportId; // a session of another sport (sports/)
   partnerLabel?: string; // e.g. "Your side" / "Friend's side"
+  why?: string; // why this focus today, when it moved (muscleLoad.ts)
 }
 
 export interface PairedSession {
@@ -510,6 +512,8 @@ export interface UserDoc {
   effortHistory?: EffortSample[];
   // how much of recent sessions was done — sessions are planned around it (sessionLength.ts)
   lengthHistory?: import("./sessionLength").LengthSample[];
+  // hard sets per muscle group, per day, for two weeks — recovery and weekly volume (muscleLoad.ts)
+  loadLog?: import("./muscleLoad").LoadDay[];
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends
