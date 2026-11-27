@@ -13,7 +13,8 @@ export const DEMO_UID = "demo-athlete";
 // a comma-separated list — e2e/helpers.ts sets it with demoScenario():
 //   fresh — a brand-new user: not set up, nothing logged (the first login)
 //   guest — signed in as a guest (no Google account)
-export type DemoScenario = "fresh" | "guest";
+//   away — the example athlete, back after 12 days without training
+export type DemoScenario = "fresh" | "guest" | "away";
 export const DEMO_SCENARIO_KEY = "barquests:demo-scenario";
 
 export function demoScenario(name: DemoScenario): boolean {

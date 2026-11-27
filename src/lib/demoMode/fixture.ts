@@ -13,11 +13,13 @@ import { stepsOf, totalEffort } from "../effort";
 // Example data for demo mode (see flag.ts). Fictional athlete, clearly
 // labeled in the UI; never written anywhere.
 
-import { DEMO_UID } from "./flag";
+import { DEMO_UID, demoScenario } from "./flag";
 export { DEMO_UID };
 const DAY = 86400000;
+// the "away" scenario: the same athlete, back after 12 days off
+const away = () => (demoScenario("away") ? 12 : 0);
 const iso = (daysAgo: number, hour = 18) => {
-  const d = new Date(Date.now() - daysAgo * DAY);
+  const d = new Date(Date.now() - (daysAgo + away()) * DAY);
   d.setHours(hour, 15, 0, 0);
   return d.toISOString();
 };
@@ -58,7 +60,7 @@ const SESSION_DAYS = [1, 2, 4, 6, 8, 9, 11, 13, 15, 16, 18, 20];
 export function demoSessions(): SessionRecord[] {
   return SESSION_DAYS.map((daysAgo, i) => {
     const focus = FOCUS_ROTATION[i % FOCUS_ROTATION.length];
-    const s = generateSession(skills, DEFAULT_EQUIPMENT, focus, new Date(Date.now() - daysAgo * DAY));
+    const s = generateSession(skills, DEFAULT_EQUIPMENT, focus, new Date(Date.now() - (daysAgo + away()) * DAY));
     const exercises = s.sets.flatMap((set) =>
       set.exercises.map((ex, j) => ({
         name: ex.name,
@@ -118,7 +120,7 @@ export function demoUserDoc(): UserDoc {
       planche: { value: "tuck", status: "unconfirmed", claimedAt: iso(30), lastAttemptAt: iso(4), fails: 1, best: 3 },
       pullUpMaxReps: { value: 14, status: "verified", claimedAt: iso(60), verifiedAt: iso(15), fails: 0, best: 15 },
     },
-    week: { key: weekKey, sessions: 2, minutes: 86, verified: 1, xp: 410 },
+    week: away() ? { key: weekKey, sessions: 0, minutes: 0, verified: 0, xp: 0 } : { key: weekKey, sessions: 2, minutes: 86, verified: 1, xp: 410 },
     // what the adaptive engine has "learned", so Coach insights has content
     exerciseStats: {
       [statKey("Pull-ups")]: { p: -4, done: 11, skipped: 0, tooHard: 0, rp: [1.1, 1.05, 1.1], last: iso(2) },
