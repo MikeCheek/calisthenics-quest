@@ -86,6 +86,7 @@ export default function PlanPage() {
       new Date(),
       userDoc.exerciseStats,
       userDoc.trainingBlock,
+      userDoc.records,
     );
     setPlan(newPlan);
     setExpanded(newPlan.find((d) => !d.isRestDay)?.dateISO ?? null);

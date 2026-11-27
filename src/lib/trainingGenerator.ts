@@ -27,6 +27,7 @@ import { bandAssistanceBonus } from "./bandBonus";
 import { advancedSkillBonusSet } from "./advancedSkills";
 import { STAGE_ORDER } from "./stageOrder";
 import { aboveYourStage, stageExercises } from "./exerciseHierarchy";
+import { freshest, rotateScheme, supportPool, timesDone, type History } from "./variety";
 
 const FOCUS_ORDER: SkillTrack[] = [
   "frontLever",
@@ -196,13 +197,75 @@ function keepToYourStages(sets: TrainingSet[], skills: SkillProfile, equipment: 
     .filter((set) => set.exercises.length > 0);
 }
 
+// the skill each staged track follows (its stage picks the table)
+const SKILL_OF: Partial<Record<SkillTrack, keyof SkillProfile>> = {
+  frontLever: "frontLever",
+  backLever: "backLever",
+  planche: "planche",
+  humanFlag: "humanFlag",
+  core: "lSit",
+  muscleUp: "muscleUp",
+  handstand: "handstand",
+  legs: "pistolSquat",
+};
+
+// The skill practice: the key hold first, then two more drills — one of
+// this stage's, one from this stage or the one below (volume) — whichever
+// were done least recently. Schemes turn with how often each was done.
+// Strength focuses rotate in pulling or pushing work from the skill pools.
+function skillBlock(focus: SkillTrack, skills: SkillProfile, equipment: TrainingEquipment, history: History | undefined, seed: string): Exercise[] {
+  const list = exercisesForTrack(focus, skills, equipment);
+  if (list.length <= 1) return list;
+  const [anchor, ...rest] = list;
+  const taken = new Set([anchor.name]);
+  let picked: Exercise[];
+  if (focus === "pullStrength" || focus === "pushStrength") {
+    const extra = patternExtras(focus, skills, equipment, taken).filter((e) => !rest.some((r) => r.name === e.name));
+    const fromList = freshest(rest, Math.max(1, rest.length - 1), history, seed);
+    fromList.forEach((e) => taken.add(e.name));
+    picked = [...fromList, ...freshest(extra.filter((e) => !taken.has(e.name)), 1, history, seed)];
+  } else {
+    const key = SKILL_OF[focus];
+    let below: Exercise[] = [];
+    if (key) {
+      const order = STAGE_ORDER[key] ?? [];
+      const i = order.indexOf(String(skills[key]));
+      if (i > 0) below = exercisesForTrack(focus, { ...skills, [key]: order[i - 1] } as SkillProfile, equipment);
+    }
+    const one = freshest(rest, 1, history, seed);
+    one.forEach((e) => taken.add(e.name));
+    let pool = [...rest, ...below].filter((e, i, a) => !taken.has(e.name) && a.findIndex((x) => x.name === e.name) === i);
+    // a small stage (the first ones): top up from what builds the skill
+    if (pool.length < 3) pool = [...pool, ...supportPool(focus, skills, equipment, new Set([...taken, ...pool.map((e) => e.name)]))];
+    picked = [...one, ...freshest(pool, 1, history, seed)];
+  }
+  const ordered = picked.sort((a, b) => hashOf(`${seed}:${a.name}`) - hashOf(`${seed}:${b.name}`));
+  return [anchor, ...ordered].map((e) => rotateScheme(e, timesDone(history, e.name), history));
+}
+
+// More pulling or pushing work from the skills' strength pools, so a
+// strength block isn't the same three exercises every time.
+function patternExtras(track: "pullStrength" | "pushStrength", skills: SkillProfile, equipment: TrainingEquipment, taken: Set<string>): Exercise[] {
+  const kind = track === "pullStrength" ? /pull|row|chin/i : /push|dip|pike|support/i;
+  const from: SkillTrack[] = track === "pullStrength" ? ["muscleUp", "frontLever", "backLever"] : ["planche", "handstand", "backLever"];
+  const out = from.flatMap((t) => supportPool(t, skills, equipment, taken)).filter((e) => kind.test(e.name));
+  return out.filter((e, i) => out.findIndex((x) => x.name === e.name) === i);
+}
+
+const hashOf = (s: string) => {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+};
+
 function buildSets(
   skills: SkillProfile,
   equipment: TrainingEquipment,
   focus: SkillTrack,
   dateISO: string,
   primaryLabel: string,
-  accessoryCount = 2
+  accessoryCount = 2,
+  history?: History
 ): TrainingSet[] {
   const warmup: TrainingSet = {
     track: "warmup",
@@ -213,20 +276,35 @@ function buildSets(
   const primary: TrainingSet = {
     track: focus,
     title: `Main Focus — ${primaryLabel}`,
-    exercises: exercisesForTrack(focus, skills, equipment),
+    exercises: skillBlock(focus, skills, equipment, history, dateISO),
   };
 
   const bandBonus = bandAssistanceBonus(focus, skills, equipment);
   if (bandBonus) primary.exercises = [...primary.exercises, bandBonus];
 
   const sets: TrainingSet[] = [warmup, primary];
+  const taken = new Set(primary.exercises.map((e) => e.name));
+
+  // what builds the muscles the skill needs, rotated
+  const strength = supportPool(focus, skills, equipment, taken);
+  if (strength.length) {
+    const picked = freshest(strength, accessoryCount >= 4 ? 3 : 2, history, `${dateISO}:s`).map((e) => rotateScheme(e, timesDone(history, e.name), history));
+    picked.forEach((e) => taken.add(e.name));
+    sets.push({ track: focus, title: `Strength for ${primaryLabel}`, exercises: picked });
+  }
 
   const accessory = accessoryTrackFor(focus, equipment, dateISO);
   if (accessory !== focus) {
+    const base = exercisesForTrack(accessory, skills, equipment);
+    const extra = accessory === "pullStrength" || accessory === "pushStrength" ? patternExtras(accessory, skills, equipment, taken) : [];
+    // never above your stage (it would be swapped for another skill's drill later)
+    const options = [...base, ...extra].filter((e, i, a) => !taken.has(e.name) && a.findIndex((x) => x.name === e.name) === i && !aboveYourStage(e.name, skills as unknown as Record<string, unknown>));
+    const picked = freshest(options, accessoryCount >= 4 ? 3 : 2, history, `${dateISO}:a`);
+    picked.forEach((e) => taken.add(e.name));
     sets.push({
       track: accessory,
       title: `Accessory — ${FOCUS_LABEL[accessory]}`,
-      exercises: exercisesForTrack(accessory, skills, equipment).slice(0, accessoryCount),
+      exercises: picked,
     });
   }
 
@@ -272,11 +350,14 @@ export function generateSession(
   date: Date = new Date(),
   // Longer sessions get the whole accessory track to work with; the
   // session fitter (sessionFit.ts) then trims or extends to the minute.
-  targetMinutes?: number
+  targetMinutes?: number,
+  // what was done when (exerciseStats) and best sets (records): sessions
+  // rotate away from what was done most recently
+  history?: History
 ): TrainingSession {
   const dateISO = date.toISOString().slice(0, 10);
   const accessoryCount = targetMinutes && targetMinutes >= 60 ? 4 : 2;
-  const sets = buildSets(skills, equipment, focus, dateISO, FOCUS_LABEL[focus], accessoryCount);
+  const sets = buildSets(skills, equipment, focus, dateISO, FOCUS_LABEL[focus], accessoryCount, history);
 
   const totalExercises = sets.reduce((n, s) => n + s.exercises.length, 0);
   const estXp = 20 + totalExercises * 8 + stageXpBonus(skills);

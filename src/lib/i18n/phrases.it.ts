@@ -241,6 +241,10 @@ const IT_PHRASES: [string, string][] = [
   ["Final Hits", "Colpi finali"],
   ["Main Focus — {x}", "Focus principale — {x}"],
   ["Accessory — {x}", "Complementare — {x}"],
+  ["Strength for {x}", "Forza per {x}"],
+  ["Shorter holds, more of them — crisp form on every one", "Tenute più brevi, ma di più — forma pulita in ognuna"],
+  ["Fewer, all-out holds — rest fully between them", "Meno tenute, al massimo — recupera del tutto tra una e l'altra"],
+  ["Fewer reps, slower lowering — own every inch", "Meno ripetizioni, discesa più lenta — controlla ogni centimetro"],
   ["Bonus Skill — {x}", "Skill bonus — {x}"],
   ["{x} (alternate turns on the bar)", "{x} (a turno alla sbarra)"],
   // focus tracks

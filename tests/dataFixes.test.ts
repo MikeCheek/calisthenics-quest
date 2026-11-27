@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateSession } from "../src/lib/trainingGenerator";
+import { generateSession, exercisesForTrack } from "../src/lib/trainingGenerator";
 import { adaptSession, applySkillFeedback, easierForAthlete } from "../src/lib/adaptation";
 import { aboveYourStage, findEasierExercise } from "../src/lib/exerciseHierarchy";
 import { parseTiming } from "../src/lib/exerciseTiming";
@@ -29,7 +29,8 @@ const stat = (p: number, extra: Partial<ExerciseStat> = {}): ExerciseStat => ({ 
 
 test("one-arm chin negatives marked too hard again and again finally ease off", () => {
   assert.ok(findEasierExercise("One-arm chin negatives", eq), "the name the session uses is on the ladder");
-  const s = generateSession(athlete, eq, "pullStrength", new Date(2026, 10, 27));
+  // a pull session with it (sessions rotate, so build one that has it)
+  const s: TrainingSession = { id: "t", dateISO: "2026-11-27", focusLabel: "Pull Strength", estXp: 0, sets: [{ track: "pullStrength", title: "Main Focus — Pull Strength", exercises: exercisesForTrack("pullStrength", athlete, eq) }] };
   assert.ok(names(s).includes("One-arm chin negatives"));
   const adapted = adaptSession(s, { one_arm_chin_negatives: stat(6) }, eq, athlete);
   const all = names(adapted);
