@@ -53,3 +53,12 @@ test("training on a day off counts for the next session", () => {
   const p = weekPlan(MWF, ran(24), day(26, 9)); // trained Tuesday instead of Monday
   assert.equal(names(p.days), "Tue-Thu-Sat");
 });
+
+test("a whole week missed: what can't happen any more is counted the way you'd count it", () => {
+  // Mon-Wed-Thu-Sat, nothing done, it's Friday: three sessions are gone, Saturday is left
+  const p = weekPlan([1, 3, 4, 6], [], day(27, 9));
+  assert.equal(p.lost, 3);
+  assert.equal(names(p.ahead), "Sat");
+  // on plan: nothing lost
+  assert.equal(weekPlan(MWF, ran(23, 25), day(26, 9)).lost, 0);
+});

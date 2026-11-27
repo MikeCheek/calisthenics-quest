@@ -1,5 +1,6 @@
 "use client";
 
+import ComebackNote from "@/components/today/ComebackNote";
 import TodayReadiness from "@/components/TodayReadiness";
 import TodayAdjustments from "@/components/TodayAdjustments";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
@@ -47,13 +48,21 @@ export default function TrainingPage() {
   // The floating "Start Training" button only shows once the on-page one
   // has scrolled out of view, and only when there isn't already a session
   // in progress (that has its own resume banner + the persistent bubble).
+  // …and it steps aside while you scroll down through the exercises (it
+  // would sit on their buttons), back when you scroll up
   useEffect(() => {
-    const onScroll = () => setShowFab(window.scrollY > 280);
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 8) return;
+      setShowFab(y > 280 && y < last);
+      last = y;
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek } = useTodaysSession(userDoc);
+  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek, comeback } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -167,6 +176,8 @@ export default function TrainingPage() {
             className="px-1"
           />
         )}
+
+        {comeback && !completed && <ComebackNote comeback={comeback} />}
 
         {!aiAppliedSession && !completed && <TodayReadiness readiness={readiness} onReadiness={setReadiness} className="px-1" />}
 

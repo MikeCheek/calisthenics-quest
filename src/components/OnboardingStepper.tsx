@@ -78,6 +78,9 @@ export default function OnboardingStepper({
   const [mastery, setMastery] = useState<Partial<Record<StagedSkillKey, SkillMastery>>>(initialMastery);
   // the per-area assessment has its own Back/Next — hide ours meanwhile
   const [assessing, setAssessing] = useState(false);
+  // on "Your level", the assessment's own intro is the choice (no Continue that skips it)
+  const [atIntro, setAtIntro] = useState(true);
+  const hasLevels = Object.values(initialSkills as unknown as Record<string, unknown>).some((v) => typeof v === "string" && v !== "none");
 
   const toggleGoal = (t: SkillTrack) => {
     setGoals((g) => (g.includes(t) ? g.filter((x) => x !== t) : g.length < 4 ? [...g, t] : g));
@@ -182,6 +185,9 @@ export default function OnboardingStepper({
             equipment={equipment}
             currentXp={currentXp}
             onInProgressChange={setAssessing}
+            onAtIntro={setAtIntro}
+            onSkip={next}
+            skipLabel={hasLevels ? "Keep my current levels" : "Skip — start me as a beginner"}
             onChange={(nextSkills, nextMastery) => {
               setSkills(nextSkills);
               setMastery(nextMastery);
@@ -215,7 +221,7 @@ export default function OnboardingStepper({
         </div>
       )}
 
-      {!(step === 2 && assessing) && (
+      {!(step === 2 && (assessing || atIntro)) && (
       <button
         onClick={next}
         disabled={saving}

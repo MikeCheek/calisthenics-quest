@@ -43,7 +43,7 @@ test("today's session opens in guided mode and keeps its place", async ({ page }
   await page.goto("/dashboard");
   await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
   await expect(page.getByText(/^1 \/ \d+/)).toBeVisible();
-  await page.getByRole("button", { name: /^Next/ }).click();
+  await page.getByRole("button", { name: /^(Next|Done)/ }).click();
   await expect(page.getByText(/Rest before next exercise/i)).toBeVisible();
   // reload: the session is kept, behind the floating "Resume training"
   // button, and opens again where it was
@@ -100,6 +100,78 @@ test("a finisher you keep skipping: asked once, then left out", async ({ page })
   await expect(page).toHaveURL(/\/training/);
   await expect(page.getByRole("button", { name: /^Warm-Up/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Final Hits/ })).toHaveCount(0);
+});
+
+test("guided mode: Done or Skip until a set is logged, and a session can end early without lying", async ({ page }) => {
+  await page.goto("/dashboard");
+  await page.getByRole("main").getByRole("button", { name: /Start session/ }).click();
+  // nothing logged yet: moving on says what it records
+  await expect(page.getByRole("button", { name: /^Done/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Skip", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /^Done/ }).click();
+  await page.getByRole("button", { name: "Skip rest" }).click();
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("dialog", { name: "Options" }).getByRole("button", { name: /Finish now and log/ }).click();
+  await expect(page.getByText("Finish here?")).toBeVisible();
+  await expect(page.getByText(/1 done, \d+ not reached/)).toBeVisible();
+  // changed your mind: back to the session where you were
+  await page.getByRole("button", { name: "Keep training" }).click();
+  await expect(page.getByText(/^2 \/ \d+/)).toBeVisible();
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("dialog", { name: "Options" }).getByRole("button", { name: /Finish now and log/ }).click();
+  await page.getByRole("button", { name: /^Log 1 done/ }).click();
+  // the summary says where you stand and what's next
+  await expect(page.getByTestId("next-up")).toContainText(/This week: \d+ of \d+ sessions/);
+});
+
+test("first run: the level step's way past the assessment says what it means", async ({ page }) => {
+  await demoScenario(page, "fresh", "guest");
+  await page.goto("/onboarding");
+  await page.getByRole("button", { name: /Calisthenics/ }).first().click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("button", { name: "Start assessment" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue" })).toHaveCount(0);
+  await page.getByRole("button", { name: /Skip — start me as a beginner/ }).click();
+  await page.getByRole("button", { name: /Save & start/ }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  // a new athlete, not the example one
+  await expect(page.getByRole("heading", { name: "Hi, Guest" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Adjusted for today/ })).toHaveCount(0);
+});
+
+test("back after a break: welcomed, a gentler restart, and the week counted right", async ({ page }) => {
+  await demoScenario(page, "away");
+  await page.goto("/dashboard");
+  const back = page.getByTestId("comeback");
+  await expect(back).toContainText(/Welcome back — \d+ days off/);
+  await expect(back).toContainText(/6-week streak ended — this session starts a new one/);
+  // no all-out skill checks on the first session back
+  await expect(page.getByText(/one-set skill check/)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Rest-day mobility" })).toHaveCount(0);
+  await expect(page.getByText(/One session skipped this week/)).toHaveCount(0);
+});
+
+test("focus from Today, and a place that can't do it says so", async ({ page }) => {
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "Change focus" }).click();
+  await page.getByRole("dialog", { name: "Today's focus" }).getByRole("button", { name: /^Front Lever/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Front Lever" })).toBeVisible();
+  await page.locator("#where-today").getByRole("button", { name: "At home" }).click();
+  await page.getByRole("button", { name: /Adjusted for today/ }).click();
+  await expect(page.getByTestId("session-why")).toContainText(/Front Lever needs kit you don't have here — today is/);
+  await page.getByTestId("session-why").getByRole("button", { name: "Pick another" }).click();
+  await expect(page.getByRole("dialog", { name: "Today's focus" })).toBeVisible();
+});
+
+test("offline: a page never opened here stays put and says why", async ({ page, context }) => {
+  await page.goto("/dashboard");
+  await expect(page.getByRole("main").getByRole("button", { name: /Start session/ })).toBeVisible();
+  await context.setOffline(true);
+  await page.getByRole("link", { name: "Crew", exact: true }).first().click();
+  await expect(page.getByText(/needs a connection the first time/)).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await context.setOffline(false);
 });
 
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
@@ -221,7 +293,7 @@ test("after the last exercise: cool-down stretches for the muscles worked", asyn
     if (await page.getByText("Session complete!").isVisible()) break;
     const skip = page.getByRole("button", { name: "Skip rest" }).first();
     if (await skip.isVisible()) await skip.click();
-    else await page.getByRole("button", { name: /^Next/ }).click();
+    else await page.getByRole("button", { name: /^(Next|Done)/ }).click();
   }
   await page.getByRole("button", { name: /Cool-down stretches · ~\d+ min/ }).click();
   const flow = page.getByRole("dialog", { name: "Cool-down" });
@@ -244,7 +316,7 @@ test("offline: a session can be finished and logged without a connection", async
     if (await page.getByText("Session complete!").isVisible()) break;
     const skip = page.getByRole("button", { name: "Skip rest" }).first();
     if (await skip.isVisible()) await skip.click();
-    else await page.getByRole("button", { name: /^Next/ }).click();
+    else await page.getByRole("button", { name: /^(Next|Done)/ }).click();
   }
   await page.getByRole("button", { name: /Finish & log session/ }).click();
   await expect(page.getByText(/Saved on this phone/)).toBeVisible({ timeout: 5000 });
@@ -598,7 +670,7 @@ test("sports: start yoga, train it, switch back to calisthenics with nothing los
     if (await page.getByText("Session complete!").isVisible()) break;
     const skip = page.getByRole("button", { name: "Skip rest" }).first();
     if (await skip.isVisible()) await skip.click();
-    else await page.getByRole("button", { name: /^Next/ }).click();
+    else await page.getByRole("button", { name: /^(Next|Done)/ }).click();
   }
   await page.getByRole("button", { name: /Finish & log session/ }).click();
   await expect(page.getByRole("heading", { name: "Done for today" })).toBeAttached({ timeout: 5000 });

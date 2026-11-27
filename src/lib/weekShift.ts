@@ -20,7 +20,9 @@ const localISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).pad
 export interface WeekPlan {
   days: number[]; // this week's training days, as Date.getDay() (0 = Sunday)
   shifted: boolean; // the rest of the week moved by a day
-  skipped: number; // sessions dropped this week
+  skipped: number; // sessions dropped this week by the shifting
+  lost: number; // planned sessions that can't happen this week any more (missed, not made up)
+  ahead: number[]; // the sessions still to come this week, as Date.getDay()
   todayPlanned: boolean;
 }
 
@@ -64,6 +66,8 @@ export function weekPlan(
     days: days.map(jsDay),
     shifted: shift > 0 && ahead.length > 0,
     skipped,
+    lost: Math.max(0, base.length - done.length - ahead.length),
+    ahead: ahead.map(jsDay),
     todayPlanned: ahead.includes(today) && !trained.has(dayISO(today)),
   };
 }

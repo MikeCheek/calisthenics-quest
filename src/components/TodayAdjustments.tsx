@@ -26,6 +26,7 @@ export default function TodayAdjustments({
   lighterWeek = null,
   adapted = 0,
   fittedTo,
+  onPickFocus,
   className = "",
 }: {
   why?: string; // a focus moved for recovery (muscleLoad.ts)
@@ -35,6 +36,7 @@ export default function TodayAdjustments({
   lighterWeek?: LighterWeek | null;
   adapted?: number; // exercises adapted from your history
   fittedTo?: { minutes: number; was: number }; // trimmed or extended to your session length
+  onPickFocus?: () => void; // a moved focus: pick another
   className?: string;
 }) {
   const { tx } = useLanguage();
@@ -42,7 +44,7 @@ export default function TodayAdjustments({
   const [open, setOpen] = useState(false);
 
   const reasons: Reason[] = [];
-  if (why) reasons.push({ short: tx("focus moved"), text: tx(why), testId: "session-why" });
+  if (why) reasons.push({ short: tx("focus moved"), text: tx(why), testId: "session-why", action: onPickFocus ? { label: tx("Pick another"), onClick: onPickFocus } : undefined });
   if (lighterWeek?.from)
     reasons.push({
       short: tx("lighter week"),

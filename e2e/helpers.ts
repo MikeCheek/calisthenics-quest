@@ -39,7 +39,7 @@ export function collectErrors(page: Page, ignore: RegExp = /^$/): string[] {
 // Demo scenarios (src/lib/demoMode/flag.ts): start the example app as a
 // brand-new user ("fresh") and/or a guest ("guest"). Set before the first
 // page load; it lasts for the tab.
-export async function demoScenario(page: Page, ...names: ("fresh" | "guest")[]) {
+export async function demoScenario(page: Page, ...names: ("fresh" | "guest" | "away")[]) {
   await page.addInitScript((value) => {
     try {
       sessionStorage.setItem("barquests:demo-scenario", value);

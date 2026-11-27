@@ -1,5 +1,6 @@
 "use client";
 
+import FocusSheet from "@/components/today/FocusSheet";
 import { BlockQuestion } from "@/components/BlockPrefs";
 import SportWeekSummary from "@/components/sports/SportWeekSummary";
 import { SPORT_META } from "@/lib/sports";
@@ -48,7 +49,8 @@ export default function TodayPage() {
     startSession,
     expand,
   } = useTrainingSession();
-  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek } = useTodaysSession(userDoc);
+  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek, comeback, options, setFocusOverride } = useTodaysSession(userDoc);
+  const [focusSheet, setFocusSheet] = useState(false);
   const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
@@ -141,6 +143,8 @@ export default function TodayPage() {
               readiness={readiness}
               onReadiness={setReadiness}
               lighterWeek={lighterWeek}
+              comeback={comeback}
+              onChangeFocus={() => setFocusSheet(true)}
               where={outdoor && !doneToday ? tx(!todayEquipment ? "Usual spot" : todayEquipment.kind === "park" ? todayEquipment.label : "At home") : undefined}
               onStart={() =>
                 outdoor
@@ -184,7 +188,18 @@ export default function TodayPage() {
             {/* a day off in the plan: easy mobility instead */}
             {!doneToday &&
               !(activeSession && !activeCompleted) &&
+              !comeback && // back after a break: the restart is the point, not a rest day
               days.some((d) => d.isToday && !d.planned) && <RestDayCard />}
+
+            <FocusSheet
+              open={focusSheet}
+              onClose={() => setFocusSheet(false)}
+              options={options}
+              current={focus}
+              goals={userDoc.goalTracks ?? []}
+              labelOf={labelOf}
+              onPick={setFocusOverride}
+            />
           </div>
 
           <div className="space-y-4 md:col-span-5">

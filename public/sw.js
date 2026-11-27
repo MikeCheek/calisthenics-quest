@@ -1,4 +1,4 @@
-const CACHE_NAME = "barquests-v3";
+const CACHE_NAME = "barquests-v4";
 const APP_SHELL = ["/", "/dashboard", "/training", "/skills", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.json"];
 
 // files whose content never changes under the same name: from the cache first
@@ -96,6 +96,17 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
         return res;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/")))
+      // offline and never cached: an app page falls back to Today (signed-in
+      // people get their app, not the signed-out landing page); anything
+      // else to the landing page
+      .catch(() =>
+        caches.match(event.request).then(
+          (cached) =>
+            cached ||
+            (event.request.mode === "navigate" && url.pathname !== "/" && !url.pathname.startsWith("/it")
+              ? caches.match("/dashboard").then((today) => today || caches.match("/"))
+              : caches.match("/"))
+        )
+      )
   );
 });
