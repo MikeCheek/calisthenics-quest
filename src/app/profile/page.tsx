@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockSettings } from "@/components/BlockPrefs";
 import { shownStreak } from "@/lib/weekStreak";
 import SectionNav from "@/components/nav/SectionNav";
 import { URL_EVENT } from "@/lib/featureMap";
@@ -318,6 +319,7 @@ export default function ProfilePage() {
               <HapticsToggle />
               <ShareActivityToggle />
               <AskParkToggle />
+              <BlockSettings />
             </div>
 
             <Link

@@ -285,6 +285,7 @@ export interface ExerciseFeedback {
   // it (0–1, see effort.ts) — "too hard" late in a session weighs less
   fatigue?: number;
   setsDone?: number; // fewer than prescribed: stopped early, only these logged
+  chosen?: boolean; // skipped on purpose (tapped Skip), not just not reached
 }
 
 // ---- session history ----
@@ -358,6 +359,11 @@ export interface ExerciseStat {
   lastAt?: string;
   last: string;
   hurt?: string; // when it last hurt (ISO): rested for two weeks, then watched
+  up?: number; // reps (or seconds) added after hitting the top of the range (progression.ts)
+  miss?: number; // sessions in a row below the bottom of the range
+  sk?: number; // skipped on purpose while fresh — a sign you'd rather not (variety.ts)
+  sb?: number; // sessions since its last best (plateau.ts)
+  pl?: string; // when its plateau-breaking fortnight started (plateau.ts)
 }
 
 // Rolling per-skill signal from every exercise belonging to that skill —
@@ -373,6 +379,7 @@ export interface TrainingSet {
   track: TrainingSetKind;
   title: string;
   exercises: Exercise[];
+  why?: string; // why this block today, in a line ("Pushing: 4 of 12 hard sets this week")
 }
 
 export interface TrainingSession {
@@ -384,6 +391,7 @@ export interface TrainingSession {
   forUid?: string; // present in paired sessions
   sport?: import("./sports/types").SportId; // a session of another sport (sports/)
   partnerLabel?: string; // e.g. "Your side" / "Friend's side"
+  why?: string; // why this focus today, when it moved (muscleLoad.ts)
 }
 
 export interface PairedSession {
@@ -413,6 +421,9 @@ export interface XPHistoryPoint {
 export interface NotificationPrefs {
   enabled: boolean;
   time: string; // "HH:MM", 24h local time
+  // the time follows your usual training time (an hour before) until you set one (trainingHabits.ts)
+  followHabit?: boolean;
+  timeSet?: boolean;
 }
 
 export const DEFAULT_NOTIFICATIONS: NotificationPrefs = {
@@ -504,6 +515,18 @@ export interface UserDoc {
   // effort planned vs done in recent sessions, and whether "I'm tired" was
   // pressed — sessions are balanced against it (effort.ts)
   effortHistory?: EffortSample[];
+  // how much of recent sessions was done — sessions are planned around it (sessionLength.ts)
+  lengthHistory?: import("./sessionLength").LengthSample[];
+  // hard sets per muscle group, per day, for two weeks — recovery and weekly volume (muscleLoad.ts)
+  loadLog?: import("./muscleLoad").LoadDay[];
+  // how you said you felt before recent sessions, and the lighter week (readiness.ts)
+  readinessLog?: import("./readiness").ReadinessSample[];
+  lighterWeek?: import("./readiness").LighterWeek;
+  // when and where you train, and the blocks you leave out (trainingHabits.ts)
+  trainTimes?: import("./trainingHabits").TrainTime[];
+  whereLog?: import("./trainingHabits").WhereSample[];
+  blockLog?: import("./trainingHabits").BlockSample[];
+  blockPrefs?: import("./trainingHabits").BlockPrefs;
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

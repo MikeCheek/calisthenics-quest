@@ -1,6 +1,7 @@
 import { feedbackWeight } from "./effort";
 import {
   Exercise,
+  ExerciseBest,
   ExerciseFeedback,
   ExerciseStat,
   SkillMastery,
@@ -21,6 +22,8 @@ import {
   HIERARCHY_EXEMPT_SETS,
 } from "./exerciseHierarchy";
 import { adjustDetail } from "./exerciseTiming";
+import { applyProgression, easeProgression, learnProgression, progressionNote } from "./progression";
+import { inSwitch, plateauVariant } from "./plateau";
 import { STAGE_ORDER, STAGE_LABEL, stageIndex } from "./stageOrder";
 import { median, scaleHoldDetail, round5 } from "./timingLearning";
 import type { VerificationEvent } from "./verification";
@@ -178,14 +181,19 @@ export function applyExerciseFeedback(
       // logged clearly more reps than prescribed: progress a step faster
       if (!t?.struggled && (t?.repRatio ?? 0) >= 1.25) s.p = clamp(s.p - 1, P_MIN, P_MAX);
       if (fb.repDelta) s.rd = clamp((s.rd ?? 0) + fb.repDelta, -REP_DELTA_LIMIT, REP_DELTA_LIMIT);
+      // the numbers you logged move the target (progression.ts)
+      learnProgression(s, fb.detail, fb.sets);
     } else if (fb.outcome === "skipped") {
       s.skipped += 1;
+      // tapped Skip while still fresh: you'd rather do something else
+      if (fb.chosen && w >= 0.75) s.sk = (s.sk ?? 0) + 1;
       s.p = clamp(+(s.p + 1 * w).toFixed(2), P_MIN, P_MAX);
     } else {
       s.tooHard += 1;
       s.p = clamp(+(s.p + 2 * w).toFixed(2), P_MIN, P_MAX);
       // a lowered rep count that was *still* too hard shouldn't stick as the baseline
       if ((s.rd ?? 0) > 0) s.rd = 0;
+      easeProgression(s, fb.detail);
     }
 
     // Feedback on a swapped-in exercise also informs the one it replaced:
@@ -252,22 +260,11 @@ function adaptOne(
   equipment: TrainingEquipment,
   taken: Set<string>,
   nowISO: string,
-  skills?: SkillProfile
+  skills?: SkillProfile,
+  records?: Record<string, { hold?: number; reps?: number }>
 ): Exercise {
   const s = statFor(stats, ex.name);
   if (!s) return ex;
-  // it hurt recently: a gentler rung while it rests, then a careful return
-  if (s.hurt) {
-    const days = daysBetween(s.hurt, nowISO);
-    if (days < HURT_REST_DAYS) {
-      const g = gentlerFor(ex.name, equipment, stats, nowISO);
-      if (g && !taken.has(g.name))
-        return { ...g, adaptedFrom: ex.name, adaptDir: "easier", adaptNote: `Swapped from ${ex.name} — it hurt recently, so it rests for two weeks` };
-      return { ...ex, detail: adjustDetail(ex.detail, -1), adaptNote: "It hurt recently — go gently, or skip it today" };
-    }
-    if (days < HURT_WATCH_DAYS) return { ...ex, adaptNote: "Back after a break — it hurt before. Go gently, and tap “This hurts” if it still does" };
-  }
-
   // it hurt recently: a gentler rung while it rests, then a careful return
   if (s.hurt) {
     const days = daysBetween(s.hurt, nowISO);
@@ -315,17 +312,26 @@ function adaptOne(
     }
   }
 
+  // stuck for three weeks: a different stimulus for two (plateau.ts)
+  if (inSwitch(s, nowISO)) {
+    const v = plateauVariant(ex, equipment, records?.[statKey(ex.name)]);
+    if (v) return v;
+  }
+
   let delta = s.rd ?? 0;
   const notes: string[] = [];
+  // more reps (or seconds) first, from the numbers you logged…
+  const progressed = applyProgression(ex.detail, s.up);
+  if (progressed !== ex.detail) notes.push(progressionNote(ex.detail, s.up!));
   if (s.rd) notes.push(`${s.rd > 0 ? "+" : ""}${s.rd} set${Math.abs(s.rd) === 1 ? "" : "s"}, as you usually adjust`);
-  if (s.p <= VOLUME_AT) {
+  // …and an extra set only while the reps haven't been raised yet
+  if (s.p <= VOLUME_AT && !s.up) {
     delta += 1;
     notes.push("+1 set — consistently completed");
   }
-  if (delta === 0) return ex;
-  const detail = adjustDetail(ex.detail, delta);
+  const detail = delta ? adjustDetail(progressed, delta) : progressed;
   if (detail === ex.detail) return ex;
-  return { ...ex, detail, adaptNote: notes.join(" · ") };
+  return { ...ex, detail, adaptNote: notes.filter(Boolean).join(" · ") };
 }
 
 // Rewrites a freshly generated session using the athlete's history. Pure:
@@ -334,7 +340,8 @@ export function adaptSession(
   session: TrainingSession,
   stats: Record<string, ExerciseStat> | undefined,
   equipment: TrainingEquipment,
-  skills?: SkillProfile
+  skills?: SkillProfile,
+  records?: Record<string, { hold?: number; reps?: number }>
 ): TrainingSession {
   if (!stats || Object.keys(stats).length === 0) return session;
   const now = `${session.dateISO}T12:00:00.000Z`; // the session's own day: same input, same result
@@ -346,7 +353,7 @@ export function adaptSession(
       if (HIERARCHY_EXEMPT_SETS.has(set.title)) return set;
       const exercises = set.exercises.map((ex) => {
         if (ex.check) return ex;
-        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now, skills), stats);
+        const adapted = applyTiming(adaptOne(ex, stats, equipment, taken, now, skills, records), stats);
         taken.add(adapted.name);
         return adapted;
       });
@@ -536,6 +543,7 @@ export function correctToDone(
     s.p = clamp(+(s.p - 2 * w).toFixed(2), P_MIN, P_MAX);
   } else {
     s.skipped = Math.max(0, s.skipped - 1);
+    if (s.sk) s.sk -= 1;
     s.p = clamp(+(s.p - 1 * w).toFixed(2), P_MIN, P_MAX);
   }
   s.done += 1;
@@ -561,5 +569,5 @@ export function forgetStruggles(stats: Record<string, ExerciseStat>, key: string
   const k = key;
   const s = stats[k];
   if (!s) return stats;
-  return { ...stats, [k]: { ...s, p: Math.min(s.p, 0), tooHard: 0, skipped: 0, rd: (s.rd ?? 0) < 0 ? 0 : s.rd } };
+  return { ...stats, [k]: { ...s, p: Math.min(s.p, 0), tooHard: 0, skipped: 0, sk: 0, rd: (s.rd ?? 0) < 0 ? 0 : s.rd } };
 }

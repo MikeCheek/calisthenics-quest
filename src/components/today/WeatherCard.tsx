@@ -5,7 +5,7 @@ import { CalendarRange, CloudRain, CloudSun, Home, MapPin, Sun, Snowflake, X } f
 import type { UserDoc } from "@/lib/types";
 import { useLanguage } from "@/context/LanguageContext";
 import { advise, fetchForecast, locate, localDay, rainyStretch, savedPlace, savePlace, trainingHour, type Advice, type Place } from "@/lib/weather";
-import { atHome, setIndoorPlan, setTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
+import { atHome, markWetToday, setIndoorPlan, setTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
 
 const OFF_KEY = "barquests:weatherOff";
 const clock = (h: number) => `${String(h).padStart(2, "0")}:00`;
@@ -40,7 +40,10 @@ export default function WeatherCard({ userDoc, override }: { userDoc: UserDoc; o
         const now = new Date();
         const from = now.getHours() + (now.getMinutes() > 30 ? 1 : 0);
         if (!live) return;
-        setAdvice(advise(f, { day: localDay(now), hour, from, minutes }));
+        const a = advise(f, { day: localDay(now), hour, from, minutes });
+        setAdvice(a);
+        // where you usually train on a wet day (trainingHabits.ts)
+        if (a) markWetToday(a.kind !== "dry");
         setStretch(rainyStretch(f, { now, hour, minutes }));
       })
       .catch(() => live && setAdvice(null)); // offline or blocked: say nothing

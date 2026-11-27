@@ -549,6 +549,7 @@ export default function FocusTrainingMode() {
         sets: isDone ? cleanSets(timerLogs[i]) : undefined,
         ...(isDone && earlyStops[i] !== undefined ? { setsDone: earlyStops[i] } : {}),
         ...(!isDone && fatigueAt[i] !== undefined ? { fatigue: fatigueAt[i] } : {}),
+        ...(!isDone && skippedSteps.has(i) ? { chosen: true } : {}),
         check: ex.check,
         checkResult,
         checkVideoKey: ex.check ? checkVideos[i] : undefined,

@@ -12,6 +12,7 @@ import { Bell, BellOff } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { disablePush, enablePush } from "@/lib/pushClient";
+import { habitHour, habitReminder } from "@/lib/trainingHabits";
 
 export default function ReminderSettings() {
   const { userDoc, refreshUserDoc } = useAuth();
@@ -43,9 +44,22 @@ export default function ReminderSettings() {
     setSaving(false);
   };
 
+  const following = !prefs.timeSet && prefs.followHabit !== false;
+  const usual = habitHour(userDoc.trainTimes);
+  const follow = async () => {
+    setSaving(true);
+    const on = !following;
+    await updateProgress(userDoc.uid, {
+      notifications: { ...prefs, followHabit: on, timeSet: !on, ...(on && usual !== null ? { time: habitReminder(usual) } : {}) },
+    });
+    await refreshUserDoc();
+    setSaving(false);
+  };
+
   const changeTime = async (time: string) => {
     setSaving(true);
-    await updateProgress(userDoc.uid, { notifications: { ...prefs, time } });
+    // a time you set yourself stays put
+    await updateProgress(userDoc.uid, { notifications: { ...prefs, time, timeSet: true, followHabit: false } });
     await refreshUserDoc();
     setSaving(false);
   };
@@ -96,6 +110,17 @@ export default function ReminderSettings() {
               disabled={!prefs.enabled || saving}
               className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-zinc-100 stat-mono disabled:opacity-50"
             />
+          </label>
+          <label className="flex items-start gap-2 text-sm text-zinc-300">
+            <input type="checkbox" checked={following} onChange={follow} disabled={!prefs.enabled || saving} className="mt-1 accent-orange-500" />
+            <span>
+              {tx("Follow my usual training time")}
+              <span className="block text-xs text-zinc-400">
+                {usual !== null
+                  ? tx("You usually start around {t} — reminded an hour before.", { t: `${String(usual).padStart(2, "0")}:00` })
+                  : tx("Once you've trained a few times, the reminder moves to an hour before your usual time.")}
+              </span>
+            </span>
           </label>
           <button
             onClick={() => {

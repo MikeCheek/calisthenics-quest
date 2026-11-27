@@ -1,16 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { Home, MapPin, Trees } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import type { TrainingEquipment } from "@/lib/types";
-import { atHome, setIndoorPlan, setTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
+import { atHome, choseWhereToday, onTodayEquipment, readTodayEquipment, readWetToday, setIndoorPlan, setTodayEquipment, type TodayEquipment } from "@/lib/todayEquipment";
+import { usualWhere, type WhereSample } from "@/lib/trainingHabits";
 
 // Where today's calisthenics happens — your usual spot, at home, or a bar
 // park — chosen any day, rain or not. The session is built for the place:
 // at home it's the floor, a wall and the kit you own.
-export default function TodayEquipmentBanner({ value, own }: { value: TodayEquipment | null; own: TrainingEquipment }) {
+export default function TodayEquipmentBanner({ value, own, whereLog }: { value: TodayEquipment | null; own: TrainingEquipment; whereLog?: WhereSample[] }) {
   const { tx, locale } = useLanguage();
+
+  // where you usually train in today's situation, until you pick yourself
+  // (re-checked when the weather card says it's wet)
+  useEffect(() => {
+    const apply = () => {
+      if (choseWhereToday() || readTodayEquipment()) return;
+      const pick = usualWhere(whereLog, { w: new Date().getDay(), wet: readWetToday() });
+      if (!pick) return;
+      if (pick.kind === "home") setTodayEquipment({ kind: "indoors", label: "Indoors", equipment: atHome(own), auto: pick.why });
+      else if (pick.park) setTodayEquipment({ kind: "park", label: pick.park.label, parkId: pick.park.id, equipment: pick.park.equipment, auto: pick.why });
+    };
+    apply();
+    return onTodayEquipment(apply);
+  }, [whereLog, own]);
   const where = !value ? "usual" : value.kind === "park" ? "park" : "home";
   const until = value?.until
     ? new Date(...(value.until.split("-").map(Number).map((n, i) => (i === 1 ? n - 1 : n)) as [number, number, number])).toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long" })
@@ -28,6 +44,8 @@ export default function TodayEquipmentBanner({ value, own }: { value: TodayEquip
     }`;
 
   const kit = [own.homeBar && tx("pull-up bar"), own.parallettes && tx("parallettes"), own.resistanceBands && tx("bands"), own.weights && tx("weights")].filter(Boolean) as string[];
+  const weekday = new Date().toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long" });
+  const usualNote = value?.auto === "wet" ? tx("As usual on a rainy day.") : value?.auto === "weekday" ? tx("As usual on {day}.", { day: weekday }) : null;
   const note =
     value?.kind === "indoorPlan"
       ? tx("Home plan until {d} (rainy days)", { d: until })
@@ -57,6 +75,7 @@ export default function TodayEquipmentBanner({ value, own }: { value: TodayEquip
       </div>
       {note && (
         <p className="text-xs text-zinc-400 mt-2" role="status">
+          {usualNote && <span data-testid="usual-where">{usualNote} </span>}
           {note}
           {where === "home" && !kit.length && (
             <>

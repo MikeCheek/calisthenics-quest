@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockQuestion } from "@/components/BlockPrefs";
 import SportWeekSummary from "@/components/sports/SportWeekSummary";
 import { SPORT_META } from "@/lib/sports";
 import SportProgressCard from "@/components/sports/SportProgressCard";
@@ -47,7 +48,7 @@ export default function TodayPage() {
     startSession,
     expand,
   } = useTrainingSession();
-  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf } = useTodaysSession(userDoc);
+  const { sport, focus, fitted, check, lighterBy, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek } = useTodaysSession(userDoc);
   const [weekSessions, setWeekSessions] = useState<SessionRecord[]>([]);
 
   useEffect(() => {
@@ -134,10 +135,12 @@ export default function TodayPage() {
             {/* weather and bar-park kit are for outdoor calisthenics */}
             {outdoor && !doneToday && !(activeSession && !activeCompleted) && (
               <>
-                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} />
+                <TodayEquipmentBanner value={todayEquipment} own={userDoc.equipment} whereLog={userDoc.whereLog} />
                 <WeatherCard userDoc={userDoc} override={todayEquipment} />
               </>
             )}
+
+            <BlockQuestion />
 
             <TodaySessionCard
               session={fitted.session}
@@ -145,6 +148,11 @@ export default function TodayPage() {
               inProgress={!!activeSession && !activeCompleted}
               doneToday={doneToday}
               lighterBy={lighterBy}
+              usualLength={usualLength}
+              onFullLength={fullLengthToday}
+              readiness={readiness}
+              onReadiness={setReadiness}
+              lighterWeek={lighterWeek}
               onStart={() =>
                 outdoor
                   ? askParkFirst(userDoc).then(() => startSession(fitted.session))

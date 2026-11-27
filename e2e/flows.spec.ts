@@ -53,6 +53,50 @@ test("today's session opens in guided mode and keeps its place", async ({ page }
   expect(errors).toEqual([]);
 });
 
+test("Today plans around how much of your sessions you get through, with the full length a tap away", async ({ page }) => {
+  await page.goto("/dashboard");
+  const note = page.getByTestId("usual-length");
+  await expect(note).toContainText("Planned for ~30 min");
+  const minutes = async () => Number((await page.getByText(/^\s*~\d+ min\s*$/).first().textContent())!.replace(/\D/g, ""));
+  const short = await minutes();
+  await note.getByRole("button", { name: "Use the full 45 min" }).click();
+  await expect(note).toBeHidden();
+  await expect.poll(minutes).toBeGreaterThan(short);
+});
+
+test("the session says why each block is there today", async ({ page }) => {
+  await page.goto("/training");
+  const why = page.getByTestId("block-why");
+  await expect(why.first()).toContainText("The key exercise every time; the rest rotate");
+  await expect(why.filter({ hasText: /^Builds the strength .+ needs/ })).toHaveCount(1);
+});
+
+test("how you feel today changes the session before you start", async ({ page }) => {
+  await page.goto("/dashboard");
+  const minutes = async () => Number((await page.getByText(/^\s*~\d+ min\s*$/).first().textContent())!.replace(/\D/g, ""));
+  const usual = await minutes();
+  const feel = page.getByRole("group", { name: "How do you feel today?" });
+  await feel.getByRole("button", { name: /Tired/ }).click();
+  await expect(feel.getByRole("button", { name: /Tired/ })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(minutes).toBeLessThan(usual);
+  // tapping it again: back to the usual session
+  await feel.getByRole("button", { name: /Tired/ }).click();
+  await expect.poll(minutes).toBe(usual);
+});
+
+test("a finisher you keep skipping: asked once, then left out", async ({ page }) => {
+  await page.goto("/dashboard");
+  const ask = page.getByTestId("block-question");
+  await expect(ask).toContainText("skipped the finisher");
+  await ask.getByRole("button", { name: "Leave it out" }).click();
+  await expect(ask).toBeHidden();
+  // the full session (a link, not a reload: the demo lives in memory) has no finisher now
+  await page.locator('a[href="/training"]:visible').first().click();
+  await expect(page).toHaveURL(/\/training/);
+  await expect(page.getByRole("button", { name: /^Warm-Up/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Final Hits/ })).toHaveCount(0);
+});
+
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
   await page.goto("/dashboard");
   const card = page.locator("section[aria-labelledby=event-title]");

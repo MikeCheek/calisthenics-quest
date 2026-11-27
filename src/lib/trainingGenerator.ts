@@ -27,7 +27,8 @@ import { bandAssistanceBonus } from "./bandBonus";
 import { advancedSkillBonusSet } from "./advancedSkills";
 import { STAGE_ORDER } from "./stageOrder";
 import { aboveYourStage, stageExercises } from "./exerciseHierarchy";
-import { freshest, rotateScheme, supportPool, timesDone, type History } from "./variety";
+import { freshest, rotateScheme, rotationWhy, supportPool, timesDone, type History } from "./variety";
+import { easeTired, volumeAccessory } from "./muscleLoad";
 
 const FOCUS_ORDER: SkillTrack[] = [
   "frontLever",
@@ -273,10 +274,12 @@ function buildSets(
     exercises: pickWarmup(dateISO, focus),
   };
 
+  const block = skillBlock(focus, skills, equipment, history, dateISO);
   const primary: TrainingSet = {
     track: focus,
     title: `Main Focus — ${primaryLabel}`,
-    exercises: skillBlock(focus, skills, equipment, history, dateISO),
+    exercises: block,
+    why: ["The key exercise every time; the rest rotate", rotationWhy(block.slice(1).map((e) => e.name), history, dateISO)].filter(Boolean).join(" · "),
   };
 
   const bandBonus = bandAssistanceBonus(focus, skills, equipment);
@@ -290,10 +293,13 @@ function buildSets(
   if (strength.length) {
     const picked = freshest(strength, accessoryCount >= 4 ? 3 : 2, history, `${dateISO}:s`).map((e) => rotateScheme(e, timesDone(history, e.name), history));
     picked.forEach((e) => taken.add(e.name));
-    sets.push({ track: focus, title: `Strength for ${primaryLabel}`, exercises: picked });
+    const why = rotationWhy(picked.map((e) => e.name), history, dateISO);
+    sets.push({ track: focus, title: `Strength for ${primaryLabel}`, exercises: picked, why: [`Builds the strength ${primaryLabel} needs`, why].filter(Boolean).join(" · ") });
   }
 
-  const accessory = accessoryTrackFor(focus, equipment, dateISO);
+  // the group furthest from its weekly target (muscleLoad.ts), once there's a log
+  const byVolume = history?.load?.length ? volumeAccessory(focus, availableFocuses(equipment), history.load, dateISO) : null;
+  const accessory = byVolume?.track ?? accessoryTrackFor(focus, equipment, dateISO);
   if (accessory !== focus) {
     const base = exercisesForTrack(accessory, skills, equipment);
     const extra = accessory === "pullStrength" || accessory === "pushStrength" ? patternExtras(accessory, skills, equipment, taken) : [];
@@ -305,6 +311,7 @@ function buildSets(
       track: accessory,
       title: `Accessory — ${FOCUS_LABEL[accessory]}`,
       exercises: picked,
+      ...(byVolume?.why ? { why: byVolume.why } : {}),
     });
   }
 
@@ -330,7 +337,8 @@ function buildSets(
   // a block can borrow from another skill (planche push-ups in push
   // strength, HSPU in handstand work): never above where you are in it
   const kept = keepToYourStages(sets, skills, equipment);
-  sets.splice(0, sets.length, ...kept);
+  // a muscle group that had a hard day yesterday: a set lighter on what still loads it
+  sets.splice(0, sets.length, ...easeTired(kept, history?.load, dateISO));
 
   // now the whole session is known: warm up for what it will actually load
   const matched = pickWarmupFor(

@@ -1,5 +1,7 @@
 "use client";
 
+import TodayReadiness from "@/components/TodayReadiness";
+import UsualLengthNote from "@/components/UsualLengthNote";
 import { askParkFirst } from "@/components/parks/ParkPrompt";
 import TodayEquipmentBanner from "@/components/today/TodayEquipmentBanner";
 import { SPORT_META } from "@/lib/sports";
@@ -51,7 +53,7 @@ export default function TrainingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf } = useTodaysSession(userDoc);
+  const { sport, focus, options, fitted, lighterBy, setFocusOverride, todayEquipment, labelOf, usualLength, fullLengthToday, readiness, setReadiness, lighterWeek } = useTodaysSession(userDoc);
 
   // an AI-applied version only replaces the base session for as long as
   // it's actually for today's same focus — switching focus should show a
@@ -152,7 +154,7 @@ export default function TrainingPage() {
           </div>
         )}
 
-        {fitted?.changed && !aiAppliedSession && !completed && (
+        {fitted?.changed && !usualLength && !aiAppliedSession && !completed && (
           <div className="text-xs text-muted px-1">
             {tx("Fitted to your {n} min sessions (was ~{m} min).", {
               n: userDoc.body?.sessionLengthMinutes ?? 45,
@@ -163,6 +165,12 @@ export default function TrainingPage() {
             </Link>
           </div>
         )}
+
+        {displayedSession.why && !completed && <div className="text-xs text-sky-400/90 px-1">{tx(displayedSession.why)}</div>}
+
+        {!aiAppliedSession && !completed && <TodayReadiness readiness={readiness} onReadiness={setReadiness} lighterWeek={lighterWeek} className="px-1" />}
+
+        {!aiAppliedSession && !completed && <UsualLengthNote usual={usualLength} onFull={fullLengthToday} className="px-1" />}
 
         {lighterBy > 0 && !aiAppliedSession && !completed && (
           <div className="text-xs text-sky-400/90 px-1">
