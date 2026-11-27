@@ -154,16 +154,45 @@ function hash(s: string): number {
   return (h >>> 0) / 4294967296;
 }
 
-const lastDone = (stats: History["stats"], name: string) => {
-  const s = stats?.[statKey(name)];
-  return s?.lastAt ?? (s && s.done > 0 ? s.last : "") ?? "";
-};
+const DAY = 86_400_000;
+const NEW_AGE = 21; // never done counts as three weeks ago: new things come in, but don't crowd out what you like
+const LIKED_BONUS = 5; // days
+const DISLIKED_PENALTY = 21;
 
-/** the n exercises done least recently (never done first), ties by the day */
+/** how you get on with an exercise, from what you finish and what you skip */
+export function preference(s: ExerciseStat | undefined): "liked" | "disliked" | null {
+  if (!s) return null;
+  // skipped on purpose (not just not reached) at least twice, and more often
+  // than done; pain and "too hard" aren't dislike
+  const sk = s.sk ?? 0;
+  if (sk >= 2 && sk >= s.done) return "disliked";
+  if (s.done >= 3 && !sk && s.tooHard * 4 <= s.done) return "liked";
+  return null;
+}
+
+// The rotation's key: days since it was last done, nudged by how you get on
+// with it — an exercise you always finish comes back a few days sooner, one
+// you keep skipping waits three weeks longer.
+function freshness(stats: History["stats"], name: string, nowMs: number): number {
+  const s = stats?.[statKey(name)];
+  const at = s?.lastAt ?? (s && s.done > 0 ? s.last : undefined);
+  const age = at ? Math.max(0, (nowMs - Date.parse(at)) / DAY) : NEW_AGE;
+  const pref = preference(s);
+  return age + (pref === "liked" ? LIKED_BONUS : pref === "disliked" ? -DISLIKED_PENALTY : 0);
+}
+
+/**
+ * the n freshest exercises: least recently done first (nudged by what you
+ * like, see `freshness`), ties broken by the day. `seed` starts with the
+ * session's day (YYYY-MM-DD), which is also "now" here.
+ */
 export function freshest(cands: Exercise[], n: number, history: History | undefined, seed: string): Exercise[] {
+  const day = Date.parse(seed.slice(0, 10));
+  const nowMs = (Number.isFinite(day) ? day : Date.now()) + DAY / 2;
   return [...cands]
-    .map((e) => ({ e, at: lastDone(history?.stats, e.name), r: hash(`${seed}:${e.name}`) }))
-    .sort((a, b) => a.at.localeCompare(b.at) || a.r - b.r)
+    .map((e) => ({ e, f: freshness(history?.stats, e.name, nowMs), r: hash(`${seed}:${e.name}`) }))
+    // the same day counts as the same: the hash decides
+    .sort((a, b) => Math.round(b.f) - Math.round(a.f) || a.r - b.r)
     .slice(0, n)
     .map((x) => x.e);
 }

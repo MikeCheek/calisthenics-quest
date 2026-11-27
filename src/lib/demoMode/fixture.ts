@@ -137,6 +137,12 @@ export function demoUserDoc(): UserDoc {
       ];
     })(),
     transitionRest: [1.3, 1.2, 1.35],
+    // the last few sessions ended about two thirds of the way in (sessionLength.ts)
+    lengthHistory: [
+      { at: iso(6), planned: 45, done: 0.7 },
+      { at: iso(4), planned: 45, done: 0.65 },
+      { at: iso(2), planned: 45, done: 0.75 },
+    ],
   };
 }
 

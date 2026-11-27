@@ -7,6 +7,7 @@ import { demoUserDoc } from "../src/lib/demoMode/fixture";
 import { WEIGHT_LOG_MAX } from "../src/lib/bodyweight";
 import { SKILL_HISTORY_MAX } from "../src/lib/skillHistory";
 import { EFFORT_HISTORY } from "../src/lib/effort";
+import { LENGTH_HISTORY } from "../src/lib/sessionLength";
 import { MAX_SAVED_WORKOUTS, MAX_ITEMS } from "../src/lib/customSession";
 import { MAX_FAVS } from "../src/lib/parks";
 import { SKILL_FIELD_LABEL, type ExerciseStat, type ExerciseBest, type UserDoc } from "../src/lib/types";
@@ -48,6 +49,7 @@ test("a user document at every cap stays under half of Firestore's 1 MiB", () =>
     sports,
     weightLog: Array.from({ length: WEIGHT_LOG_MAX }, (_, i) => ({ date: day(i), kg: 72.4 })),
     skillHistory: Array.from({ length: SKILL_HISTORY_MAX }, () => ({ at: iso, skills: everySkill })),
+    lengthHistory: Array.from({ length: LENGTH_HISTORY }, () => ({ at: iso, planned: 120, done: 0.67, sport: "pilates" as const })),
     effortHistory: Array.from({ length: EFFORT_HISTORY }, () => ({ at: iso, planned: 120, done: 110, tired: false })),
     customWorkouts: Array.from({ length: MAX_SAVED_WORKOUTS }, (_, i) => ({ id: `w-${i}-abcdef`, name: "My long session name here", items: Array.from({ length: MAX_ITEMS }, () => ({ name: "Archer pull-ups", sets: 5 })), warmup: true, createdAt: iso })),
     favParks: Array.from({ length: MAX_FAVS }, (_, i) => ({ id: `osm-n${1000000 + i}`, name: "Parco della Musica street workout", lat: 41.9, lon: 12.5, source: "osm" as const })),

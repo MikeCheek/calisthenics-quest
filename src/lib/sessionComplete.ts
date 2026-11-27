@@ -6,6 +6,8 @@ import { applySportSession } from "./sports/progress";
 import { skillHistoryPatch } from "./skillHistory";
 import { earnedXp, xpRules } from "./sessionXp";
 import { EFFORT_HISTORY } from "./effort";
+import { LENGTH_HISTORY, lengthSample } from "./sessionLength";
+import { estimateSessionMinutes } from "./exerciseTiming";
 import { ExerciseFeedback, PersonalRecord, TrainingSession, UserDoc } from "./types";
 import { applyExerciseFeedback, applySkillFeedback, AdaptationReport } from "./adaptation";
 import { applyCheckResults, syncClaims } from "./verification";
@@ -151,9 +153,13 @@ export async function completeSession(
     verified: verifiedCount,
   });
 
+  // how much of it you got through, to plan the next ones (sessionLength.ts)
+  const length = lengthSample(session, feedback, estimateSessionMinutes(session));
+
   const patch: Partial<UserDoc> = {
     ...learnPatch,
     week,
+    ...(length && !opts.isPaired ? { lengthHistory: [...(userDoc.lengthHistory ?? []), length].slice(-LENGTH_HISTORY) } : {}),
     ...(opts.effort && opts.effort.planned > 0
       ? {
           effortHistory: [

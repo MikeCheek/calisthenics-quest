@@ -285,6 +285,7 @@ export interface ExerciseFeedback {
   // it (0–1, see effort.ts) — "too hard" late in a session weighs less
   fatigue?: number;
   setsDone?: number; // fewer than prescribed: stopped early, only these logged
+  chosen?: boolean; // skipped on purpose (tapped Skip), not just not reached
 }
 
 // ---- session history ----
@@ -358,6 +359,9 @@ export interface ExerciseStat {
   lastAt?: string;
   last: string;
   hurt?: string; // when it last hurt (ISO): rested for two weeks, then watched
+  up?: number; // reps (or seconds) added after hitting the top of the range (progression.ts)
+  miss?: number; // sessions in a row below the bottom of the range
+  sk?: number; // skipped on purpose while fresh — a sign you'd rather not (variety.ts)
 }
 
 // Rolling per-skill signal from every exercise belonging to that skill —
@@ -504,6 +508,8 @@ export interface UserDoc {
   // effort planned vs done in recent sessions, and whether "I'm tired" was
   // pressed — sessions are balanced against it (effort.ts)
   effortHistory?: EffortSample[];
+  // how much of recent sessions was done — sessions are planned around it (sessionLength.ts)
+  lengthHistory?: import("./sessionLength").LengthSample[];
 }
 
 // Minimal public-facing profile, readable by any signed-in user, so friends

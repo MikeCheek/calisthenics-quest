@@ -239,6 +239,7 @@ export default function SessionView({
           detail: adjustDetail(ex.detail, individualDelta[key] ?? 0),
           sets: isDone ? cleanSets(timerLogs[key]) : undefined,
           ...(!isDone && fatigueAt[key] !== undefined ? { fatigue: fatigueAt[key] } : {}),
+          ...(!isDone && skipped.has(key) ? { chosen: true } : {}),
           check: ex.check,
           checkResult,
           checkVideoKey: ex.check ? checkVideos[key] : undefined,

@@ -9,6 +9,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, RotateCcw } from "lucide-react";
 import { localizeDetail } from "@/lib/i18n/detail";
 import { plannedXp } from "@/lib/sessionXp";
+import UsualLengthNote from "@/components/UsualLengthNote";
+import type { HabitualLength } from "@/lib/sessionLength";
 
 const PREVIEW = 5;
 
@@ -19,6 +21,8 @@ export default function TodaySessionCard({
   inProgress,
   doneToday,
   lighterBy = 0,
+  usualLength = null,
+  onFullLength,
   onStart,
   onResume,
 }: {
@@ -27,6 +31,8 @@ export default function TodaySessionCard({
   inProgress: boolean;
   doneToday: boolean;
   lighterBy?: number; // % trimmed to fit recent energy (effort.ts)
+  usualLength?: HabitualLength | null; // planned shorter, to what you usually get through
+  onFullLength?: () => void;
   onStart: () => void;
   onResume: () => void;
 }) {
@@ -90,6 +96,8 @@ export default function TodaySessionCard({
           {tx("About {n}% lighter today — matched to the effort you've had energy for in recent sessions.", { n: lighterBy })}
         </p>
       )}
+
+      {!doneToday && onFullLength && <UsualLengthNote usual={usualLength} onFull={onFullLength} className="mt-2" />}
 
       <ol className="mt-4 space-y-2">
         {shown.map((e, i) => (

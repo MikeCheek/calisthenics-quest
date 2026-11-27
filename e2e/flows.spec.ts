@@ -53,6 +53,17 @@ test("today's session opens in guided mode and keeps its place", async ({ page }
   expect(errors).toEqual([]);
 });
 
+test("Today plans around how much of your sessions you get through, with the full length a tap away", async ({ page }) => {
+  await page.goto("/dashboard");
+  const note = page.getByTestId("usual-length");
+  await expect(note).toContainText("Planned for ~30 min");
+  const minutes = async () => Number((await page.getByText(/^\s*~\d+ min\s*$/).first().textContent())!.replace(/\D/g, ""));
+  const short = await minutes();
+  await note.getByRole("button", { name: "Use the full 45 min" }).click();
+  await expect(note).toBeHidden();
+  await expect.poll(minutes).toBeGreaterThan(short);
+});
+
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
   await page.goto("/dashboard");
   const card = page.locator("section[aria-labelledby=event-title]");
