@@ -221,18 +221,16 @@ export default function ProfilePage() {
         )}
 
         {tab === "activity" && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
-            <div className="lg:col-span-2">
+          <div className="masonry grid grid-cols-1 gap-4 animate-overlay-fade-in">
+            <div className="masonry-wide">
               <CompareLink />
             </div>
-            <div id="achievements" className="lg:col-span-2">
+            <div id="achievements" className="masonry-wide">
               <AchievementsCard />
             </div>
+            {/* the two small cards side by side, then the long totals across the page */}
             <div id="bodyweight">
               <BodyweightCard />
-            </div>
-            <div id="totals">
-              <VolumeTotalsCard userDoc={userDoc} />
             </div>
             <div className="panel p-4" id="xp">
               <h2 className="heading text-base text-zinc-100 mb-3">
@@ -240,14 +238,17 @@ export default function ProfilePage() {
               </h2>
               <XPHistoryChart history={userDoc.xpHistory ?? []} />
             </div>
-            <div id="history" className="lg:col-span-2">
+            <div id="totals" className="masonry-wide">
+              <VolumeTotalsCard userDoc={userDoc} />
+            </div>
+            <div id="history" className="masonry-wide">
               <SessionHistory userDoc={userDoc} />
             </div>
           </div>
         )}
 
         {tab === "settings" && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
+          <div className="masonry grid grid-cols-1 gap-4 animate-overlay-fade-in">
             <Link
               id="body"
               href="/onboarding?step=0&return=/profile?tab=settings"
@@ -324,7 +325,7 @@ export default function ProfilePage() {
 
             <Link
               href="/about"
-              className="lg:col-span-2 panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors"
+              className="masonry-wide panel p-4 flex items-center justify-between hover:border-orange-500/60 transition-colors"
             >
               <span className="text-sm text-zinc-200 flex items-center gap-2">
                 <Info size={16} className="text-muted" />{" "}
