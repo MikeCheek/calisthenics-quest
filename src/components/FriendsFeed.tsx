@@ -1,5 +1,6 @@
 "use client";
 
+import CappedHeight from "@/components/CappedHeight";
 import { SPORT_META } from "@/lib/sports";
 import { nameFor } from "@/lib/anonymize";
 import { useEffect, useState } from "react";
@@ -86,7 +87,8 @@ export default function FriendsFeed() {
       ) : items.length === 0 ? (
         <p className="text-sm text-zinc-400 mt-2">{tx("No sessions from your crew in the last two weeks. A nudge might help.")}</p>
       ) : (
-        <ul className="mt-3 space-y-2">
+        <div className="mt-3"><CappedHeight label={tx("Crew activity")}>
+        <ul className="space-y-2">
           {items.map((i) => {
             const k = kudosLine(i, me, tx("You"));
             k.names = k.names.map((n) => nameFor(n, tx));
@@ -145,6 +147,7 @@ export default function FriendsFeed() {
             );
           })}
         </ul>
+        </CappedHeight></div>
       )}
     </section>
   );

@@ -309,7 +309,7 @@ function PairContent() {
         )}
         {!code && mode === "choose" && (
           // wide screens: the crew's activity beside the board, the event beside your friends
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+          <div className="masonry grid grid-cols-1 gap-4">
             <div id="activity">
               <FriendsFeed />
             </div>

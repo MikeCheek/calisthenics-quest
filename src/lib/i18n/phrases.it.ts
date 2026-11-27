@@ -323,6 +323,7 @@ const IT_PHRASES: [string, string][] = [
   ["Many sessions since the last one: about 60% of the usual sets, skill checks at the end of the week.", "Tante sessioni dall'ultima: circa il 60% delle serie solite, skill check a fine settimana."],
   ["Your recent sessions say you're tired: about 60% of the usual sets, skill checks at the end of the week.", "Le ultime sessioni dicono che sei stanco: circa il 60% delle serie solite, skill check a fine settimana."],
   ["Train full instead", "Allenati al completo"],
+  ["Expand", "Espandi"],
   ["Welcome back — {n} days off.", "Bentornato — {n} giorni di pausa."],
   ["Today is a gentler restart: about a quarter fewer sets, and the skill checks wait for next time.", "Oggi si riparte con calma: circa un quarto di serie in meno, e gli skill check aspettano la prossima volta."],
   ["Your {n}-week streak ended — this session starts a new one.", "La tua serie di {n} settimane si è chiusa — questa sessione ne inizia una nuova."],

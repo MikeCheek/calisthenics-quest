@@ -1,5 +1,6 @@
 "use client";
 
+import CappedHeight from "@/components/CappedHeight";
 import { Bone } from "@/components/PageLoading";
 import { useEffect, useMemo, useState } from "react";
 import { UserDoc, SessionRecord } from "@/lib/types";
@@ -101,6 +102,9 @@ export default function VolumeTotalsCard({ userDoc }: { userDoc: UserDoc }) {
               ? tx("{n} exercises in {y}, across {s} sessions.", { n: totals.length, y: label, s: sessions?.length ?? 0 })
               : tx("{n} exercises so far, across {s} sessions.", { n: totals.length, s: sessions?.length ?? 0 })}
           </p>
+          {/* reps and time side by side on a wide screen (the card spans the page there) */}
+          <CappedHeight label={tx("Your totals")}>
+          <div className="lg:grid lg:grid-cols-2 lg:gap-4">
           {(
             [
               ["reps", tx("Reps"), repRows],
@@ -133,6 +137,8 @@ export default function VolumeTotalsCard({ userDoc }: { userDoc: UserDoc }) {
               </div>
             )
           )}
+          </div>
+          </CappedHeight>
           {(repRows.length > SHOWN || holdRows.length > SHOWN) && (
             <button onClick={() => setShowAll((v) => !v)} className="text-xs text-zinc-400 hover:text-orange-400">
               {showAll ? tx("Show less") : tx("Show all {n}", { n: totals.length })}

@@ -120,14 +120,14 @@ export default function SkillsPage() {
                   onInfo={setActiveSkill}
                 />
                 {/* the cards around the tree: side by side on wide screens */}
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+                <div className="masonry grid grid-cols-1 gap-4">
                   <div id="block">
                     <TrainingBlockCard invite />
                   </div>
                   <div id="timeline">
                     <SkillTimelineCard />
                   </div>
-                  <div className="lg:col-span-2">
+                  <div className="masonry-wide">
                     <CompareLink />
                   </div>
 
@@ -178,8 +178,8 @@ export default function SkillsPage() {
             )}
 
             {tab === "proven" && (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start animate-overlay-fade-in">
-                <div className="lg:col-span-2">
+              <div className="masonry grid grid-cols-1 gap-4 animate-overlay-fade-in">
+                <div className="masonry-wide">
                   <VerifiedSkillsCard userDoc={userDoc} />
                 </div>
                 <SkillWall
