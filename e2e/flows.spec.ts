@@ -140,6 +140,40 @@ test("first run: the level step's way past the assessment says what it means", a
   await expect(page.getByRole("button", { name: /Adjusted for today/ })).toHaveCount(0);
 });
 
+test("back after a break: welcomed, a gentler restart, and the week counted right", async ({ page }) => {
+  await demoScenario(page, "away");
+  await page.goto("/dashboard");
+  const back = page.getByTestId("comeback");
+  await expect(back).toContainText(/Welcome back — \d+ days off/);
+  await expect(back).toContainText(/6-week streak ended — this session starts a new one/);
+  // no all-out skill checks on the first session back
+  await expect(page.getByText(/one-set skill check/)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Rest-day mobility" })).toHaveCount(0);
+  await expect(page.getByText(/One session skipped this week/)).toHaveCount(0);
+});
+
+test("focus from Today, and a place that can't do it says so", async ({ page }) => {
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "Change focus" }).click();
+  await page.getByRole("dialog", { name: "Today's focus" }).getByRole("button", { name: /^Front Lever/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Front Lever" })).toBeVisible();
+  await page.locator("#where-today").getByRole("button", { name: "At home" }).click();
+  await page.getByRole("button", { name: /Adjusted for today/ }).click();
+  await expect(page.getByTestId("session-why")).toContainText(/Front Lever needs kit you don't have here — today is/);
+  await page.getByTestId("session-why").getByRole("button", { name: "Pick another" }).click();
+  await expect(page.getByRole("dialog", { name: "Today's focus" })).toBeVisible();
+});
+
+test("offline: a page never opened here stays put and says why", async ({ page, context }) => {
+  await page.goto("/dashboard");
+  await expect(page.getByRole("main").getByRole("button", { name: /Start session/ })).toBeVisible();
+  await context.setOffline(true);
+  await page.getByRole("link", { name: "Crew", exact: true }).first().click();
+  await expect(page.getByText(/needs a connection the first time/)).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await context.setOffline(false);
+});
+
 test("the monthly community event shows everyone's total and your part", async ({ page }) => {
   await page.goto("/dashboard");
   const card = page.locator("section[aria-labelledby=event-title]");

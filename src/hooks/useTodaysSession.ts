@@ -17,6 +17,7 @@ import { restAwareFocus } from "@/lib/muscleLoad";
 import { applyReadiness, lighterActive, lighterDay, readReadiness, saveReadiness, scaleSets, type Readiness } from "@/lib/readiness";
 import type { TrainingSession } from "@/lib/types";
 import { applyBlockPrefs } from "@/lib/trainingHabits";
+import { comeback as comebackOf, COMEBACK_FACTOR } from "@/lib/comeback";
 
 // Today's session, built once and shared by the Today screen and the full
 // session page so both always show the same exercises. A focus the athlete
@@ -117,7 +118,11 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
   // a muscle group that had a hard day yesterday rests: the day moves to a goal that trains something else
   const rested = picked && !focusOverride ? restAwareFocus(picked, options, userDoc?.goalTracks ?? [], userDoc?.loadLog, today(), (t) => FOCUS_LABEL[t]) : null;
   const focus = focusOverride && options.includes(focusOverride) ? focusOverride : (rested?.focus ?? picked);
-  const focusWhy = focus === rested?.focus ? rested?.why : undefined;
+  // a focus you picked that this place can't do (no bar at home): say so, don't just swap it
+  const notHere = focusOverride && !options.includes(focusOverride) && focus ? `${FOCUS_LABEL[focusOverride]} needs kit you don't have here — today is ${FOCUS_LABEL[focus]}` : undefined;
+  const focusWhy = notHere ?? (focus === rested?.focus ? rested?.why : undefined);
+  // back after a week or more off: a gentler restart (comeback.ts)
+  const back = comebackOf(userDoc);
 
   const [fullLength, setFullToday] = useFullLength("calisthenics");
   const [readiness, setReadiness] = useReadiness();
@@ -147,7 +152,8 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     );
     // a Skill Check (two while much is unchecked), verifying what the athlete claimed
     // a lighter week saves its skill checks for its last days, when you're fresh
-    const checks = checksWait ? [] : pickSkillChecks(claims, equipment!, focus, checksPerSession(claims));
+    // …and the first session after a break leaves them for the next one
+    const checks = checksWait || back ? [] : pickSkillChecks(claims, equipment!, focus, checksPerSession(claims));
     const check = checks[0] ?? null;
     // fit everything to the athlete's chosen session length…
     const fitted = fitSessionToMinutes(addSkillChecks(adapted, checks), minutes);
@@ -156,15 +162,16 @@ function useCalisthenicsSession(userDoc: UserDoc | null) {
     // a block's deload week: lighter on purpose
     // a block's deload week, or else a lighter week; then how you feel today
     const eased = deload ? applyBlockPrefs(applyReadiness(applyDeload(balanced.session), readiness), userDoc.blockPrefs) : forToday(balanced.session, userDoc, readiness);
-    const session = focusWhy ? { ...eased, why: focusWhy } : eased;
+    const restarted = back ? scaleSets(eased, COMEBACK_FACTOR, "Back after a break: easing in") : eased;
+    const session = focusWhy ? { ...restarted, why: focusWhy } : restarted;
     return { fitted: { ...fitted, session }, check, lighterBy: balanced.trimmed };
     // Only re-generate when stages, equipment or focus actually change — not
     // when exercise stats update after logging, so the session just logged
     // stays on screen (its adaptations kick in on the next visit).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy, readiness, lighter?.from, checksWait, JSON.stringify(userDoc?.blockPrefs ?? null)]);
+  }, [skillsKey, equipmentKey, focus, !!userDoc, deload, minutes, focusWhy, readiness, lighter?.from, checksWait, back?.days, JSON.stringify(userDoc?.blockPrefs ?? null)]);
 
-  return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: usual, fullLengthToday: setFullToday, readiness, setReadiness, lighterWeek: lighter };
+  return { todayEquipment: today_, focus, options, fitted: built?.fitted ?? null, check: built?.check ?? null, lighterBy: built?.lighterBy ?? 0, setFocusOverride, usualLength: usual, fullLengthToday: setFullToday, readiness, setReadiness, lighterWeek: lighter, comeback: back };
 }
 
 // ---- another sport (sports/): today's session from its own track ----
@@ -232,5 +239,5 @@ export function useTodaysSession(userDoc: UserDoc | null) {
       labelOf: (f: string) => FOCUS_LABEL[f as SkillTrack] ?? f,
     };
   }
-  return { sport, ...other, check: null, todayEquipment: null };
+  return { sport, ...other, check: null, todayEquipment: null, comeback: null };
 }

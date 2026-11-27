@@ -25,7 +25,16 @@ export default function WeekShiftCard({ plan, canSkipToday }: { plan: WeekPlan; 
     setBusy(false);
   };
 
-  const note = plan.skipped > 0 ? tx(plan.skipped === 1 ? "One session skipped this week — the rest are back on your usual days: {days}" : "{n} sessions skipped this week — the rest are back on your usual days: {days}", { n: plan.skipped, days: list }) : plan.shifted ? tx("You missed a training day, so the rest of the week moved by a day: {days}", { days: list }) : null;
+  // what can't happen this week any more, counted the way you'd count it
+  const coming = [...plan.ahead].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(dayName).join(" · ");
+  const note =
+    plan.lost > 0
+      ? coming
+        ? tx(plan.lost === 1 ? "One of this week's sessions can't fit any more — still to come: {days}" : "{n} of this week's sessions can't fit any more — still to come: {days}", { n: plan.lost, days: coming })
+        : tx(plan.lost === 1 ? "One of this week's sessions can't fit any more — a fresh week starts on Monday." : "{n} of this week's sessions can't fit any more — a fresh week starts on Monday.", { n: plan.lost })
+      : plan.shifted
+        ? tx("You missed a training day, so the rest of the week moved by a day: {days}", { days: list })
+        : null;
   if (!note && !canSkipToday) return null;
 
   return (

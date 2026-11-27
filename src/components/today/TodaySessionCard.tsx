@@ -10,6 +10,8 @@ import { Play, Clock, Sparkles, ChevronRight, BadgeCheck, CheckCircle2, Dices, R
 import { localizeDetail } from "@/lib/i18n/detail";
 import { plannedXp } from "@/lib/sessionXp";
 import TodayAdjustments from "@/components/TodayAdjustments";
+import ComebackNote from "@/components/today/ComebackNote";
+import type { Comeback } from "@/lib/comeback";
 import TodayReadiness from "@/components/TodayReadiness";
 import type { LighterWeek, Readiness } from "@/lib/readiness";
 import type { HabitualLength } from "@/lib/sessionLength";
@@ -29,6 +31,8 @@ export default function TodaySessionCard({
   onReadiness,
   lighterWeek = null,
   where,
+  comeback = null,
+  onChangeFocus,
   onStart,
   onResume,
 }: {
@@ -43,6 +47,8 @@ export default function TodaySessionCard({
   onReadiness?: (r: Readiness | null) => void;
   lighterWeek?: LighterWeek | null;
   where?: string; // where today's session is planned for ("Usual spot", "At home", a park)
+  comeback?: Comeback | null; // back after a break (comeback.ts)
+  onChangeFocus?: () => void; // the focus sheet, right here
   onStart: () => void;
   onResume: () => void;
 }) {
@@ -89,9 +95,15 @@ export default function TodaySessionCard({
     <section className="panel p-5 border-orange-500/40 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent">
       <div className="flex items-center justify-between gap-2 text-xs text-muted uppercase tracking-wide">
         <span>{tx("Today's session")}</span>
-        <Link href="/training" className="normal-case tracking-normal text-zinc-400 hover:text-orange-400">
-          {tx("Change focus")}
-        </Link>
+        {onChangeFocus ? (
+          <button type="button" onClick={onChangeFocus} className="min-h-11 -my-3 px-1 normal-case tracking-normal text-zinc-400 hover:text-orange-400">
+            {tx("Change focus")}
+          </button>
+        ) : (
+          <Link href="/training" className="normal-case tracking-normal text-zinc-400 hover:text-orange-400">
+            {tx("Change focus")}
+          </Link>
+        )}
       </div>
       <h2 className="heading text-3xl text-zinc-100 mt-1">{tx(focusLabel)}</h2>
       <div className="flex items-center gap-3 mt-1 text-sm">
@@ -109,8 +121,11 @@ export default function TodaySessionCard({
         </a>
       )}
 
+      {comeback && !doneToday && <ComebackNote comeback={comeback} className="mt-3" />}
+
       <TodayAdjustments
         why={session.why}
+        onPickFocus={onChangeFocus}
         lighterBy={lighterBy}
         usualLength={doneToday ? null : usualLength}
         onFullLength={onFullLength}
