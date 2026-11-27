@@ -34,21 +34,29 @@ export default function WeekStrip({ days, planned }: { days: StripDay[]; planned
               aria-label={`${new Date(d.dateISO + "T12:00:00").toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", { weekday: "long", day: "numeric", month: "long" })}: ${
                 d.done ? tx("trained") : d.planned ? tx("planned") : tx("rest")
               }${d.isToday ? ` (${tx("today")})` : ""}`}
+              // today filled, later planned days outlined: not two of the same ring
               className={`w-9 h-9 rounded-full flex items-center justify-center text-xs ${
                 d.done
                   ? "bg-emerald-500 text-zinc-950"
+                  : d.isToday
+                  ? "bg-orange-500 text-zinc-950 font-semibold"
                   : d.planned
                   ? d.isPast
                     ? "border border-dashed border-zinc-600 text-muted"
                     : "border-2 border-orange-500/60 text-zinc-300"
                   : "bg-zinc-800/60 text-muted"
-              } ${d.isToday ? "ring-2 ring-orange-400 ring-offset-2 ring-offset-zinc-900" : ""}`}
+              } ${d.isToday && d.done ? "ring-2 ring-orange-400 ring-offset-2 ring-offset-zinc-900" : ""}`}
             >
               {d.done ? <Check size={15} strokeWidth={3} /> : Number(d.dateISO.slice(8))}
             </span>
           </li>
         ))}
       </ol>
+      <p className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3 text-xs text-zinc-400" aria-hidden>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> {tx("trained")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> {tx("today")}</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full border-2 border-orange-500/60" /> {tx("planned")}</span>
+      </p>
     </section>
   );
 }

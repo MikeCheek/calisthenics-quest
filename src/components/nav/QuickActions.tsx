@@ -20,7 +20,8 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import { announceUrlChange } from "@/lib/featureMap";
 
 // pages where it would get in the way (the session page has its own start button)
-const HIDDEN_ON = ["/", "/it", "/onboarding", "/training", "/about", "/parks"];
+// (Today has its own start button too)
+const HIDDEN_ON = ["/", "/it", "/onboarding", "/training", "/dashboard", "/about", "/parks"];
 
 // A floating button that opens the things people do most, from anywhere.
 export default function QuickActions() {
@@ -34,6 +35,19 @@ export default function QuickActions() {
   const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setOpen(false), [pathname]);
+  // out of the way while you scroll down through a page, back when you scroll up
+  const [tucked, setTucked] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 8) return;
+      setTucked(y > last && y > 120);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -110,7 +124,10 @@ export default function QuickActions() {
         ref={box}
         id="quick-actions"
         aria-label={tx("Quick actions")}
-        className="fixed right-4 z-40 bottom-[calc(5rem+env(safe-area-inset-bottom))] sm:bottom-6 flex flex-col items-end gap-2"
+        // the sidebar has these on a wide screen
+        className={`lg:hidden fixed right-4 z-40 bottom-[calc(5rem+env(safe-area-inset-bottom))] sm:bottom-6 flex flex-col items-end gap-2 transition-transform duration-200 ${
+          tucked && !open ? "translate-y-[calc(100%+6rem)]" : ""
+        }`}
       >
         {open && (
           <ul

@@ -17,10 +17,10 @@ import TrainSwitcher from "@/components/TrainSwitcher";
 import { authedFetch } from "@/lib/apiClient";
 import PageLoading from "@/components/PageLoading";
 
+// today has its own tab (Session); the plan looks ahead
 const RANGE_OPTIONS: { value: PlanRange; label: string }[] = [
-  { value: "day", label: "Today" },
-  { value: "week", label: "This week" },
-  { value: "month", label: "This month" },
+  { value: "week", label: "Next 7 days" },
+  { value: "month", label: "Next 30 days" },
 ];
 
 function isToday(dateISO: string) {
@@ -72,7 +72,13 @@ export default function PlanPage() {
   const active = activeSportOf(userDoc);
   const sportTrack = isExtraSport(active) && userDoc?.sports?.[active] ? { id: active, track: userDoc.sports[active]! } : null;
   // a plan made for another sport is cleared when the sport changes
-  useEffect(() => setPlan([]), [active]);
+  // the plan is there as soon as you open the page (and follows the range
+  // and the sport); the AI coach's notes are an extra you ask for
+  const ready = !!userDoc;
+  useEffect(() => {
+    if (ready) handleGenerate(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, range, active]);
 
   // the weekdays and time you actually train (trainingHabits.ts), unless you picked days yourself
   const ownDays = !!userDoc?.body.trainingDaysOfWeek?.length;
@@ -80,7 +86,7 @@ export default function PlanPage() {
   const usualHour = userDoc ? habitHour(userDoc.trainTimes) : null;
   const body = userDoc && usualDays ? { ...userDoc.body, trainingDaysOfWeek: usualDays } : userDoc?.body;
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (withAI = useAI) => {
     if (!userDoc || !body) return;
     const newPlan = sportTrack
       ? generateSportPlan(SPORTS[sportTrack.id], sportTrack.track, body, userDoc.equipment, range)
@@ -102,7 +108,7 @@ export default function PlanPage() {
     setAiError(null);
     setAiStatus("idle");
 
-    if (useAI) {
+    if (withAI) {
       setAiStatus("loading");
       try {
         const res = await authedFetch("/api/plan-coach", {
@@ -190,7 +196,8 @@ export default function PlanPage() {
               <button
                 key={o.value}
                 onClick={() => setRange(o.value)}
-                className={`flex-1 py-2 rounded-lg text-sm border ${
+                aria-pressed={range === o.value}
+                className={`flex-1 min-h-11 rounded-lg text-sm border ${
                   range === o.value
                     ? "border-orange-500 bg-orange-500/10 text-zinc-100"
                     : "border-zinc-700 text-zinc-400"
@@ -201,22 +208,16 @@ export default function PlanPage() {
             ))}
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-zinc-300">
-            <input
-              type="checkbox"
-              checked={useAI}
-              onChange={(e) => setUseAI(e.target.checked)}
-              className="accent-orange-500 w-4 h-4"
-            />
-            <Sparkles size={14} className="text-orange-400" />
-            Add AI coach notes (optional)
-          </label>
-
           <button
-            onClick={handleGenerate}
-            className="w-full py-2.5 rounded-lg heading text-sm bg-orange-500 hover:bg-orange-400 text-zinc-950"
+            onClick={() => {
+              setUseAI(true);
+              handleGenerate(true);
+            }}
+            disabled={aiStatus === "loading"}
+            className="w-full min-h-11 rounded-lg text-sm border border-zinc-700 text-zinc-200 hover:border-orange-500 flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            Generate plan
+            <Sparkles size={15} className="text-orange-400" />
+            {tx(aiStatus === "done" ? "Ask the AI coach again" : "Add notes from the AI coach")}
           </button>
         </div>
 

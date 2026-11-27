@@ -11,7 +11,7 @@ export default function TrainSwitcher({ active }: { active: "today" | "week" }) 
     <Link
       href={href}
       aria-current={active === key ? "page" : undefined}
-      className={`flex-1 py-2 rounded-lg text-sm flex items-center justify-center gap-1.5 transition-colors ${
+      className={`flex-1 min-h-11 py-2 rounded-lg text-sm flex items-center justify-center gap-1.5 transition-colors ${
         active === key ? "bg-zinc-800 text-zinc-100 shadow" : "text-muted hover:text-zinc-300"
       }`}
     >

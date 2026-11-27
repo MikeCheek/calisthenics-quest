@@ -34,6 +34,9 @@ const LEVEL_CLASS: Record<number, string> = {
   4: "bg-emerald-400",
 };
 
+// the shade in words, for screen readers (and the tooltip)
+const LEVEL_NAME: Record<number, string> = { 0: "not started", 1: "just started", 2: "on the way", 3: "solid", 4: "far along" };
+
 export default function SkillWall({
   skills,
   mastery,
@@ -57,14 +60,15 @@ export default function SkillWall({
         {tx("Every skill, one square each — brighter means further into its progression and more solidly claimed. Tap a square for details.")}
       </p>
 
-      <div className="grid grid-cols-10 gap-1.5">
+      {/* six a row on a phone: squares big enough to tap */}
+      <div className="grid grid-cols-6 sm:grid-cols-10 gap-1.5">
         {ALL_SKILLS.map((skill) => {
           const level = intensity(skill, skills, mastery);
           return (
             <button
               key={skill}
               onClick={() => setActiveSkill(skill)}
-              aria-label={tx(SKILL_FIELD_LABEL[skill] ?? skill)}
+              aria-label={`${tx(SKILL_FIELD_LABEL[skill] ?? skill)}: ${tx(LEVEL_NAME[level])}`}
               className={`aspect-square rounded-sm ${LEVEL_CLASS[level]} hover:ring-1 hover:ring-orange-400 transition-shadow`}
             />
           );

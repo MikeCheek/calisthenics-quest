@@ -22,7 +22,7 @@ export default function SegmentedControl<T extends string>({
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`shrink-0 px-3 py-2 rounded-lg text-sm border whitespace-nowrap transition-colors ${
+            className={`shrink-0 px-3 py-2 [@media(pointer:coarse)]:min-h-11 rounded-lg text-sm border whitespace-nowrap transition-colors ${
               value === o.value
                 ? "border-orange-500 bg-orange-500/10 text-zinc-100"
                 : "border-zinc-700 text-zinc-400"

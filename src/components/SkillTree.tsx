@@ -82,6 +82,13 @@ export default function SkillTree({
         </section>
       )}
 
+      {/* what the stage pips' colours mean */}
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400" aria-hidden>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-2 rounded-full bg-emerald-500" /> {tx("done")}</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-2 rounded-full bg-orange-500" /> {tx("where you are")}</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-2 rounded-full bg-orange-500/25 ring-1 ring-orange-500/60" /> {tx("next")}</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-2 rounded-full bg-zinc-800" /> {tx("later")}</span>
+      </p>
       {SKILL_CATEGORIES.map((cat) => {
         const started = cat.skills.filter((s) => rec[s] !== "none");
         const untouched = cat.skills.filter((s) => rec[s] === "none");

@@ -23,7 +23,7 @@ const pause = () => new Promise((r) => setTimeout(r, 120)); // feel like a netwo
 
 // a brand-new user (not set up, nothing logged) in the "fresh" scenario
 const fresh = demoScenario("fresh");
-const firstUser = (): UserDoc => (fresh ? { ...demoUserDoc(), onboarded: false, totalSessionsCompleted: 0, xp: 0, streak: 0, xpHistory: [] } : demoUserDoc());
+const firstUser = (): UserDoc => (fresh ? { ...demoUserDoc(), onboarded: false, totalSessionsCompleted: 0, xp: 0, streak: 0, xpHistory: [], achievements: undefined } : demoUserDoc());
 
 const state = {
   users: new Map<string, UserDoc>([[DEMO_UID, firstUser()]]),
@@ -220,15 +220,29 @@ export async function updateSessionRecord(_uid: string, sessionId: string, field
   state.sessions = state.sessions.map((s) => (s.id === sessionId ? { ...s, ...clone(fields) } : s));
 }
 
-// a lively community for the month's event; your own part is added on top
-const demoEvent = new Map<string, number>();
+// a lively community for the month's event; your own part is added on top.
+// Kept like the card's own "already saved" note (localStorage), so the total
+// is the same on every page and after a reload.
+const EVENT_KEY = "barquests:demoEvent";
+const demoEvent = (): Record<string, number> => {
+  try {
+    return JSON.parse(localStorage.getItem(EVENT_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+};
 export async function setEventContribution(_eventKey: string, uid: string, value: number): Promise<void> {
-  demoEvent.set(uid, value);
+  try {
+    localStorage.setItem(EVENT_KEY, JSON.stringify({ ...demoEvent(), [uid]: value }));
+  } catch {
+    /* storage blocked: the total just leaves you out */
+  }
 }
 export async function fetchEventTotals(_eventKey: string): Promise<{ total: number; players: number }> {
   await pause();
-  const mine = [...demoEvent.values()].reduce((a, b) => a + b, 0);
-  return { total: 287 + mine, players: 41 + demoEvent.size };
+  const parts = Object.values(demoEvent());
+  const mine = parts.reduce((a, b) => a + b, 0);
+  return { total: 287 + mine, players: 41 + parts.length };
 }
 
 // demo mode never registers for push (no messaging); kept for the same API

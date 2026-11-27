@@ -94,7 +94,7 @@ export default function SportSwitcher({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={tx("Sport: {name} — change", { name: tx(meta.name) })}
-        className={`flex items-center gap-1.5 rounded-full border border-zinc-700 hover:border-orange-500 text-zinc-100 ${compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm"}`}
+        className={`flex items-center gap-1.5 rounded-full border border-zinc-700 hover:border-orange-500 text-zinc-100 ${compact ? "relative px-2 py-1 text-xs after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-['']" : "px-3 py-1.5 text-sm"}`}
       >
         <span aria-hidden>{meta.emoji}</span>
         <span className="truncate max-w-[7rem]">{tx(meta.name)}</span>

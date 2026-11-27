@@ -18,13 +18,23 @@ export const FEATURE_ICONS: Record<FeatureIcon, LucideIcon> = {
   handshake: Handshake, ruler: Ruler, dumbbell: Dumbbell, bell: Bell, globe: Globe, vibrate: Vibrate, shield: ShieldCheck, info: Info,
 };
 
+// Today's session (Today), the skill tree (Skills), train together (the same
+// place as Friends and nudges)
+const SIDEBAR_SKIP = new Set(["today", "skills", "together"]);
+
 // Every feature, grouped, with a search box. Used by the desktop sidebar
 // and the phone's "All features" sheet.
 export default function FeatureMenu({ onNavigate, compact = false }: { onNavigate?: () => void; compact?: boolean }) {
   const { tx } = useLanguage();
   const pathname = usePathname();
   const [q, setQ] = useState("");
-  const groups = useMemo(() => searchFeatures(q, tx), [q, tx]);
+  // the sidebar sits under the main tabs: what they already open isn't
+  // repeated there (a search still finds everything)
+  const groups = useMemo(() => {
+    const found = searchFeatures(q, tx);
+    if (!compact || q.trim()) return found;
+    return found.map((g) => ({ ...g, features: g.features.filter((f) => !SIDEBAR_SKIP.has(f.id)) })).filter((g) => g.features.length);
+  }, [q, tx, compact]);
   // where we are, kept fresh when a ?tab or #section changes on the same page
   const [where, setWhere] = useState({ search: "", hash: "" });
   useEffect(() => {

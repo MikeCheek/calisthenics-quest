@@ -30,7 +30,7 @@ import { useTrainingSession } from "@/context/TrainingSessionContext";
 import type { ExerciseFeedback } from "@/lib/types";
 import { Friend, DEFAULT_EQUIPMENT } from "@/lib/types";
 import { useToast } from "@/context/ToastContext";
-import { Copy, Users } from "lucide-react";
+import { ChevronRight, Copy, Users } from "lucide-react";
 import { fitSessionToMinutes } from "@/lib/sessionFit";
 import { useLanguage } from "@/context/LanguageContext";
 import SaveProgressPrompt from "@/components/SaveProgressPrompt";
@@ -328,30 +328,28 @@ function PairContent() {
         {!code && mode === "choose" && (
           <div>
             <div className="text-xs text-muted mb-2">
-              Or link up with anyone using a one-off code
+              {tx("Or link up with anyone using a one-off code")}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 onClick={handleCreate}
-                className="panel p-5 text-left hover:border-orange-500 border border-transparent"
+                className="panel p-5 text-left hover:border-orange-500 border border-zinc-700 flex items-center gap-3"
               >
-                <h2 className="heading text-lg text-zinc-100 mb-1">
-                  Create a code
-                </h2>
-                <div className="text-sm text-zinc-400">
-                  Generate a code from your profile and send it to anyone.
-                </div>
+                <span className="flex-1 min-w-0">
+                  <h2 className="heading text-lg text-zinc-100 mb-1">{tx("Create a code")}</h2>
+                  <span className="block text-sm text-zinc-400">{tx("Generate a code from your profile and send it to anyone.")}</span>
+                </span>
+                <ChevronRight size={18} className="text-zinc-400 shrink-0" aria-hidden />
               </button>
               <button
                 onClick={() => setMode("join")}
-                className="panel p-5 text-left hover:border-orange-500 border border-transparent"
+                className="panel p-5 text-left hover:border-orange-500 border border-zinc-700 flex items-center gap-3"
               >
-                <h2 className="heading text-lg text-zinc-100 mb-1">
-                  Join a code
-                </h2>
-                <div className="text-sm text-zinc-400">
-                  Enter a code someone shared to link up your session.
-                </div>
+                <span className="flex-1 min-w-0">
+                  <h2 className="heading text-lg text-zinc-100 mb-1">{tx("Join a code")}</h2>
+                  <span className="block text-sm text-zinc-400">{tx("Enter a code someone shared to link up your session.")}</span>
+                </span>
+                <ChevronRight size={18} className="text-zinc-400 shrink-0" aria-hidden />
               </button>
             </div>
           </div>

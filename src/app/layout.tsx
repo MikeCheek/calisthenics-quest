@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import ScrollFades from "@/components/ScrollFades";
 import ParkPrompt from "@/components/parks/ParkPrompt";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -96,6 +97,7 @@ export default function RootLayout({
                 <ReminderScheduler />
                 <PingsListener />
                 <AchievementWatcher />
+                <ScrollFades />
                 <OnlineStatus />
                 <StatusIcon />
                 <QuickActions />

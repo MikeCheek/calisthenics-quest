@@ -74,7 +74,7 @@ export function Difficulty({ value }: { value: number }) {
   const { tx } = useLanguage();
   const n = Math.max(1, Math.min(5, Math.round(value)));
   return (
-    <span className="flex items-center gap-0.5" role="img" aria-label={tx("Difficulty {n} of 5", { n })}>
+    <span className="flex items-center gap-0.5" role="img" aria-label={tx("Difficulty {n} of 5", { n })} title={tx("Difficulty {n} of 5", { n })}>
       {[1, 2, 3, 4, 5].map((i) => (
         <span key={i} className={`w-1.5 h-3 rounded-sm ${i <= n ? "bg-orange-400" : "bg-zinc-700"}`} />
       ))}
@@ -106,7 +106,7 @@ export default function ExerciseBrowser({ onPick, picked = [] }: { onPick?: (e: 
   useEffect(() => setShown(PAGE), [query, kind, area, mine]);
 
   const chip = (on: boolean) =>
-    `shrink-0 text-sm px-3 py-1.5 rounded-full border ${on ? "border-orange-500 bg-orange-500/15 text-orange-100" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`;
+    `shrink-0 text-sm px-3 py-1.5 [@media(pointer:coarse)]:min-h-11 rounded-full border ${on ? "border-orange-500 bg-orange-500/15 text-orange-100" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`;
 
   return (
     <div className="space-y-3">

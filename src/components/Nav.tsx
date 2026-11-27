@@ -36,14 +36,14 @@ export default function Nav() {
   return (
     <>
       {/* slim top bar — identity + quick level glance, not a primary nav on mobile */}
-      <header className="border-b border-zinc-800 bg-zinc-950">
-        <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+      <header id="top-bar" className="border-b border-zinc-800 bg-zinc-950">
+        <div className="max-w-5xl mx-auto px-4 py-1 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1">
             {/* every feature, one tap away (on large screens it's the sidebar) */}
             {userDoc && (
               <button
                 onClick={() => setMenuOpen(true)}
-                className="lg:hidden -ml-2 p-2 rounded-lg text-zinc-300 hover:text-orange-400"
+                className="lg:hidden -ml-2.5 w-11 h-11 flex items-center justify-center rounded-lg text-zinc-300 hover:text-orange-400"
                 aria-label={tx("All features")}
                 aria-haspopup="dialog"
               >
@@ -61,7 +61,7 @@ export default function Nav() {
           {progress && (
             <Link
               href="/skills"
-              className="text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2"
+              className="min-h-11 shrink-0 text-xs text-zinc-400 stat-mono hover:text-orange-400 flex items-center gap-2"
               aria-label={
                 tx("Level {n}", { n: progress.level }) +
                 (claims.total > 0 ? ` · ${tx("{a} of {b} skills verified", { a: claims.verified, b: claims.total })}` : "")
@@ -69,7 +69,8 @@ export default function Nav() {
             >
               <span>LV {progress.level}</span>
               {claims.total > 0 && (
-                <span className="flex items-center gap-0.5 text-emerald-400/90">
+                // on the narrowest phones the count stays in the label, not on screen
+                <span className="max-[399px]:hidden flex items-center gap-0.5 text-emerald-400/90">
                   <BadgeCheck size={12} aria-hidden="true" /> {claims.verified}/{claims.total}
                 </span>
               )}

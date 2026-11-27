@@ -145,33 +145,33 @@ export default function FriendsPanel({ onTrainTogether }: { onTrainTogether: (fr
         ) : (
           <ul className="space-y-2">
             {friends.map((f) => (
-              <li
-                key={f.uid}
-                className="flex items-center justify-between border border-zinc-700 rounded-lg px-3 py-2.5"
-              >
-                <Link href={`/friend/${f.uid}`} className="text-sm text-zinc-100 hover:text-orange-400 truncate mr-2">
-                  {f.displayName}
-                </Link>
-                <div className="flex items-center gap-1.5 shrink-0">
+              // the whole name on its own line, the actions under it at full size
+              <li key={f.uid} className="border border-zinc-700 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Link href={`/friend/${f.uid}`} className="min-h-11 flex items-center text-sm font-medium text-zinc-100 hover:text-orange-400 min-w-0 break-words">
+                    {f.displayName}
+                  </Link>
+                  <button
+                    onClick={() => handleRemove(f)}
+                    className="w-11 h-11 -mr-2 shrink-0 rounded-lg text-muted hover:text-red-400 flex items-center justify-center"
+                    aria-label={tx("Remove {name}", { name: f.displayName })}
+                  >
+                    <UserMinus size={16} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-1 mb-1">
                   <button
                     onClick={() => setNudging(f)}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center gap-1"
+                    className="min-h-11 text-sm px-3 rounded-lg border border-zinc-700 text-zinc-300 hover:border-orange-500 hover:text-zinc-100 flex items-center justify-center gap-1.5"
                   >
-                    <Zap size={12} className={nudged === f.uid ? "text-orange-400" : ""} />
+                    <Zap size={14} className={nudged === f.uid ? "text-orange-400" : ""} />
                     {nudged === f.uid ? tx("Sent!") : tx("Nudge")}
                   </button>
                   <button
                     onClick={() => onTrainTogether(f)}
-                    className="text-xs px-2.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-400 text-zinc-950"
+                    className="min-h-11 text-sm px-3 rounded-lg bg-orange-500/15 border border-orange-500/50 text-orange-200 hover:bg-orange-500/25 flex items-center justify-center gap-1.5"
                   >
                     {tx("Train together")}
-                  </button>
-                  <button
-                    onClick={() => handleRemove(f)}
-                    className="p-1.5 rounded-lg text-muted hover:text-red-400"
-                    aria-label={tx("Remove {name}", { name: f.displayName })}
-                  >
-                    <UserMinus size={14} />
                   </button>
                 </div>
               </li>

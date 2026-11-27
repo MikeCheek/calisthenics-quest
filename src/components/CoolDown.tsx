@@ -190,7 +190,8 @@ export function RestDayCard() {
       <p className="text-xs text-zinc-400 mt-3">
         {plan.stretches.length} {tx("moves")} · {plan.focus.map((m) => tx(MUSCLE_LABEL[m]).toLowerCase()).join(", ")}
       </p>
-      <button onClick={() => setOpen(true)} className="w-full mt-3 h-12 rounded-xl bg-violet-500 hover:bg-violet-400 text-zinc-950 text-base font-semibold flex items-center justify-center gap-2">
+      {/* a secondary action: on Today the session's Start is the main one */}
+      <button onClick={() => setOpen(true)} className="w-full mt-3 h-12 rounded-xl border border-violet-500/60 text-violet-200 hover:bg-violet-500/10 text-base font-semibold flex items-center justify-center gap-2">
         <Wind size={18} /> {tx("Start mobility")}
       </button>
       <CoolDownFlow plan={plan} open={open} onClose={() => setOpen(false)} title="Rest-day mobility" doneTitle="Mobility done" />
